@@ -1,0 +1,13 @@
+{
+        "sleep": 99999,
+        "SemLockKey": 10000,
+        "UserPrivFilePath": "/home/disp/src/conf/user_privilege.json",
+        "OutDispRouteFile": "/home/disp/src/conf/disp.json",
+        "Port": "8897",
+        "SocketSendLen": 8096,
+        "SocketRecvLen": 8096,
+        "SysMqID": 10002,
+        "SysMqMaxLen": 512,
+        "SysMqMaxNum":15000,
+	"heartbeat":240
+}

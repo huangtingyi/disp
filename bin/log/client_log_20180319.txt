@@ -1,0 +1,112 @@
+20180319012228 Info ../../network.c:_client_kernel_cb 2691 Begin
+20180319012228 Info ../../network.c:_reconnect_cb 2781 Begin
+20180319012228 Info ../../Client.cpp:_ProcessProClientMapDataUnitTimeout 453 Begin
+20180319012228 Info connect success, ID=0,ip=180.153.102.99,port=8888
+20180319012228 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.99 port:8888) succ id(0) reconnect(0)
+20180319012228 Info connect success, ID=1,ip=180.153.102.105,port=8709
+20180319012228 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.105 port:8709) succ id(1) reconnect(0)
+20180319012228 Info connect success, ID=2,ip=180.153.102.100,port=8705
+20180319012228 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.100 port:8705) succ id(2) reconnect(0)
+20180319012228 Info connect success, ID=3,ip=180.153.102.66,port=9705
+20180319012228 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.66 port:9705) succ id(3) reconnect(0)
+20180319012428 Info ../../network.c:_reconnect_cb 2781 Begin
+20180319012428 Info ../../network.c:_client_kernel_cb 2691 Begin
+20180319012428 Info ../../Client.cpp:_ProcessProClientMapDataUnitTimeout 453 Begin
+20180319012428 Info connect success, ID=0,ip=180.153.102.99,port=8888
+20180319012428 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.99 port:8888) succ id(0) reconnect(0)
+20180319012429 Info connect success, ID=1,ip=180.153.102.105,port=8709
+20180319012429 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.105 port:8709) succ id(1) reconnect(0)
+20180319012429 Info connect success, ID=2,ip=180.153.102.100,port=8705
+20180319012429 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.100 port:8705) succ id(2) reconnect(0)
+20180319012429 Info connect success, ID=3,ip=180.153.102.66,port=9705
+20180319012429 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.66 port:9705) succ id(3) reconnect(0)
+20180319012628 Error ID=0,ip=180.153.102.99,port=8888 closed, erorcode:0
+20180319012628 Info connect success, ID=4,ip=180.153.102.105,port=8709
+20180319012628 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.105 port:8709) succ id(4) reconnect(0)
+20180319012628 Info connect success, ID=5,ip=180.153.102.99,port=8888
+20180319012628 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.99 port:8888) succ id(5) reconnect(0)
+20180319012628 Info connect success, ID=6,ip=180.153.102.100,port=8705
+20180319012628 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.100 port:8705) succ id(6) reconnect(0)
+20180319012628 Info connect success, ID=7,ip=180.153.102.66,port=9705
+20180319012628 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.66 port:9705) succ id(7) reconnect(0)
+20180319012650 Info connect success, ID=8,ip=180.153.102.66,port=9705
+20180319012650 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.66 port:9705) succ id(8) reconnect(0)
+20180319012650 Info connect success, ID=9,ip=180.153.102.99,port=8888
+20180319012650 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.99 port:8888) succ id(9) reconnect(0)
+20180319012650 Info connect success, ID=10,ip=180.153.102.105,port=8709
+20180319012650 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.105 port:8709) succ id(10) reconnect(0)
+20180319012650 Info connect success, ID=11,ip=180.153.102.100,port=8705
+20180319012650 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.100 port:8705) succ id(11) reconnect(0)
+20180319012651 Error ID=1,ip=180.153.102.105,port=8709 closed, erorcode:9
+20180319012651 Error ID=2,ip=180.153.102.100,port=8705 closed, erorcode:9
+20180319012651 Error ID=3,ip=180.153.102.66,port=9705 closed, erorcode:9
+20180319012651 Error ID=4,ip=180.153.102.105,port=8709 closed, erorcode:9
+20180319012651 Error ID=5,ip=180.153.102.99,port=8888 closed, erorcode:9
+20180319012651 Error ID=6,ip=180.153.102.100,port=8705 closed, erorcode:9
+20180319012651 Error ID=7,ip=180.153.102.66,port=9705 closed, erorcode:9
+20180319012855 Info ../../network.c:_client_kernel_cb 2691 Begin
+20180319012855 Info ../../network.c:_reconnect_cb 2781 Begin
+20180319012855 Info ../../Client.cpp:_ProcessProClientMapDataUnitTimeout 453 Begin
+20180319012855 Info connect success, ID=0,ip=180.153.102.99,port=8888
+20180319012855 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.99 port:8888) succ id(0) reconnect(0)
+20180319012855 Info connect success, ID=1,ip=180.153.102.105,port=8709
+20180319012855 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.105 port:8709) succ id(1) reconnect(0)
+20180319012855 Info connect success, ID=2,ip=180.153.102.100,port=8705
+20180319012855 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.100 port:8705) succ id(2) reconnect(0)
+20180319012855 Info connect success, ID=3,ip=180.153.102.73,port=8705
+20180319012855 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.73 port:8705) succ id(3) reconnect(0)
+20180319013953 Info ../../network.c:_client_kernel_cb 2691 Begin
+20180319013953 Info ../../network.c:_reconnect_cb 2781 Begin
+20180319013953 Info ../../Client.cpp:_ProcessProClientMapDataUnitTimeout 453 Begin
+20180319013953 Info connect success, ID=0,ip=180.153.102.99,port=8888
+20180319013953 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.99 port:8888) succ id(0) reconnect(0)
+20180319013953 Info connect success, ID=1,ip=180.153.102.105,port=8709
+20180319013953 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.105 port:8709) succ id(1) reconnect(0)
+20180319013953 Info connect success, ID=2,ip=180.153.102.100,port=8705
+20180319013953 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.100 port:8705) succ id(2) reconnect(0)
+20180319013953 Info connect success, ID=3,ip=180.153.102.66,port=9705
+20180319013953 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.66 port:9705) succ id(3) reconnect(0)
+20180319014233 Info ../../network.c:_reconnect_cb 2781 Begin
+20180319014233 Info ../../network.c:_client_kernel_cb 2691 Begin
+20180319014233 Info ../../Client.cpp:_ProcessProClientMapDataUnitTimeout 453 Begin
+20180319014233 Info connect success, ID=0,ip=180.153.102.99,port=8888
+20180319014233 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.99 port:8888) succ id(0) reconnect(0)
+20180319014233 Info connect success, ID=1,ip=180.153.102.105,port=8709
+20180319014233 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.105 port:8709) succ id(1) reconnect(0)
+20180319014233 Info connect success, ID=2,ip=180.153.102.100,port=8705
+20180319014233 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.100 port:8705) succ id(2) reconnect(0)
+20180319014233 Info connect success, ID=3,ip=180.153.102.66,port=9705
+20180319014233 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.66 port:9705) succ id(3) reconnect(0)
+20180319020122 Info ../../network.c:_client_kernel_cb 2691 Begin
+20180319020122 Info ../../network.c:_reconnect_cb 2781 Begin
+20180319020122 Info ../../Client.cpp:_ProcessProClientMapDataUnitTimeout 453 Begin
+20180319020122 Info connect success, ID=0,ip=180.153.102.99,port=8888
+20180319020122 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.99 port:8888) succ id(0) reconnect(0)
+20180319020122 Info connect success, ID=1,ip=180.153.102.105,port=8709
+20180319020122 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.105 port:8709) succ id(1) reconnect(0)
+20180319020122 Info connect success, ID=2,ip=180.153.102.100,port=8705
+20180319020122 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.100 port:8705) succ id(2) reconnect(0)
+20180319020122 Info connect success, ID=3,ip=180.153.102.66,port=9705
+20180319020122 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.66 port:9705) succ id(3) reconnect(0)
+20180319020612 Info ../../network.c:_client_kernel_cb 2691 Begin
+20180319020612 Info ../../network.c:_reconnect_cb 2781 Begin
+20180319020612 Info ../../Client.cpp:_ProcessProClientMapDataUnitTimeout 453 Begin
+20180319020612 Info connect success, ID=0,ip=180.153.102.99,port=8888
+20180319020612 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.99 port:8888) succ id(0) reconnect(0)
+20180319020613 Info connect success, ID=1,ip=180.153.102.105,port=8709
+20180319020613 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.105 port:8709) succ id(1) reconnect(0)
+20180319020613 Info connect success, ID=2,ip=180.153.102.100,port=8705
+20180319020613 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.100 port:8705) succ id(2) reconnect(0)
+20180319020613 Info connect success, ID=3,ip=180.153.102.66,port=9705
+20180319020613 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.66 port:9705) succ id(3) reconnect(0)
+20180319020918 Info ../../network.c:_reconnect_cb 2781 Begin
+20180319020918 Info ../../network.c:_client_kernel_cb 2691 Begin
+20180319020918 Info ../../Client.cpp:_ProcessProClientMapDataUnitTimeout 453 Begin
+20180319020918 Info connect success, ID=0,ip=180.153.102.99,port=8888
+20180319020918 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.99 port:8888) succ id(0) reconnect(0)
+20180319020918 Info connect success, ID=1,ip=180.153.102.105,port=8709
+20180319020918 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.105 port:8709) succ id(1) reconnect(0)
+20180319020919 Info connect success, ID=2,ip=180.153.102.100,port=8705
+20180319020919 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.100 port:8705) succ id(2) reconnect(0)
+20180319020919 Info connect success, ID=3,ip=180.153.102.66,port=9705
+20180319020919 Info ../../network.c:add_connect 3292 add_connect(ip:180.153.102.66 port:9705) succ id(3) reconnect(0)
