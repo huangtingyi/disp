@@ -13,9 +13,6 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/typeof/typeof.hpp>
 #include <boost/bind.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
-
 #include <thread>
 #include <time.h>
 #include<sys/time.h>
@@ -25,11 +22,9 @@
 
 #include<signal.h>
 #include "TimerController.h"
-#include "MqMonitorMgr.h"
 
 using namespace std;
 using namespace boost::property_tree;
-using namespace boost;
 
 #define ERROR_TRANSPORT -1;
 #define SUCC 0
@@ -132,8 +127,6 @@ private:
 	void handleTimeOut();
 	void SetProcessSignal();
 	void GetSysDate(char sSysDate[]);
-	void startMonitorMq();
-	static void runMonitorMqThread(const int iMqid);
 public:
 	static bool m_bReadSysMq; //是否读取总控队列
 };

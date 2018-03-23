@@ -83,8 +83,9 @@ public:
 	void Deal_Message_SZSEL2_Transaction(SubData *subdata);
 	void Deal_Message_SZSEL2_Order(SubData *subdata);
 
-	IoService	*m_ios;
+
 private:
+	IoService	*m_ios;
 	FileNameSet m_fileSet;
 	int	m_iWriteFlag;	
 };

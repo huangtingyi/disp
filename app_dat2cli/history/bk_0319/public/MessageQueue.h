@@ -116,7 +116,7 @@ public:
 		return m_iBlock;
 	}
 	;
-	bool getMessageInfo(int& iMsqNum,int& iMsqTotal,int& iMsqKB,int& iMsqTotalKB,int& iPercent);
+
 	void setMaxNum(int maxnum);
 
 	//##ModelId=4314101B0393

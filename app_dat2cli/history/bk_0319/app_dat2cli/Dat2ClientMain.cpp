@@ -52,7 +52,7 @@ void disp_buf2(char *buf, int size)
 			printf("\n");
 		printf("%02X ", buf[i] & 0xff);
 	}
-	printf("\nbuf end\n\n");
+	printf("\nbuf end\n");
 }
 ;
 
@@ -215,7 +215,6 @@ int Dat2Client::diffTimeStr(char *curr_time_str, const char *last_time_str)
 
 int Dat2Client::run(int argc, char *argv[])
 {
-	SetProcessSignal();
 	for (int c; (c = getopt(argc, argv, "c:p:d:k:")) != EOF;){
 		switch (c)
 		{
@@ -308,7 +307,7 @@ int Dat2Client::run(int argc, char *argv[])
 				m_iPid = iDat2CliPid;
 				RecvCliSockRequestAndProcess();
 				kill(iDat2CliPid, SIGINT);
-				logout();
+
 				GetSysDate(sSysDate);
 				cout << "["<<sSysDate<<"]:"<<"receiveMsg-IP:"<<sDestIp<<" 断开链接"<<endl;
 				break;
@@ -329,7 +328,6 @@ int Dat2Client::run(int argc, char *argv[])
 			return 0;
 			break;
 		default:
-			//startMonitorMq();
 			g_pTcpSocket->Close();
 			break;
 		}
@@ -415,7 +413,7 @@ int Dat2Client::RecvMqAndDisp2Cli()
 	GetSysDate(sSysDate);
 	cout << "["<<sSysDate<<"]:"<< "sendMsg--------start----pid=" << getpid() << endl;
 #endif
-	int iRet = 0,iDataMqID = 0,iCount=0;
+	int iRet = 0,iDataMqID = 0;
 	string strRecv;
 
 	while (1){
@@ -485,14 +483,10 @@ int Dat2Client::RecvMqAndDisp2Cli()
 
 		while(num < msg_len){
 			if((iRet = g_pTcpSocket->write((data + num), msg_len - num))<0){
-				printf("write socket error count=%d.\n",iCount);
 				return ERROR_TRANSPORT;
 			}
 			num += iRet;
 		}
-		
-		if(((++iCount)%30000)==0)
-			printf("the mqid=%d\tprocessed count=%d.\n",m_poDataMQ->getSysID(),iCount);
 	}
 	return SUCC;
 }
@@ -579,7 +573,7 @@ void Dat2Client::dealCommand(string &msg)
 			m_pTimerController  = new TimerController(m_io,boost::bind(&Dat2Client::handleTimeOut,this),m_secHeartbeat*2);
 			//std::thread([this]{ m_io.run(); });
 			//std::thread trd(startIosThread,&m_io);
-			m_pThread = new std::thread(startIosThread,&m_io);
+			m_pThread = new thread(startIosThread,&m_io);
 			m_pThread->detach();
 		}
 		else{
@@ -813,6 +807,7 @@ int Dat2Client::writeDispJson()
 bool Dat2Client::isLogined(string sUserName)
 {
 	string str = "";
+	char sTmp[56] = { 0 };
 	bool bfound = false;
 
 	m_poDataLock->P();
@@ -877,13 +872,14 @@ void Dat2Client::handleTimeOut()
 	GetSysDate(sSysDate);
 	cout << "["<<sSysDate<<"]:"<<"Client TimeOut! Pid["<<getpid()<<"] will exit!"<<endl;
 	kill(m_iPid, SIGINT);
-	logout();
 	exit(0);
 }
 
 void Dat2Client::logout()
 {
 	string str = "";
+	char sTmp[56] = { 0 };
+	bool bfound = false;
 
 	m_poDataLock->P();
 
@@ -903,7 +899,7 @@ void Dat2Client::logout()
 			else
 			{
 				int iPid = p.get<int>("pid",0);
-				if (iPid != 0 && iPid!=getpid() && 0 == kill(iPid, 0)) //不存在
+				if (iPid != 0 && iPid!=getpid() && 0 != kill(iPid, 0)) //不存在
 				{
 					m_poDataLock->V();
 					return ;
@@ -926,30 +922,6 @@ void Dat2Client::GetSysDate(char sSysDate[])
 	sprintf(sSysDate,"%04d%02d%02d%02d%02d%02d",tim->tm_year+1900,tim->tm_mon+1,tim->tm_mday,
 	        tim->tm_hour,tim->tm_min,tim->tm_sec);
 }
-
-void Dat2Client::runMonitorMqThread(const int iMqid)
-{
-#ifdef DEBUG_ONE
-	cout<<"start monitor mq ID["<<iMqid<<"]"<<endl;
-#endif
-	MqMonitorMgr oMonitorMgr(iMqid);
-	oMonitorMgr.startMqmonitor();
-}
-
-void Dat2Client::startMonitorMq()
-{
-	static bool bInit = false;
-	if (bInit)
-		return;
-	bInit = true;
-	thread_group group;
-	for (auto it = m_mapPrivl.begin(); it != m_mapPrivl.end(); ++it)
-	{
-		group.create_thread(bind(&Dat2Client::runMonitorMqThread, it->second.m_iMqID));
-	}
-	//group.join_all();
-}
-
 int main(int argc, char *argv[])
 {
 	Dat2Client oTransMgr;

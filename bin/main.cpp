@@ -24,7 +24,10 @@
 
 #include "../GTA2TDF/GTA2TDF.h"
 
-int iDebugFlag=0,iWriteFlag=0;
+
+#include "../Common/public.h"
+
+int iDebugFlag=0,iWriteFlag=0,iDelayMilSec=100;
 char sCfgJsonName[1024],sDispName[1024],sPrivilegeFile[1024];
 
 /****
@@ -85,6 +88,15 @@ int WatchFileCloseWriteAndLock(char sFileName[])
 	}
 	return 0;
 }
+
+string strCodesSH,strCodesSZ;
+CallBackBase *pCallBack;
+IGTAQTSApiBase*pGtaApiBase;
+
+void *MainQryRunSz(void *);
+
+
+
 int main(int argc, char *argv[])
 {
 
@@ -92,7 +104,7 @@ int main(int argc, char *argv[])
 	strcpy(sDispName,	"./disp.json");
 	strcpy(sPrivilegeFile,	"./user_privilege.json");
 
-	for (int c; (c = getopt(argc, argv, "d:c:r:p:w:h:")) != EOF;){
+	for (int c; (c = getopt(argc, argv, "d:c:r:p:w:h:t")) != EOF;){
 
 		switch (c){
 		case 'd':
@@ -111,6 +123,9 @@ int main(int argc, char *argv[])
 			iWriteFlag=atoi(optarg);
 			if(iWriteFlag!=1&&iWriteFlag!=2) iWriteFlag=0;
 			break;
+		case 't':
+			iDelayMilSec=atoi(optarg);
+			break;
 		case '?':
 		default:
 			printf("Usage: %s \n", argv[0]);
@@ -119,6 +134,7 @@ int main(int argc, char *argv[])
 			printf("   [-p privilege-name ]\n");
 			printf("   [-d DebugFlag ]\n");
 			printf("   [-w (1,writegta,2 writetdf,other nowrite) ]\n");
+			printf("   [-t (query delay mil sec def=100ms) ]\n");
 			exit(1);
 			break;
 		}
@@ -213,53 +229,23 @@ int main(int argc, char *argv[])
 		}
 		printf("\n");
 
-		//************************************订阅行情数据***********************************************
-
 		// 按代码订阅深交所实时行情数据
 		//详见《国泰安实时行情系统V2.X 用户手册》4.1.1.8 订阅实时数据Subscribe 章节
-		string strCodesSH,strCodesSZ;
 		vSH.strForSub(strCodesSH);
 		vSZ.strForSub(strCodesSZ);
 
-		//上海L2集合竞价
-		ret = pApiBase->Subscribe(Msg_SSEL2_Auction, (char*)(strCodesSH.c_str()));
-		if (Ret_Success != ret) {
-			printf("Subscribe Msg_SSEL2_Auction code=%d\n",ret);
-			break;
-		}
+		//启动一个线程查询数据，并将数据加到工作线程中
+		pCallBack=	&CallbackBase;
+		pGtaApiBase=	pApiBase;		
 		
-		//上海L2实时行情
-		ret = pApiBase->Subscribe(Msg_SSEL2_Quotation, (char*)(strCodesSH.c_str()));
-		if (Ret_Success != ret) {
-			printf("Subscribe Msg_SSEL2_Quotation code=%d\n",ret);
-			break;
-		}
-		//上海L2实时交易
-		ret = pApiBase->Subscribe(Msg_SSEL2_Transaction, (char*)(strCodesSH.c_str()));
-		if (Ret_Success != ret) {
-			printf("Subscribe Msg_SSEL2_Transaction code=%d\n",ret);
-			break;
-		}
-		
-		//深圳L2实时行情
-		ret = pApiBase->Subscribe(Msg_SZSEL2_Quotation, (char*)(strCodesSZ.c_str()));
-		if (Ret_Success != ret) {
-			printf("Subscribe Msg_SZSEL2_Quotation code=%d\n",ret);
-			break;
-		}
-		//深圳L2实时交易
-		ret = pApiBase->Subscribe(Msg_SZSEL2_Transaction, (char*)(strCodesSZ.c_str()));
-		if (Ret_Success != ret) {
-			printf("Subscribe Msg_SZSEL2_Transaction code=%d\n",ret);
-			break;
-		}
-		//深圳L2逐笔委托
-		ret = pApiBase->Subscribe(Msg_SZSEL2_Order, (char*)(strCodesSZ.c_str()));
-		if (Ret_Success != ret) {
-			printf("Subscribe Msg_SZSEL2_Order code=%d\n",ret);
-			break;
-		}
+		pthread_t pthd;
+		pthread_attr_t attr;
 
+		pthread_attr_init(&attr);
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+		pthread_attr_setstacksize(&attr, 1024*512);
+		pthread_create(&pthd, NULL, MainQryRunSz, NULL);
+	
 	} 
 	while (false);
 	
@@ -285,4 +271,54 @@ int main(int argc, char *argv[])
 	IGTAQTSApiBase::ReleaseInstance(pApiBase);
 
 	return 0;
+}
+
+void *MainQryRunSz(void *)
+{
+
+	int ret;
+	// 深交所实时行情快照查询，快照数据通过Snap_Quotation结构返回
+	CDataBuffer<SZSEL2_Quotation> szSnap_Quotation;
+	
+	while(1){
+		
+		ret = pGtaApiBase->QuerySnap_SZSEL2_Quotation((char*)(strCodesSZ.c_str()), szSnap_Quotation);
+		if (Ret_Success != ret){
+			printf("Login error:%d\n", ret);
+			break;
+		}
+
+		if(iDebugFlag){
+			SZSEL2_Quotation* pSse;
+			if ((pSse = szSnap_Quotation) != NULL){
+				printf("QuerySnap_Base:Count = %d, LocalTimeStamp = %d, Symbol = %s, OpenPrice = %f, TotalAmount = %f\n",
+					szSnap_Quotation.Size(), pSse->LocalTimeStamp, pSse->Symbol, pSse->OpenPrice, pSse->TotalAmount);
+			}
+		}
+		
+		// 获取全部快照
+		for (int i = 0; i < szSnap_Quotation.Size(); ++i){
+
+			SZSEL2_Quotation& RealSZSEL2Quotation = szSnap_Quotation[i];
+			
+			UTIL_Time stTime;
+			PUTIL_GetLocalTime(&stTime);
+
+			//接收到数据后，先放入本地队列，等待数据处理接口处理
+			SubData *subdata = new SubData;
+			subdata->msgType = Msg_SZSEL2_Quotation;
+			subdata->cur_time = PUTIL_SystemTimeToDateTime(&stTime);
+			subdata->data.assign((const char*)&RealSZSEL2Quotation, sizeof(SZSEL2_Quotation));
+
+			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_SZSEL2_Quotation,pCallBack, subdata)));
+
+			pCallBack->m_ios->Post(task);
+		}
+
+		//休眠指定的时长
+		usleep(iDelayMilSec*1000);
+		
+		printf("hello world --------------------------------------------------.\n");
+	}
+	return NULL;
 }

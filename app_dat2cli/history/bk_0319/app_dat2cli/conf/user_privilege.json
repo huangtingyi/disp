@@ -1,0 +1,6 @@
+[
+	{ "ip":"127.0.0.1" ,"mqid":10010,"user":"user1" , "pswd":"pswd1", "privl":[12,13,14,15] },
+	{ "ip":"221.226.65.2" ,"mqid":10011,"user":"user2","pswd":"pswd2","privl":[12,13,14]},
+	{ "ip":"221.226.65.2" ,"mqid":10012,"user":"user3","pswd":"pswd3","privl":[13]},
+	{ "ip":"221.226.65.2" ,"mqid":10013,"user":"user4","pswd":"pswd4","privl":[15]}
+]

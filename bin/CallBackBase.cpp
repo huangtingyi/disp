@@ -271,7 +271,6 @@ void FlashUserArray(char sDispName[])
 	printf("hello world.--------------------------------------------5.8.\n");
 
 }
-int iSendCnt=0;
 int SendMsg2Mq(string &str,int iMqId)
 {
 	MessageQueue *mq=new MessageQueue(iMqId);
@@ -280,11 +279,8 @@ int SendMsg2Mq(string &str,int iMqId)
 	
 //	open(bool ifblock, bool ifcreate, int maxlen, int maxnum);
 
-	mq->open(false,false,512,15000);
-	if(mq->send(str,0)==str.length()) iSendCnt++;
-
-	if((iSendCnt%50000)==0)
-		printf("send count =%d.\n",iSendCnt);
+	mq->open(false,false,4096,1);
+	mq->send(str,0);
 	
 	delete mq;
 
@@ -308,7 +304,7 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 	}
 
 	/*取字节长度，并判断最大数值*/
-	len=str.length()+1; if(len>10230) len=10230;
+	len=str.length()+3; if(len>10230) len=10230;
 
 	l0=len%256;
 	l1=len/256;

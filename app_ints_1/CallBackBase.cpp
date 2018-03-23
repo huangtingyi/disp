@@ -146,24 +146,6 @@ void FlashUserArray(char sDispName[])
 	struct UserStruct **AUSER,*pTemp,**PPALL;
 
 	boost::property_tree::ptree tRoot,tMainRoot,t,t1,t2;
-	string user,mqid;
-
-/*读取disp.json文件,先检查一下格式是否完整，不完整就不刷新*/
-	try {
-		boost::property_tree::read_json(sDispName,tMainRoot);
-		tRoot=tMainRoot.get_child("users");
-		auto itmp=tRoot.begin();
-		
-		user = itmp->second.get<string>("user");
-		mqid = itmp->second.get<string>("mqid");
-		t1 = itmp->second.get_child("subscribed");
-		t2 = itmp->second.get_child("subcodes");
-	}
-	catch (...) {
-		printf("catch not full ------------------------.\n");
-		return;
-	}
-
 
 /*将映射表清空*/
 	for(i=0;i<MAX_STOCK_CODE;i++){
@@ -178,19 +160,39 @@ void FlashUserArray(char sDispName[])
 	DeleteUserList(POALL);
 	PMALL=PTALL=PQALL=POALL=NULL;
 
+	printf("hello world.--------------------------------------------5.\n");
+
+/*读取disp.json文件*/
+	boost::property_tree::read_json(sDispName,tMainRoot);
+		
+	tRoot=tMainRoot.get_child("users");
+
+	printf("hello world.--------------------------------------------5.5.\n");
+
+	string user,mqid;
+
 	for (auto it = tRoot.begin(); it != tRoot.end(); ++it) {
 
 		auto each = it->second;
 
+	printf("hello world.--------------------------------------------5.5.5.\n");
+
 		user = each.get<string>("user");
-		mqid = each.get<string>("mqid");
+		mqid = "20001";//each.get<string>("mqid");
+	printf("hello world.--------------------------------------------5.5.6.\n");
+
+		//mqid = each.get<string>("mqid");
 		t1 = each.get_child("subscribed");
 		t2 = each.get_child("subcodes");
+
+	printf("hello world.--------------------------------------------6,mqid=%s.\n",mqid.c_str());
 
                 iStockCode=-1;
 
 		for (auto it2 = t2.begin(); it2 != t2.end(); ++it2) {
 
+
+	printf("hello world.--------------------------------------------5.xxxx.\n");
 
 			iStockCode=it2->second.get_value<int>();
 
@@ -271,7 +273,6 @@ void FlashUserArray(char sDispName[])
 	printf("hello world.--------------------------------------------5.8.\n");
 
 }
-int iSendCnt=0;
 int SendMsg2Mq(string &str,int iMqId)
 {
 	MessageQueue *mq=new MessageQueue(iMqId);
@@ -280,11 +281,8 @@ int SendMsg2Mq(string &str,int iMqId)
 	
 //	open(bool ifblock, bool ifcreate, int maxlen, int maxnum);
 
-	mq->open(false,false,512,15000);
-	if(mq->send(str,0)==str.length()) iSendCnt++;
-
-	if((iSendCnt%50000)==0)
-		printf("send count =%d.\n",iSendCnt);
+	mq->open(false,false,4096,1);
+	mq->send(str,0);
 	
 	delete mq;
 
@@ -303,12 +301,13 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 	if(IsWorkThreadLock()){
 		
 		printf("hello world.--------------------------------------------4.\n");
+		usleep(1000000);
 		FlashUserArray(sFlashDispName);
 		UnLockWorkThread();
 	}
 
 	/*取字节长度，并判断最大数值*/
-	len=str.length()+1; if(len>10230) len=10230;
+	len=str.length()+3; if(len>10230) len=10230;
 
 	l0=len%256;
 	l1=len/256;
@@ -359,7 +358,7 @@ CallBackBase::CallBackBase(int iWriteFlag,string& strWork)
 		m_fileSet.fpGtaOz=	fopen(m_fileSet.gtaozName.c_str(),"ab+");
 
 	}
-	else if(iWriteFlag==2){
+	else if(m_iWriteFlag==2){
 		m_fileSet.tdfmktName=	strWork+"/tdf_mkt.dat";
 		m_fileSet.tdfqueName=	strWork+"/tdf_que.dat";
 		m_fileSet.tdftraName=	strWork+"/tdf_tra.dat";

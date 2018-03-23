@@ -42,10 +42,10 @@ EQUALS = =
 CMAKE_EDIT_COMMAND = /usr/bin/ccmake
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/hty/src/app_dat2cli
+CMAKE_SOURCE_DIR = /home/disp/src/app_dat2cli
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/hty/src/app_dat2cli
+CMAKE_BINARY_DIR = /home/disp/src/app_dat2cli
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -72,9 +72,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/hty/src/app_dat2cli/CMakeFiles /home/hty/src/app_dat2cli/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/disp/src/app_dat2cli/CMakeFiles /home/disp/src/app_dat2cli/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/hty/src/app_dat2cli/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/disp/src/app_dat2cli/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -130,64 +130,64 @@ Dat2ClientMain.s:
 .PHONY : Dat2ClientMain.s
 
 # target to build an object file
-home/hty/src/public/CSemaphore.o:
-	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/hty/src/public/CSemaphore.o
-.PHONY : home/hty/src/public/CSemaphore.o
+home/disp/src/public/CSemaphore.o:
+	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/disp/src/public/CSemaphore.o
+.PHONY : home/disp/src/public/CSemaphore.o
 
 # target to preprocess a source file
-home/hty/src/public/CSemaphore.i:
-	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/hty/src/public/CSemaphore.i
-.PHONY : home/hty/src/public/CSemaphore.i
+home/disp/src/public/CSemaphore.i:
+	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/disp/src/public/CSemaphore.i
+.PHONY : home/disp/src/public/CSemaphore.i
 
 # target to generate assembly for a file
-home/hty/src/public/CSemaphore.s:
-	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/hty/src/public/CSemaphore.s
-.PHONY : home/hty/src/public/CSemaphore.s
+home/disp/src/public/CSemaphore.s:
+	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/disp/src/public/CSemaphore.s
+.PHONY : home/disp/src/public/CSemaphore.s
 
 # target to build an object file
-home/hty/src/public/MessageQueue.o:
-	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/hty/src/public/MessageQueue.o
-.PHONY : home/hty/src/public/MessageQueue.o
+home/disp/src/public/MessageQueue.o:
+	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/disp/src/public/MessageQueue.o
+.PHONY : home/disp/src/public/MessageQueue.o
 
 # target to preprocess a source file
-home/hty/src/public/MessageQueue.i:
-	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/hty/src/public/MessageQueue.i
-.PHONY : home/hty/src/public/MessageQueue.i
+home/disp/src/public/MessageQueue.i:
+	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/disp/src/public/MessageQueue.i
+.PHONY : home/disp/src/public/MessageQueue.i
 
 # target to generate assembly for a file
-home/hty/src/public/MessageQueue.s:
-	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/hty/src/public/MessageQueue.s
-.PHONY : home/hty/src/public/MessageQueue.s
+home/disp/src/public/MessageQueue.s:
+	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/disp/src/public/MessageQueue.s
+.PHONY : home/disp/src/public/MessageQueue.s
 
 # target to build an object file
-home/hty/src/public/TcpSocket.o:
-	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/hty/src/public/TcpSocket.o
-.PHONY : home/hty/src/public/TcpSocket.o
+home/disp/src/public/TcpSocket.o:
+	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/disp/src/public/TcpSocket.o
+.PHONY : home/disp/src/public/TcpSocket.o
 
 # target to preprocess a source file
-home/hty/src/public/TcpSocket.i:
-	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/hty/src/public/TcpSocket.i
-.PHONY : home/hty/src/public/TcpSocket.i
+home/disp/src/public/TcpSocket.i:
+	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/disp/src/public/TcpSocket.i
+.PHONY : home/disp/src/public/TcpSocket.i
 
 # target to generate assembly for a file
-home/hty/src/public/TcpSocket.s:
-	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/hty/src/public/TcpSocket.s
-.PHONY : home/hty/src/public/TcpSocket.s
+home/disp/src/public/TcpSocket.s:
+	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/disp/src/public/TcpSocket.s
+.PHONY : home/disp/src/public/TcpSocket.s
 
 # target to build an object file
-home/hty/src/public/mktdata.pb.o:
-	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/hty/src/public/mktdata.pb.o
-.PHONY : home/hty/src/public/mktdata.pb.o
+home/disp/src/public/mktdata.pb.o:
+	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/disp/src/public/mktdata.pb.o
+.PHONY : home/disp/src/public/mktdata.pb.o
 
 # target to preprocess a source file
-home/hty/src/public/mktdata.pb.i:
-	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/hty/src/public/mktdata.pb.i
-.PHONY : home/hty/src/public/mktdata.pb.i
+home/disp/src/public/mktdata.pb.i:
+	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/disp/src/public/mktdata.pb.i
+.PHONY : home/disp/src/public/mktdata.pb.i
 
 # target to generate assembly for a file
-home/hty/src/public/mktdata.pb.s:
-	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/hty/src/public/mktdata.pb.s
-.PHONY : home/hty/src/public/mktdata.pb.s
+home/disp/src/public/mktdata.pb.s:
+	$(MAKE) -f CMakeFiles/dat2cli.dir/build.make CMakeFiles/dat2cli.dir/home/disp/src/public/mktdata.pb.s
+.PHONY : home/disp/src/public/mktdata.pb.s
 
 # Help Target
 help:
@@ -201,18 +201,18 @@ help:
 	@echo "... Dat2ClientMain.o"
 	@echo "... Dat2ClientMain.i"
 	@echo "... Dat2ClientMain.s"
-	@echo "... home/hty/src/public/CSemaphore.o"
-	@echo "... home/hty/src/public/CSemaphore.i"
-	@echo "... home/hty/src/public/CSemaphore.s"
-	@echo "... home/hty/src/public/MessageQueue.o"
-	@echo "... home/hty/src/public/MessageQueue.i"
-	@echo "... home/hty/src/public/MessageQueue.s"
-	@echo "... home/hty/src/public/TcpSocket.o"
-	@echo "... home/hty/src/public/TcpSocket.i"
-	@echo "... home/hty/src/public/TcpSocket.s"
-	@echo "... home/hty/src/public/mktdata.pb.o"
-	@echo "... home/hty/src/public/mktdata.pb.i"
-	@echo "... home/hty/src/public/mktdata.pb.s"
+	@echo "... home/disp/src/public/CSemaphore.o"
+	@echo "... home/disp/src/public/CSemaphore.i"
+	@echo "... home/disp/src/public/CSemaphore.s"
+	@echo "... home/disp/src/public/MessageQueue.o"
+	@echo "... home/disp/src/public/MessageQueue.i"
+	@echo "... home/disp/src/public/MessageQueue.s"
+	@echo "... home/disp/src/public/TcpSocket.o"
+	@echo "... home/disp/src/public/TcpSocket.i"
+	@echo "... home/disp/src/public/TcpSocket.s"
+	@echo "... home/disp/src/public/mktdata.pb.o"
+	@echo "... home/disp/src/public/mktdata.pb.i"
+	@echo "... home/disp/src/public/mktdata.pb.s"
 .PHONY : help
 
 
