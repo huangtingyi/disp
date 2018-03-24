@@ -1,1 +1,0 @@
-/home/disp/src/app_dat2cli/CMakeFiles/dat2cli.dir
