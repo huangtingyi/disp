@@ -1,3 +1,4 @@
 /bin/\*
+!/bin/.gitignore
 *.o
 *.log
