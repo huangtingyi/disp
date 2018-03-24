@@ -125,17 +125,23 @@ int main(int argc, char *argv[])
 	}
 
 	//初始化刷新数组，以及刷新文件名的全局变量
-	InitUserArray(sDispName);
+	InitUserArray(sDispName,&R);
 
 	uint16_t port;
 	string host,id,passwd,strWork;
 	boost::property_tree::ptree tRoot,t;
-	boost::property_tree::read_json(sCfgJsonName,tRoot);
-
-	t 	= tRoot.get_child("gta_server");
-	strWork	= tRoot.get<string>("workroot");	
-	id 	= tRoot.get<string>("id");
-	passwd 	= tRoot.get<string>("passwd");
+	
+	try{
+		boost::property_tree::read_json(sCfgJsonName,tRoot);
+		t 	= tRoot.get_child("gta_server");
+		strWork	= tRoot.get<string>("workroot");	
+		id 	= tRoot.get<string>("id");
+		passwd 	= tRoot.get<string>("passwd");
+	}
+	catch (...) {
+		printf("文件 %s 不存在或格式非法.\n",sCfgJsonName);
+		exit(1);
+	}
 
 	IoService	ios;
 	//订阅消息回调类

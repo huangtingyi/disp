@@ -124,6 +124,8 @@ public:
 	{
 		E_PERM = 1, E_NOENT, E_INVAL, E_EXIST, E_NOMEM, E_SYS, E_NOMSG, E_INTR, E_CLOSE, E_FULL, E_UNKNW
 	};
+	//原始十进制KEY，2018-03-24
+	int m_oriKey;
 private:
 	//##ModelId=4314101D006D
 	bool _open();

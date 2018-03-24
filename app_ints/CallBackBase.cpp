@@ -105,29 +105,69 @@ void TDF_ORDER_QUEUE2Order_queue(Order_queue &output, const TDF_ORDER_QUEUE&src)
 
 #define MAX_USER_NAME_LEN 64
 #define MAX_STOCK_CODE	1000000
+#define MAX_CLIENT_CNT 1024
 
 struct UserStruct
 {
 	struct UserStruct *pNext;
 	char sUserName[MAX_USER_NAME_LEN];
 	int iMqId;
+	int iMqPos;
 };
 
-char sFlashDispName[1024];
-struct UserStruct *AMUSER[MAX_STOCK_CODE],*ATUSER[MAX_STOCK_CODE];
-struct UserStruct *AQUSER[MAX_STOCK_CODE],*AOUSER[MAX_STOCK_CODE];
-struct UserStruct *PMALL,*PTALL,*PQALL,*POALL;
 
-void InitUserArray(char sDispName[])
+struct DispRuleStruct
+{
+	struct UserStruct *PMALL;
+	struct UserStruct *PTALL;
+	struct UserStruct *PQALL;
+	struct UserStruct *POALL;
+	struct UserStruct *AMUSER[MAX_STOCK_CODE];
+	struct UserStruct *ATUSER[MAX_STOCK_CODE];
+	struct UserStruct *AQUSER[MAX_STOCK_CODE];
+	struct UserStruct *AOUSER[MAX_STOCK_CODE];
+};
+
+struct DispRuleStruct R;
+char sFlashDispName[1024];
+
+int iMaxMqCnt=0;
+MessageQueue *ARRAY_MQ[MAX_CLIENT_CNT];
+
+MessageQueue *GetMqArray(int iMqId,int *pIndex)
+{
+	MessageQueue *p;
+	
+	*pIndex=-1;
+
+	for(int i=0;i<iMaxMqCnt;i++){
+		p=ARRAY_MQ[i];
+		if(iMqId==p->m_oriKey){
+			*pIndex=i;
+			return p;
+		}
+	}
+	return NULL;
+}
+int AddMqArray(MessageQueue *q)
+{
+	int iPos=iMaxMqCnt;
+
+	ARRAY_MQ[iPos]=q;
+
+	iMaxMqCnt++;
+	return iPos;
+}
+void InitUserArray(char sDispName[],struct DispRuleStruct *p)
 {
 /*将映射表清空*/
 	for(int i=0;i<MAX_STOCK_CODE;i++){
-		AMUSER[i]=NULL;
-		ATUSER[i]=NULL;
-		AQUSER[i]=NULL;
-		AOUSER[i]=NULL;
+		p->AMUSER[i]=NULL;
+		p->ATUSER[i]=NULL;
+		p->AQUSER[i]=NULL;
+		p->AOUSER[i]=NULL;
 	}
-	PMALL=PTALL=PQALL=POALL=NULL;
+	p->PMALL=p->PTALL=p->PQALL=p->POALL=NULL;
 	strcpy(sFlashDispName,sDispName);
 }
 void DeleteUserList(struct UserStruct *ptHead)
@@ -139,77 +179,97 @@ void DeleteUserList(struct UserStruct *ptHead)
 		delete pTemp;
 	}
 }
-void FlashUserArray(char sDispName[])
+void AssignDispRule(struct DispRuleStruct *p,struct DispRuleStruct *pi)
 {
-	int i=0,iSubscribed,iStockCode;
+	for(int i=0;i<MAX_STOCK_CODE;i++){
+		DeleteUserList(p->AMUSER[i]);p->AMUSER[i]=pi->AMUSER[i];
+		DeleteUserList(p->ATUSER[i]);p->ATUSER[i]=pi->ATUSER[i];
+		DeleteUserList(p->AQUSER[i]);p->AQUSER[i]=pi->AQUSER[i];
+		DeleteUserList(p->AOUSER[i]);p->AOUSER[i]=pi->AOUSER[i];
+	}
+	DeleteUserList(p->PMALL);p->PMALL=pi->PMALL;
+	DeleteUserList(p->PTALL);p->PTALL=pi->PTALL;
+	DeleteUserList(p->PQALL);p->PQALL=pi->PQALL;
+	DeleteUserList(p->POALL);p->POALL=pi->POALL;
 
+}
+void FreeDispRule(struct DispRuleStruct *p)
+{
+	for(int i=0;i<MAX_STOCK_CODE;i++){
+		DeleteUserList(p->AMUSER[i]); p->AMUSER[i]=NULL;
+		DeleteUserList(p->ATUSER[i]); p->ATUSER[i]=NULL;
+		DeleteUserList(p->AQUSER[i]); p->AQUSER[i]=NULL;
+		DeleteUserList(p->AOUSER[i]); p->AOUSER[i]=NULL;
+	}
+	DeleteUserList(p->PMALL);  p->PMALL=NULL;
+	DeleteUserList(p->PTALL);  p->PTALL=NULL;
+	DeleteUserList(p->PQALL);  p->PQALL=NULL;
+	DeleteUserList(p->POALL);  p->POALL=NULL;
+
+}
+void FlashUserArray(char sDispName[],struct DispRuleStruct *p)
+{
+	int iSubscribed,iStockCode;
 	struct UserStruct **AUSER,*pTemp,**PPALL;
+	
+	struct DispRuleStruct T;
 
-	boost::property_tree::ptree tRoot,tMainRoot,t,t1,t2;
+	boost::property_tree::ptree tRoot,tMainRoot,t,tSubscribed,tSubcodes;
 	string user,mqid;
 
 /*读取disp.json文件,先检查一下格式是否完整，不完整就不刷新*/
 	try {
 		boost::property_tree::read_json(sDispName,tMainRoot);
 		tRoot=tMainRoot.get_child("users");
-		auto itmp=tRoot.begin();
-		
-		user = itmp->second.get<string>("user");
-		mqid = itmp->second.get<string>("mqid");
-		t1 = itmp->second.get_child("subscribed");
-		t2 = itmp->second.get_child("subcodes");
 	}
 	catch (...) {
 		printf("catch not full ------------------------.\n");
 		return;
 	}
 
-
 /*将映射表清空*/
-	for(i=0;i<MAX_STOCK_CODE;i++){
-		DeleteUserList(AMUSER[i]);AMUSER[i]=NULL;
-		DeleteUserList(ATUSER[i]);ATUSER[i]=NULL;
-		DeleteUserList(AQUSER[i]);AQUSER[i]=NULL;
-		DeleteUserList(AOUSER[i]);AOUSER[i]=NULL;
-	}
-	DeleteUserList(PMALL);
-	DeleteUserList(PTALL);
-	DeleteUserList(PQALL);
-	DeleteUserList(POALL);
-	PMALL=PTALL=PQALL=POALL=NULL;
-
+	
+	InitUserArray(sFlashDispName,&T);
+	
 	for (auto it = tRoot.begin(); it != tRoot.end(); ++it) {
 
 		auto each = it->second;
 
-		user = each.get<string>("user");
-		mqid = each.get<string>("mqid");
-		t1 = each.get_child("subscribed");
-		t2 = each.get_child("subcodes");
+		try{
+			user = 	each.get<string>("user");
+			mqid =	each.get<string>("mqid");
+			tSubscribed = each.get_child("subscribed");
+			tSubcodes = each.get_child("subcodes");
+		}
+		catch (...){ 
+			//如果某个用户信息不全，则认为这个用户为没有订购  
+			continue;
+		}
 
                 iStockCode=-1;
 
-		for (auto it2 = t2.begin(); it2 != t2.end(); ++it2) {
+		for (auto i = tSubcodes.begin(); i != tSubcodes.end(); ++i) {
 
 
-			iStockCode=it2->second.get_value<int>();
+			iStockCode=i->second.get_value<int>();
 
-			/*过滤无效的代码*/
+			/*过滤无效的证券代码*/
 			if(iStockCode<=0||iStockCode>MAX_STOCK_CODE) continue;
 
-			for (auto it1 = t1.begin(); it1 != t1.end(); ++it1) {
+			for (auto j = tSubscribed.begin(); j != tSubscribed.end(); ++j) {
 
-				iSubscribed=it1->second.get_value<int>();
+				iSubscribed=j->second.get_value<int>();
 
 				switch(iSubscribed){
-				case 12:AUSER=&AMUSER[0];break;
-				case 13:AUSER=&ATUSER[0];break;
-				case 14:AUSER=&AQUSER[0];break;
-				case 15:AUSER=&AOUSER[0];break;
+				case 12:AUSER=&T.AMUSER[0];break;
+				case 13:AUSER=&T.ATUSER[0];break;
+				case 14:AUSER=&T.AQUSER[0];break;
+				case 15:AUSER=&T.AOUSER[0];break;
 				default:AUSER=NULL;
 				break;
 				}
-				if(AUSER==NULL)break;
+				//过滤有效订购代码
+				if(AUSER==NULL)continue;
 
 				pTemp=new (struct UserStruct);
 
@@ -224,7 +284,7 @@ void FlashUserArray(char sDispName[])
 
 				pTemp->iMqId=	atoi(mqid.c_str());
 
-
+				pTemp->iMqPos=-1;
 				/*插入到表中*/
 				pTemp->pNext=AUSER[iStockCode];
 				AUSER[iStockCode]=pTemp;
@@ -233,20 +293,21 @@ void FlashUserArray(char sDispName[])
 
                 if(iStockCode==-1){
 
-			for (auto it1 = t1.begin(); it1 != t1.end(); ++it1) {
+			for (auto i = tSubscribed.begin(); i != tSubscribed.end(); ++i) {
 
-				iSubscribed=it1->second.get_value<int>();
+				iSubscribed=i->second.get_value<int>();
 
 	printf("hello world.--------------------------------------------5.yyyy.\n");
 
 				switch(iSubscribed){
-				case 12:PPALL=&PMALL;break;
-				case 13:PPALL=&PTALL;break;
-				case 14:PPALL=&PQALL;break;
-				case 15:PPALL=&POALL;break;
+				case 12:PPALL=&T.PMALL;break;
+				case 13:PPALL=&T.PTALL;break;
+				case 14:PPALL=&T.PQALL;break;
+				case 15:PPALL=&T.POALL;break;
 				default:PPALL=NULL;
 				}
-				if(PPALL==NULL)break;
+				//过滤无效订购代码
+				if(PPALL==NULL)continue;
 
 				pTemp=new (struct UserStruct);
 
@@ -260,6 +321,7 @@ void FlashUserArray(char sDispName[])
 				pTemp->sUserName[sizeof(pTemp->sUserName)-1]=0;
 
 				pTemp->iMqId=	atoi(mqid.c_str());
+				pTemp->iMqPos=-1;
 
 				/*插入到表中*/
 				pTemp->pNext=*PPALL;
@@ -268,25 +330,37 @@ void FlashUserArray(char sDispName[])
                 }
 
 	}
+	
+	AssignDispRule(p,&T);
+
 	printf("hello world.--------------------------------------------5.8.\n");
 
 }
 int iSendCnt=0;
-int SendMsg2Mq(string &str,int iMqId)
+int SendMsg2Mq(string &str,struct UserStruct *pCli)
 {
-	MessageQueue *mq=new MessageQueue(iMqId);
+	MessageQueue *mq;
 	
-	if(mq==NULL) return -1;
-	
-//	open(bool ifblock, bool ifcreate, int maxlen, int maxnum);
+	if(pCli->iMqPos==-1){//如果没有MQ地址则到缓存中找
+		
+		if((mq=GetMqArray(pCli->iMqId,&pCli->iMqPos))==NULL){
+			
+			//若缓存中没有这个MQ，则NEW一个并OPEN它，保存到缓存里面
+			if((mq=new MessageQueue(pCli->iMqId))==NULL){
+				printf("new MessageQueue error.\n");
+				exit(1);
+			}
+			mq->open(false,false,512,15000);
+			pCli->iMqPos=AddMqArray(mq);
+		}
+	}
+	else
+		mq=	ARRAY_MQ[pCli->iMqPos];
 
-	mq->open(false,false,512,15000);
-	if(mq->send(str,0)==str.length()) iSendCnt++;
+	if(mq->send(str,0)==(int)(str.length())) iSendCnt++;
 
 	if((iSendCnt%50000)==0)
 		printf("send count =%d.\n",iSendCnt);
-	
-	delete mq;
 
 	return 0;
 }
@@ -303,25 +377,24 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 	if(IsWorkThreadLock()){
 		
 		printf("hello world.--------------------------------------------4.\n");
-		FlashUserArray(sFlashDispName);
+		FlashUserArray(sFlashDispName,&R);
 		UnLockWorkThread();
 	}
 
 	/*取字节长度，并判断最大数值*/
 	len=str.length()+1; if(len>10230) len=10230;
 
-	l0=len%256;
-	l1=len/256;
+	l0=len%256;l1=len/256;
 
 	((unsigned char*)sBuffer)[0]=l1;
 	((unsigned char*)sBuffer)[1]=l0;
 
 	switch (cType){
-	case 'M': pUser=AMUSER[iStockCode];pAll=PMALL;sBuffer[2]=12;break;
-	case 'T': pUser=ATUSER[iStockCode];pAll=PTALL;sBuffer[2]=13;break;
-	case 'Q': pUser=AQUSER[iStockCode];pAll=PQALL;sBuffer[2]=14;break;
-	case 'O': pUser=AOUSER[iStockCode];pAll=POALL;sBuffer[2]=15;break;
-	default:  pUser=AQUSER[iStockCode];pAll=PQALL;sBuffer[2]=14;break;
+	case 'M': pUser=R.AMUSER[iStockCode];pAll=R.PMALL;sBuffer[2]=12;break;
+	case 'T': pUser=R.ATUSER[iStockCode];pAll=R.PTALL;sBuffer[2]=13;break;
+	case 'Q': pUser=R.AQUSER[iStockCode];pAll=R.PQALL;sBuffer[2]=14;break;
+	case 'O': pUser=R.AOUSER[iStockCode];pAll=R.POALL;sBuffer[2]=15;break;
+	default:  pUser=R.AQUSER[iStockCode];pAll=R.PQALL;sBuffer[2]=14;break;
 	break;
 	}
 
@@ -330,12 +403,12 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 //	strncpy(sBuffer+3,str.c_str(),str.length());
 
 	while(pUser!=NULL){
-		SendMsg2Mq(str1,pUser->iMqId);
+		SendMsg2Mq(str1,pUser);
 		pUser=pUser->pNext;
 	}
 
 	while(pAll!=NULL){
-		SendMsg2Mq(str1,pAll->iMqId);
+		SendMsg2Mq(str1,pAll);
 		pAll=pAll->pNext;
 	}
 }

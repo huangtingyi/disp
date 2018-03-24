@@ -365,6 +365,8 @@ int MessageQueue::getMessageNumber()
 //##ModelId=4314101D0067
 MessageQueue::MessageQueue(int key)
 {
+	//增加原始的key信息，2018-03-24
+	m_oriKey= key;
 
 	m_iSysMQID = -1;
 	m_iMaxNum = 0;
