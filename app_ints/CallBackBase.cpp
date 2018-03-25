@@ -128,8 +128,8 @@ struct DispRuleStruct
 	struct UserStruct *AOUSER[MAX_STOCK_CODE];
 };
 
-struct DispRuleStruct R;
-char sFlashDispName[1024];
+struct DispRuleStruct R,T;
+char sRefreshDispName[1024];
 
 int iMaxMqCnt=0;
 MessageQueue *ARRAY_MQ[MAX_CLIENT_CNT];
@@ -168,7 +168,7 @@ void InitUserArray(char sDispName[],struct DispRuleStruct *p)
 		p->AOUSER[i]=NULL;
 	}
 	p->PMALL=p->PTALL=p->PQALL=p->POALL=NULL;
-	strcpy(sFlashDispName,sDispName);
+	strcpy(sRefreshDispName,sDispName);
 }
 void DeleteUserList(struct UserStruct *ptHead)
 {
@@ -207,12 +207,10 @@ void FreeDispRule(struct DispRuleStruct *p)
 	DeleteUserList(p->POALL);  p->POALL=NULL;
 
 }
-void FlashUserArray(char sDispName[],struct DispRuleStruct *p)
+void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 {
 	int iSubscribed,iStockCode;
 	struct UserStruct **AUSER,*pTemp,**PPALL;
-	
-	struct DispRuleStruct T;
 
 	boost::property_tree::ptree tRoot,tMainRoot,t,tSubscribed,tSubcodes;
 	string user,mqid;
@@ -229,7 +227,7 @@ void FlashUserArray(char sDispName[],struct DispRuleStruct *p)
 
 /*½«Ó³Éä±íÇå¿Õ*/
 	
-	InitUserArray(sFlashDispName,&T);
+	InitUserArray(sRefreshDispName,&T);
 	
 	for (auto it = tRoot.begin(); it != tRoot.end(); ++it) {
 
@@ -377,7 +375,7 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 	if(IsWorkThreadLock()){
 		
 		printf("hello world.--------------------------------------------4.\n");
-		FlashUserArray(sFlashDispName,&R);
+		RefreshUserArray(sRefreshDispName,&R);
 		UnLockWorkThread();
 	}
 

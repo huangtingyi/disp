@@ -94,9 +94,9 @@ void UnLockWorkThread();
 int IsWorkThreadLock();
 
 void InitUserArray(char sDispName[],struct DispRuleStruct *p);
-void FlashUserArray(char sDispName[],struct DispRuleStruct *p);
+void RefreshUserArray(char sDispName[],struct DispRuleStruct *p);
 
 extern struct DispRuleStruct R;
-extern char sFlashDispName[1024];
+extern char sRefreshDispName[1024];
 
 #endif  //_CALLBACK_BASE_H
