@@ -127,6 +127,9 @@ int main(int argc, char *argv[])
 	//初始化刷新数组，以及刷新文件名的全局变量
 	InitUserArray(sDispName,&R);
 
+	//刷新一下参数，避免要求disp先启动，才能启动本程序
+	FlashUserArray(sDispName,&R);
+	
 	uint16_t port;
 	string host,id,passwd,strWork;
 	boost::property_tree::ptree tRoot,t;

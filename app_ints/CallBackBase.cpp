@@ -223,7 +223,7 @@ void FlashUserArray(char sDispName[],struct DispRuleStruct *p)
 		tRoot=tMainRoot.get_child("users");
 	}
 	catch (...) {
-		printf("catch not full ------------------------.\n");
+		printf("检测到不完整的 disprule文件，文件名:%s.\n",sDispName);
 		return;
 	}
 

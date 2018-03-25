@@ -2,3 +2,5 @@
 !/bin/.gitignore
 *.o
 *.log
+/app_dat2cli/Makefile
+/app_dat2cli/cmake_install.cmake
