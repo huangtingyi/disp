@@ -395,7 +395,7 @@ void *MainQryRunSh(void *)
 				pCallBack->m_ios->Post(task);
 			
 				if((++iCount)%30000==0)
-					printf("sz stock cur process count =%d----------------------------.\n",iCount);
+					printf("sh stock cur process count =%d----------------------------.\n",iCount);
 			}
 
 		}

@@ -1,0 +1,37 @@
+#!/usr/bin/expect
+
+set MY_IP "121.41.74.181";
+set MY_USER "avahi-auto";
+set MY_PASSWD "hsqzz123";
+
+set MY_HOME [lindex $argv 0];
+
+#parray env
+puts $MY_HOME
+##parray env | grep "HOME"
+
+set timeout 10
+
+spawn sftp -o StrictHostKeyChecking=no $MY_USER@$MY_IP
+
+expect "*password*"; send "$MY_PASSWD\r";
+
+expect "*sftp*"; send "put $MY_HOME/bin/my-internet-ip.txt\r";
+
+expect "*sftp*"; send "quit\r";
+
+interact;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
