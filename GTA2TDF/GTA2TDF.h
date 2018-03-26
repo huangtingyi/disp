@@ -462,6 +462,9 @@ inline void GTA2TDF_SZSEL2_O(const SZSEL2_Order &src, TDF_ORDER &o) {
 }
 
 inline void  GTA2TDF_SSEL2_AM(const SSEL2_Auction &src, TDF_MARKET_DATA &m) {
+	
+	bzero((void*)&m,sizeof(TDF_MARKET_DATA));
+
 	//char        szWindCode[32];         //600001.SH
 	strcpy(m.szWindCode, src.Symbol);
 	m.szWindCode[6] = '.';
