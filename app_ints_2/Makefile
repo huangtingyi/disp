@@ -10,6 +10,8 @@ endif
 
 #最终生成程序
 TARGET_A=../bin/gta_ints_2
+TARGET_B=../bin/gta_stat
+
 #编译命令
 CXX=g++ 
 
@@ -19,30 +21,36 @@ INC= -I../Include -I../Common -I../public -I../app_ints
 #库
 LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_setup -lboost_system -lprotobuf -lrt
 
+
+
 #测试工程文件
-Example_SRC=$(wildcard ./*.cpp ../app_ints/CallBackBase.cpp ../public/getToday.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp ../GTA2csv/*.cpp ../../cs_public/getToday/*.cpp ../GTA2TDF/*.cpp )
+Example_SRC=$(wildcard ./main.cpp ../app_ints/CallBackBase.cpp ../public/getToday.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp ../GTA2TDF/*.cpp )
 Example_OBJS=$(patsubst %.cpp, %.o, $(Example_SRC))
+
+ExampleB_SRC=$(wildcard ./gta_stat.cpp ../public/getToday.cpp )
+ExampleB_OBJS=$(patsubst %.cpp, %.o, $(ExampleB_SRC))
+
 
 #所有目标文件
 OBJS= $(Example_OBJS)
+OBJBS= $(ExampleB_OBJS)
 
 .PHONY: debug release clean
 
-release: $(TARGET_A)
+release: $(TARGET_A) $(TARGET_B)
 
-debug: $(TARGET_A)
+debug: $(TARGET_A) $(TARGET_B)
 #连接静态库
 $(TARGET_A): $(Example_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) $(TARGETPATH)/GTAQTSApi.a 
 
-#连接动态库
-$(TARGET_SO): $(Example_OBJS)
-	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) -L$(TARGETPATH) -lGTAQTSApi 
+$(TARGET_B): $(ExampleB_OBJS)
+	$(CXX) -o $@ $(CXXFLAGS) $^
 
 %.o: %.cpp
 	$(CXX) -o $@ -c $(CXXFLAGS) $(INC) $<
 
 clean:
-	rm -fr $(TARGET_A) $(TARGET_SO)  $(OBJS)
+	rm -fr $(TARGET_A) $(TARGET_B)  $(OBJS) $(OBJBS)
 
 

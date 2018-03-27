@@ -101,18 +101,15 @@ inline void GTA2TDF_SSEL2(const SSEL2_Quotation &src, TDF_MARKET_DATA &m, TDF_OR
 	m.nMatch = yuan2percentFen(src.LastPrice);
 	for (unsigned i = 0; i < 10; ++i) {
 		//__int64 nAskVol[10];				//申卖量
-		if ((m.nAskVol[i] = src.SellLevel[i].Volume)!=0) {
-			//__int64 nAskPrice[10];				//申卖价
-			m.nAskPrice[i] = yuan2percentFen(src.SellLevel[i].Price);
-		}
+		m.nAskVol[i] = src.SellLevel[i].Volume;
+		m.nAskPrice[i] = yuan2percentFen(src.SellLevel[i].Price);
 	}
 	for (unsigned i = 0; i < 10; ++i) {
 		//__int64 nBidVol[10];				//申买量
-		if ((m.nBidVol[i] = src.BuyLevel[i].Volume)!=0) {
-			//__int64 nBidPrice[10];				//申买价
-			m.nBidPrice[i] = yuan2percentFen(src.BuyLevel[i].Price);
-		}
+		m.nBidVol[i] = src.BuyLevel[i].Volume;
+		m.nBidPrice[i] = yuan2percentFen(src.BuyLevel[i].Price);		
 	}
+
 	//int nNumTrades;						//成交笔数
 	m.nNumTrades = int(src.TotalNo);
 	//__int64		 iVolume;				//成交总量
@@ -291,22 +288,18 @@ inline void GTA2TDF_SZSEL2(const SZSEL2_Quotation &src, TDF_MARKET_DATA &m, TDF_
 	m.nLow = yuan2percentFen(src.LowPrice);
 	//__int64 nMatch;						//最新价
 	m.nMatch = yuan2percentFen(src.LastPrice);
+
 	for (unsigned i = 0; i < LEVEL_TEN; ++i) {
-		//__int64 nAskVol[10];				//申卖量
-		if ((m.nAskVol[i] = __int64(src.SellLevel[i].Volume))!=0)
-			//__int64 nAskPrice[10];				//申卖价
-			m.nAskPrice[i] = yuan2percentFen(src.SellLevel[i].Price);
-		else
-			break;
+		//完全复制获取数据		
+		m.nAskVol[i] = __int64(src.SellLevel[i].Volume);
+		m.nAskPrice[i] = yuan2percentFen(src.SellLevel[i].Price);
 	}
 	for (unsigned i = 0; i < LEVEL_TEN; ++i) {
-		//__int64 nBidVol[10];				//申买量
-		if ((m.nBidVol[i] = __int64(src.BuyLevel[i].Volume))!=0)
-			//__int64 nBidPrice[10];				//申买价
-			m.nBidPrice[i] = yuan2percentFen(src.BuyLevel[i].Price);
-		else
-			break;
+		//完全复制获取数据__int64 nBidVol[10];			//申买量
+		m.nBidVol[i] = __int64(src.BuyLevel[i].Volume);
+		m.nBidPrice[i] = yuan2percentFen(src.BuyLevel[i].Price);
 	}
+
 	//int nNumTrades;						//成交笔数
 	m.nNumTrades = int(src.TotalNo);
 	//__int64		 iVolume;				//成交总量

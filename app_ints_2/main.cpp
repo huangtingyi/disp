@@ -12,13 +12,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include "../Common/IoService.h"
 #include "../Common/TinyThread.h"
-#ifdef _WIN32
-#include <windows.h>
-#define  SLEEP(t)  Sleep((t)*1000)
-#else
-#include <unistd.h>
-#define  SLEEP(t)  sleep(t)
-#endif
+
 #include "../VecStockCode/VectorStockCodeSH.h"
 #include "../VecStockCode/VectorStockCodeSZ.h"
 
