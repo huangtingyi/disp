@@ -96,7 +96,10 @@ int IsWorkThreadLock();
 void InitUserArray(char sDispName[],struct DispRuleStruct *p);
 void RefreshUserArray(char sDispName[],struct DispRuleStruct *p);
 
+int WatchFileCloseWriteAndLock(char sFileName[]);
+
 extern struct DispRuleStruct R;
 extern char sRefreshDispName[1024];
+
 
 #endif  //_CALLBACK_BASE_H

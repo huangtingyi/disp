@@ -11,6 +11,8 @@ endif
 #最终生成程序
 TARGET_A=../bin/gta_ints_2
 TARGET_B=../bin/gta_stat
+TARGET_C=../bin/gta_replay
+
 
 #编译命令
 CXX=g++ 
@@ -30,16 +32,20 @@ Example_OBJS=$(patsubst %.cpp, %.o, $(Example_SRC))
 ExampleB_SRC=$(wildcard ./gta_stat.cpp ../public/getToday.cpp )
 ExampleB_OBJS=$(patsubst %.cpp, %.o, $(ExampleB_SRC))
 
+ExampleC_SRC=$(wildcard ./gta_replay.cpp ../app_ints/CallBackBase.cpp ../public/getToday.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp ../GTA2TDF/*.cpp )
+ExampleC_OBJS=$(patsubst %.cpp, %.o, $(ExampleC_SRC))
+
 
 #所有目标文件
 OBJS= $(Example_OBJS)
 OBJBS= $(ExampleB_OBJS)
+OBJCS= $(ExampleC_OBJS)
 
 .PHONY: debug release clean
 
-release: $(TARGET_A) $(TARGET_B)
+release: $(TARGET_A) $(TARGET_B) $(TARGET_C)
 
-debug: $(TARGET_A) $(TARGET_B)
+debug: $(TARGET_A) $(TARGET_B) $(TARGET_C)
 #连接静态库
 $(TARGET_A): $(Example_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) $(TARGETPATH)/GTAQTSApi.a 
@@ -47,10 +53,13 @@ $(TARGET_A): $(Example_OBJS)
 $(TARGET_B): $(ExampleB_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^
 
+$(TARGET_C): $(ExampleC_OBJS)
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) $(TARGETPATH)/GTAQTSApi.a 
+
 %.o: %.cpp
 	$(CXX) -o $@ -c $(CXXFLAGS) $(INC) $<
 
 clean:
-	rm -fr $(TARGET_A) $(TARGET_B)  $(OBJS) $(OBJBS)
+	rm -fr $(TARGET_A) $(TARGET_B) $(TARGET_C)  $(OBJS) $(OBJBS) $(OBJCS)
 
 

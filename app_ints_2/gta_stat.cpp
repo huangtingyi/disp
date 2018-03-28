@@ -10,6 +10,8 @@
 #include "QTSStruct.h"
 #include "QTSDataFieldDefine.h"
 
+#include "../GTA2TDF/GTA2TDF.h"
+
 #define MY_TYPE_SSEL2_Quotation		1
 #define MY_TYPE_SSEL2_Transaction	2
 #define MY_TYPE_SSEL2_Auction		3
@@ -17,6 +19,7 @@
 #define MY_TYPE_SZSEL2_Transaction	5
 #define MY_TYPE_SZSEL2_Order		6
 
+#define MY_DATE_CEIL_LONG 1000000000L
 
 
 int comp_time_MY_TYPE_SSEL2_Quotation(char *buf,long lBgnTime)
@@ -29,13 +32,13 @@ int comp_time_MY_TYPE_SSEL2_Auction(char *buf,long lBgnTime)
 {return ((SSEL2_Auction*)buf)->Time<lBgnTime;}
 
 int comp_time_MY_TYPE_SZSEL2_Quotation(char *buf,long lBgnTime)
-{return ((SZSEL2_Quotation*)buf)->Time%1000000000<lBgnTime;}
+{return ((SZSEL2_Quotation*)buf)->Time%MY_DATE_CEIL_LONG<lBgnTime;}
 
 int comp_time_MY_TYPE_SZSEL2_Transaction(char *buf,long lBgnTime)
-{return ((SZSEL2_Transaction*)buf)->TradeTime%1000000000<lBgnTime;}
+{return ((SZSEL2_Transaction*)buf)->TradeTime%MY_DATE_CEIL_LONG<lBgnTime;}
 
 int comp_time_MY_TYPE_SZSEL2_Order(char *buf,long lBgnTime)
-{return ((SZSEL2_Order*)buf)->Time%1000000000<lBgnTime;}
+{return ((SZSEL2_Order*)buf)->Time%MY_DATE_CEIL_LONG<lBgnTime;}
 
 
 int print_MY_TYPE_SSEL2_Quotation(char *buf,char sCodeList[],long *plCurTime)
@@ -109,6 +112,10 @@ int print_MY_TYPE_SSEL2_Auction(char *buf,char sCodeList[],long *plCurTime)
 
 	*plCurTime=p->Time;
 
+//	TDF_MARKET_DATA m;
+	
+//	GTA2TDF_SSEL2_AM(p[0],m);
+
 	static int iFirstFlag=1;
 	if(iFirstFlag){
 		iFirstFlag=0;
@@ -137,7 +144,7 @@ int print_MY_TYPE_SZSEL2_Quotation(char *buf,char sCodeList[],long *plCurTime)
 	if(sCodeList[0]&&
 		strstr(sCodeList,p->Symbol)==NULL) return 1;
 	
-	*plCurTime=p->Time;
+	*plCurTime=p->Time%MY_DATE_CEIL_LONG;
 
 	static int iFirstFlag=1;
 	if(iFirstFlag){
@@ -154,7 +161,7 @@ int print_MY_TYPE_SZSEL2_Quotation(char *buf,char sCodeList[],long *plCurTime)
 		*(long long *)buf,	//picktime
 		p->LocalTimeStamp,	//< 数据接收时间HHMMSSMMM
 		99999999999999999,	//< 无数值
-		(int)(p->Time%1000000000),//< 数据生成时间YYYYMMDDHHMMSSMMM
+		(int)(p->Time%MY_DATE_CEIL_LONG),//< 数据生成时间YYYYMMDDHHMMSSMMM
 		p->Symbol);
 	
 	return 0;
@@ -167,25 +174,29 @@ int print_MY_TYPE_SZSEL2_Transaction(char *buf,char sCodeList[],long *plCurTime)
 	if(sCodeList[0]&&
 		strstr(sCodeList,p->Symbol)==NULL) return 1;
 
-	*plCurTime=p->TradeTime;
+	*plCurTime=p->TradeTime%MY_DATE_CEIL_LONG;
 
 	static int iFirstFlag=1;
 	if(iFirstFlag){
 		iFirstFlag=0;
-		printf("%s\t%s\t%s\t%s\t%s\n",
+		printf("%s\t%s\t%s\t%s\t%s\t%s\n",
 			"picktime",
 			"localtime",
 			"packtime",
 			"tradetime",
-			"stockcode");
+			"stockcode",
+			"tradeamnt"
+			);
 	}
 
-	printf("%lld\t%d\t%ld\t%d\t%s\n",
+	printf("%lld\t%d\t%ld\t%d\t%s\t%f\n",
 		*(long long *)buf,	//picktime
 		p->LocalTimeStamp,	//< 数据接收时间HHMMSSMMM
 		99999999999999999,	//< 数据包头时间YYYYMMDDHHMMSSMMM
-		(int)(p->TradeTime%1000000000),//成交时间YYYYMMDDHHMMSSMMM
-		p->Symbol);
+		(int)(p->TradeTime%MY_DATE_CEIL_LONG),//成交时间YYYYMMDDHHMMSSMMM
+		p->Symbol,
+		p->TradePrice*p->TradeVolume
+		);
 	
 	return 0;
 }
@@ -197,7 +208,7 @@ int print_MY_TYPE_SZSEL2_Order(char *buf,char sCodeList[],long *plCurTime)
 	if(sCodeList[0]&&
 		strstr(sCodeList,p->Symbol)==NULL) return 1;
 
-	*plCurTime=p->Time;
+	*plCurTime=p->Time%MY_DATE_CEIL_LONG;
 
 	static int iFirstFlag=1;
 	if(iFirstFlag){
@@ -214,7 +225,7 @@ int print_MY_TYPE_SZSEL2_Order(char *buf,char sCodeList[],long *plCurTime)
 		*(long long *)buf,	//picktime
 		p->LocalTimeStamp,	//< 数据接收时间HHMMSSMMM
 		99999999999999999,	//< 数据包头时间YYYYMMDDHHMMSSMMM
-		(int)(p->Time%1000000000),//委托时间YYYYMMDDHHMMSSMMM
+		(int)(p->Time%MY_DATE_CEIL_LONG),//委托时间YYYYMMDDHHMMSSMMM
 		p->Symbol);
 	
 	return 0;

@@ -1,6 +1,10 @@
 #include "CallBackBase.h"
 #include <stdio.h>
 #include <atomic>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/inotify.h>
 
 #include <boost/property_tree/json_parser.hpp>
 
@@ -29,6 +33,64 @@ int IsWorkThreadLock()
 	return VLock;
 }
 
+/****
+#define EVENT_NUM 12
+
+char *event_str[EVENT_NUM] =
+{
+    "IN_ACCESS",
+    "IN_MODIFY",
+    "IN_ATTRIB",
+    "IN_CLOSE_WRITE",
+    "IN_CLOSE_NOWRITE",
+    "IN_OPEN",
+    "IN_MOVED_FROM",
+    "IN_MOVED_TO",
+    "IN_CREATE",
+    "IN_DELETE",
+    "IN_DELETE_SELF",
+    "IN_MOVE_SELF"
+};
+***/
+
+int WatchFileCloseWriteAndLock(char sFileName[])
+{
+	int fd,len,i;
+	char buf[BUFSIZ];
+	struct inotify_event *event;
+
+	if((fd = inotify_init())<0){
+		fprintf(stderr, "inotify_init failed\n");
+		return -1;
+	}
+
+	if(inotify_add_watch(fd, sFileName, IN_ALL_EVENTS)<0){
+		fprintf(stderr, "inotify_add_watch %s failed\n", sFileName);
+		return -1;
+	}
+
+	buf[sizeof(buf) - 1] = 0;
+	while( (len = read(fd, buf, sizeof(buf) - 1)) > 0 ){
+
+		printf("-----------------------------3 l=%d.\n",len);
+		
+		for(i=0;i<len;i+=sizeof(struct inotify_event)){
+			
+			event = (struct inotify_event *)&buf[i];
+			
+			fprintf(stdout, "%s --- %s\ti=%d,m=%d,l=%d\n"," ", "",i,event->mask,len);
+
+			//如果不是WRITE_CLOSE事件则继续
+			if((event->mask & 0x8)==0) continue;
+			
+			printf("catch WRITE-ON-CLOSE EVENT.\n");
+
+			//锁定变量
+			LockWorkThread();
+		}
+	}
+	return 0;
+}
 void TDF_MARKET_DATA2MktData(MktData &output, const TDF_MARKET_DATA &src)
 {
 	output.set_szcode(strtoul(src.szCode,nullptr,10));	//600001.SH
