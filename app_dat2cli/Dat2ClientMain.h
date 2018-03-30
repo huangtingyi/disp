@@ -73,6 +73,8 @@ private:
 	char m_sUserPrivJsonPath[MAX_PATH];
 	char m_sOutDispJsonPath[MAX_PATH];
 	char m_sCfgJsonPath[MAX_PATH];
+	char m_sWorkRootPath[MAX_PATH];
+	char m_sWriteUser[MAX_PATH];
 	int m_iPort; //ÕìÌý¶Ë¿Ú
 	int m_iSocketSendLen;
 	int m_iSocketRecvLen;

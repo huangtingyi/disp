@@ -24,7 +24,7 @@
 #include "../GTA2TDF/GTA2TDF.h"
 
 int iDebugFlag=0,iWriteFlag=0;
-char sCfgJsonName[1024],sDispName[1024],sPrivilegeFile[1024];
+char sCfgJsonName[1024],sDispName[1024],sPrivilegeName[1024],sWorkRoot[1024];
 
 void signalProcess(int signal)
 {
@@ -40,9 +40,10 @@ int main(int argc, char *argv[])
 
 	strcpy(sCfgJsonName,	"./gta_ints.json");
 	strcpy(sDispName,	"./disp.json");
-	strcpy(sPrivilegeFile,	"./user_privilege.json");
+	strcpy(sPrivilegeName,	"./user_privilege.json");
+	strcpy(sWorkRoot,	"/stock/work");
 
-	for (int c; (c = getopt(argc, argv, "d:c:r:u:w:h:")) != EOF;){
+	for (int c; (c = getopt(argc, argv, "d:c:r:u:o:w:?:")) != EOF;){
 
 		switch (c){
 		case 'd':
@@ -55,7 +56,10 @@ int main(int argc, char *argv[])
 			strcpy(sDispName, optarg);
 			break;
 		case 'u':
-			strcpy(sPrivilegeFile, optarg);
+			strcpy(sPrivilegeName, optarg);
+			break;
+		case 'o':
+			strcpy(sWorkRoot, optarg);
 			break;
 		case 'w':
 			iWriteFlag=atoi(optarg);
@@ -67,6 +71,7 @@ int main(int argc, char *argv[])
 			printf("   [-c cfg-name ]\n");
 			printf("   [-r disp-name ]\n");
 			printf("   [-u user-privilege-name ]\n");
+			printf("   [-o work-root-name ]\n");
 			printf("   [-d DebugFlag ]\n");
 			printf("   [-w (1,writegta,2 writetdf,other nowrite) ]\n");
 			exit(1);
@@ -81,15 +86,15 @@ int main(int argc, char *argv[])
 
 	//刷新一下参数，避免要求disp先启动，才能启动本程序
 	RefreshUserArray(sDispName,&R);
-	
+
 	uint16_t port;
 	string host,id,passwd,strWork;
 	boost::property_tree::ptree tRoot,t;
-	
+
+	strWork=	string(sWorkRoot);
 	try{
 		boost::property_tree::read_json(sCfgJsonName,tRoot);
 		t 	= tRoot.get_child("gta_server");
-		strWork	= tRoot.get<string>("workroot");	
 		id 	= tRoot.get<string>("id");
 		passwd 	= tRoot.get<string>("passwd");
 	}
@@ -114,7 +119,7 @@ int main(int argc, char *argv[])
 		try {
 			host = it->second.get<string>("host");
 			port = it->second.get<uint16_t>("port");
-			
+
 			pApiBase->RegisterService(host.c_str(), port);
 		}
 		catch (...) {
@@ -188,7 +193,7 @@ int main(int argc, char *argv[])
 			printf("Subscribe Msg_SSEL2_Auction code=%d\n",ret);
 			break;
 		}
-		
+
 		//上海L2实时行情
 		ret = pApiBase->Subscribe(Msg_SSEL2_Quotation, (char*)(strCodesSH.c_str()));
 		if (Ret_Success != ret) {
@@ -201,7 +206,7 @@ int main(int argc, char *argv[])
 			printf("Subscribe Msg_SSEL2_Transaction code=%d\n",ret);
 			break;
 		}
-		
+
 		//深圳L2实时行情
 		ret = pApiBase->Subscribe(Msg_SZSEL2_Quotation, (char*)(strCodesSZ.c_str()));
 		if (Ret_Success != ret) {
@@ -221,14 +226,14 @@ int main(int argc, char *argv[])
 			break;
 		}
 
-	} 
+	}
 	while (false);
-	
+
 	printf("-----------------------------1.\n");
-	
+
 	//循环监视disp规则变化，如果变化则通知刷新
 	WatchFileCloseWriteAndLock(sDispName);
-	
+
 	printf("-----------------------------2.\n");
 
 	//正常代码不会运行到这里

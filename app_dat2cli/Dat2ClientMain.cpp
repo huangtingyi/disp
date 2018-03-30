@@ -74,6 +74,12 @@ Dat2Client::Dat2Client()
 	memset(m_sUserPrivJsonPath, 0, sizeof(m_sUserPrivJsonPath));
 	memset(m_sOutDispJsonPath, 0, sizeof(m_sOutDispJsonPath));
 	memset(m_sCfgJsonPath, 0, sizeof(m_sCfgJsonPath));
+	
+	memset(m_sWorkRootPath, 0, sizeof(m_sWorkRootPath));
+	memset(m_sWriteUser, 0, sizeof(m_sWriteUser));
+
+
+	strcpy(m_sWorkRootPath,"/stock/work");
 
 	m_iPort = 0; 		//侦听端口
 	m_iSocketSendLen = 8096;
@@ -83,7 +89,7 @@ Dat2Client::Dat2Client()
 	m_iSysMqMaxNum = 0;
 
 	m_iDebugFlag = 0;
-	m_iCheckIp = 1;
+	m_iCheckIp = 0;
 	m_iSetSocketFlag = 0;
 	m_iPid = 0;
 
@@ -214,7 +220,7 @@ int Dat2Client::diffTimeStr(char *curr_time_str, const char *last_time_str)
 int Dat2Client::run(int argc, char *argv[])
 {
 	SetProcessSignal();
-	for (int c; (c = getopt(argc, argv, "c:p:d:k:r:u:")) != EOF;){
+	for (int c; (c = getopt(argc, argv, "c:p:d:k:r:u:o:w:?:")) != EOF;){
 		switch (c)
 		{
 		case 'c':
@@ -235,12 +241,20 @@ int Dat2Client::run(int argc, char *argv[])
 		case 'u':
 			strcpy(m_sUserPrivJsonPath, optarg);
 			break;
+		case 'o':
+			strcpy(m_sWorkRootPath, optarg);
+			break;
+		case 'w':
+			strcpy(m_sWriteUser, optarg);
+			break;
 		case '?':
 		default:
 			printf("Usage: %s \n", argv[0]);
-			printf("   [-p cfgpath ]\n");
-			printf("   [-r disppath ]\n");
-			printf("   [-u user_privlegepath ]\n");
+			printf("   [-p cfg-path ]\n");
+			printf("   [-r disp-path ]\n");
+			printf("   [-u user-privlegepath ]\n");
+			printf("   [-o work-root-path ]\n");
+			printf("   [-w write-user ]\n");
 			printf("   [-d DebugFlag ]\n");
 			printf("   [-c 1-Check IP;0-UnCheck IP ]\n");
 			printf("   [-k 1:set socket buffer len 0: do not set socket buffer len]\n");
@@ -413,6 +427,97 @@ int Dat2Client::RecvCliSockRequestAndProcess()
 	}
 	return SUCC;
 }
+int UserInWriteUser(char sUserName[],char sWriteUser[])
+{
+	char sTmpUser[MAX_PATH];
+	char *pBgn,*pCur;
+	
+	//如果没有输出列表，则不输出
+	if(sWriteUser[0]==0) return 0;
+
+	strcpy(sTmpUser,sWriteUser);
+	
+	pBgn=sTmpUser;
+	
+	pCur=strchr(pBgn,':');
+	
+	while(1){
+		if(pCur==NULL) break;
+
+		*pCur=0;
+		if(strcmp(sUserName,pBgn)==0) return true;
+		
+		//跳过':'号
+		pBgn=pCur+1;
+		pCur=strchr(pBgn,':');
+	}
+
+	//严格完全匹配呀
+	if(strcmp(sUserName,pBgn)==0) return true;
+	return false;
+}
+FILE *fpOut;
+char sOutFileName[MAX_PATH];
+
+int GetHostTimeX(char sHostTime[15],char sMiniSec[4])
+{
+	struct tm *tm;
+	struct timeval t;
+	time_t tHostTime;
+
+	strcpy(sMiniSec,"");
+
+	if(gettimeofday(&t,NULL)==-1) return -1;
+
+	tHostTime=(time_t)(t.tv_sec);
+	if((tm=(struct tm*)localtime(&tHostTime))==NULL) return -1;
+
+	if(strftime(sHostTime,15,"%Y%m%d%H%M%S",tm)==(size_t)0)	return -1;
+
+	sprintf(sMiniSec,"%03ld",t.tv_usec/1000);
+
+	return 0;
+}
+int MyWrite2CliFile(char sWorkRoot[],char sUserName[],string &str)
+{
+	//只考虑linux了，long long 太难看了
+	long lCurTime;
+	static int iFirstFlag=true;
+	
+	char sHostTime[15],sMiniSec[4];
+	
+	GetHostTimeX(sHostTime,sMiniSec);
+
+	if(iFirstFlag){
+		iFirstFlag=false;
+		char sTmpDate[9];
+		strncpy(sTmpDate,sHostTime,8);sTmpDate[8]=0;
+		
+		sprintf(sOutFileName,"%s/%s_%s.dat",sWorkRoot,sUserName,sTmpDate);
+		
+		fpOut=	fopen(sOutFileName,"ab+");
+		
+		if(fpOut==NULL){
+			printf("open file %s for write error.\n",sOutFileName);
+			return -1;
+		}
+	}
+	lCurTime=atol(sHostTime)*1000+atol(sMiniSec);
+	
+	if(fwrite((const void*)&lCurTime,sizeof(lCurTime),1,fpOut)!=1){
+		printf("write file %s error pos1.\n",sOutFileName);
+		return -1;
+	}
+	if(fwrite((const void*)str.c_str(),str.size(),1,fpOut)!=1){
+		printf("write file %s error pos2.\n",sOutFileName);
+		return -1;
+	}
+
+	fflush(fpOut);
+
+	return 0;
+}
+int (*Write2CliFile)(char sWorkRoot[],char sUserName[],string &str);
 
 int Dat2Client::RecvMqAndDisp2Cli()
 {
@@ -441,6 +546,16 @@ int Dat2Client::RecvMqAndDisp2Cli()
 //				printf("hello world .-----------------------------------------4,%d,%d.\n",iDataMqID,m_iPid);
 
 				m_poDataMQ->open(false, true, m_iSysMqMaxLen, m_iSysMqMaxNum);
+
+				//从系统消息队列中拿到用户名
+				char *pUserName=strchr((char*)strRecv.c_str(),',');
+				if(pUserName==NULL) return ERROR_TRANSPORT;
+
+				m_sUserName=string(pUserName+1);
+
+				if(UserInWriteUser((char*)m_sUserName.c_str(),m_sWriteUser))
+					Write2CliFile=MyWrite2CliFile;
+				else	Write2CliFile=NULL;
 				continue;
 			}
 
@@ -496,9 +611,13 @@ int Dat2Client::RecvMqAndDisp2Cli()
 			}
 			num += iRet;
 		}
-		
+
+		if(Write2CliFile!=NULL){
+			if(Write2CliFile(m_sWorkRootPath,(char*)m_sUserName.c_str(),strRecv)<0)
+				return ERROR_TRANSPORT;
+		}
 		if(((++iCount)%30000)==0)
-			printf("the mqid=%d\tprocessed count=%d.\n",m_poDataMQ->getSysID(),iCount);
+			printf("pid=%d,the mqid=%d\tprocessed count=%d.\n",getpid(),m_poDataMQ->m_oriKey,iCount);
 	}
 	return SUCC;
 }
@@ -550,12 +669,6 @@ void Dat2Client::dealCommand(string &msg)
 
 		m_iMqID = itPrivl->second.m_iMqID;
 
-
-		char sMqid[24];
-		sprintf(sMqid, "%d", m_iMqID);
-		string tmpStr=sMqid;
-		m_poSysMQ->send(tmpStr, getpid());
-
 		rep.set_err(errcode);
 		//先查询用户名是否有效,无效则返回客户端
 		if (itPrivl == m_mapPrivl.cend()){
@@ -578,6 +691,12 @@ void Dat2Client::dealCommand(string &msg)
 			g_pTcpSocket->send((unsigned char *) msgBody.data(), msgBody.size());
 			break;
 		}
+
+		//用户，密码验证通过了再发送mqid给接收进程
+		char sMsg[128];
+		sprintf(sMsg, "%d,%s", m_iMqID,m_sUserName.c_str());
+		string tmpStr=sMsg;
+		m_poSysMQ->send(tmpStr, getpid());
 
 		//如果密码验证也通过，则将心跳代码加入
 		if(!m_pTimerController){

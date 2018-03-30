@@ -472,17 +472,33 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 		pAll=pAll->pNext;
 	}
 }
+int GetHostTime(char sHostTime[15])
+{
+	struct tm *tm;
+	time_t	hosttime;
+
+	time(&hosttime);
+	if((tm=(struct tm*)localtime(&hosttime))==NULL) return -1;
+
+	if(strftime(sHostTime,15,"%Y%m%d%H%M%S",tm)==(size_t)0)	return -1;
+
+	return 0;
+}
 CallBackBase::CallBackBase(int iWriteFlag,string& strWork)
 {
 	m_ios = 0;
-
+	char sHostTime[15];
+	
+	GetHostTime(sHostTime);
+	sHostTime[8]=0;
+	
 	if(iWriteFlag==1){
-		m_fileSet.gtaqhName=	strWork+"/gta_qh.dat";
-		m_fileSet.gtaahName=	strWork+"/gta_ah.dat";
-		m_fileSet.gtathName=	strWork+"/gta_th.dat";
-		m_fileSet.gtaqzName=	strWork+"/gta_qz.dat";
-		m_fileSet.gtatzName=	strWork+"/gta_tz.dat";
-		m_fileSet.gtaozName=	strWork+"/gta_oz.dat";
+		m_fileSet.gtaqhName=	strWork+"/gta_qh_"+string(sHostTime)+".dat";
+		m_fileSet.gtaahName=	strWork+"/gta_ah_"+string(sHostTime)+".dat";
+		m_fileSet.gtathName=	strWork+"/gta_th_"+string(sHostTime)+".dat";
+		m_fileSet.gtaqzName=	strWork+"/gta_qz_"+string(sHostTime)+".dat";
+		m_fileSet.gtatzName=	strWork+"/gta_tz_"+string(sHostTime)+".dat";
+		m_fileSet.gtaozName=	strWork+"/gta_oz_"+string(sHostTime)+".dat";
 		
 		m_fileSet.fpGtaQh=	fopen(m_fileSet.gtaqhName.c_str(),"ab+");
 		m_fileSet.fpGtaAh=	fopen(m_fileSet.gtaahName.c_str(),"ab+");
@@ -493,10 +509,10 @@ CallBackBase::CallBackBase(int iWriteFlag,string& strWork)
 
 	}
 	else if(iWriteFlag==2){
-		m_fileSet.tdfmktName=	strWork+"/tdf_mkt.dat";
-		m_fileSet.tdfqueName=	strWork+"/tdf_que.dat";
-		m_fileSet.tdftraName=	strWork+"/tdf_tra.dat";
-		m_fileSet.tdfordName=	strWork+"/tdf_ord.dat"; 
+		m_fileSet.tdfmktName=	strWork+"/tdf_mkt_"+string(sHostTime)+".dat";
+		m_fileSet.tdfqueName=	strWork+"/tdf_que_"+string(sHostTime)+".dat";
+		m_fileSet.tdftraName=	strWork+"/tdf_tra_"+string(sHostTime)+".dat";
+		m_fileSet.tdfordName=	strWork+"/tdf_ord_"+string(sHostTime)+".dat"; 
 
 		m_fileSet.fpTdfMkt=	fopen(m_fileSet.tdfmktName.c_str(),"ab+");
 		m_fileSet.fpTdfQue=	fopen(m_fileSet.tdfqueName.c_str(),"ab+");

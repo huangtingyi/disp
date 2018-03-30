@@ -20,7 +20,7 @@
 #define MY_DATE_CEIL_LONG 1000000000L
 
 int iWriteFlag=0,iDelayMilSec=100,iMultiTimes=1;
-char sDispName[1024],sSourcePath[1024];
+char sDispName[1024],sSourcePath[1024],sWorkRoot[1024];
 
 CallBackBase *pCallBack;
 
@@ -39,10 +39,10 @@ int main(int argc, char *argv[])
 	string strWork;
 	strcpy(sDispName,	"./disp.json");
 	strcpy(sSourcePath,	"/stock/work");
-	
-	strWork=string(sSourcePath);
+	strcpy(sWorkRoot,	"/stock/work");
 
-	for (int c; (c = getopt(argc, argv, "r:w:t:m:s:")) != EOF;){
+
+	for (int c; (c = getopt(argc, argv, "r:w:t:m:s:o:?:")) != EOF;){
 
 		switch (c){
 		case 'r':
@@ -62,6 +62,9 @@ int main(int argc, char *argv[])
 		case 's':
 			strcpy(sSourcePath, optarg);
 			break;
+		case 'o':
+			strcpy(sWorkRoot, optarg);
+			break;
 		case '?':
 		default:
 			printf("Usage: %s \n", argv[0]);
@@ -70,10 +73,13 @@ int main(int argc, char *argv[])
 			printf("   [-t (query delay mil sec def=100ms) ]\n");
 			printf("   [-m (multi_times) ]\n");
 			printf("   [-s (source-path) ]\n");
+			printf("   [-o work-root-name ]\n");
 			exit(1);
 			break;
 		}
 	}
+
+	strWork=string(sWorkRoot);
 
 	//初始化刷新数组，以及刷新文件名的全局变量
 	InitUserArray(sDispName,&R);
