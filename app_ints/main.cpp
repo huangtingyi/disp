@@ -26,6 +26,15 @@
 int iDebugFlag=0,iWriteFlag=0;
 char sCfgJsonName[1024],sDispName[1024],sPrivilegeFile[1024];
 
+void signalProcess(int signal)
+{
+	if (signal == SIGUSR1){
+		printf("signal SIGUSR1...\n");
+		return;
+	}
+	exit(0);
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -33,7 +42,7 @@ int main(int argc, char *argv[])
 	strcpy(sDispName,	"./disp.json");
 	strcpy(sPrivilegeFile,	"./user_privilege.json");
 
-	for (int c; (c = getopt(argc, argv, "d:c:r:p:w:h:")) != EOF;){
+	for (int c; (c = getopt(argc, argv, "d:c:r:u:w:h:")) != EOF;){
 
 		switch (c){
 		case 'd':
@@ -45,7 +54,7 @@ int main(int argc, char *argv[])
 		case 'r':
 			strcpy(sDispName, optarg);
 			break;
-		case 'p':
+		case 'u':
 			strcpy(sPrivilegeFile, optarg);
 			break;
 		case 'w':
@@ -57,13 +66,15 @@ int main(int argc, char *argv[])
 			printf("Usage: %s \n", argv[0]);
 			printf("   [-c cfg-name ]\n");
 			printf("   [-r disp-name ]\n");
-			printf("   [-p privilege-name ]\n");
+			printf("   [-u user-privilege-name ]\n");
 			printf("   [-d DebugFlag ]\n");
 			printf("   [-w (1,writegta,2 writetdf,other nowrite) ]\n");
 			exit(1);
 			break;
 		}
 	}
+
+	signal(SIGINT, signalProcess);
 
 	//初始化刷新数组，以及刷新文件名的全局变量
 	InitUserArray(sDispName,&R);

@@ -1,6 +1,22 @@
 [
-	{ "ip":"127.0.0.1" ,"mqid":20000,"user":"user1" , "pswd":"pswd1", "privl":[12,13,14,15] },
-	{ "ip":"221.226.65.2" ,"mqid":20001,"user":"user2","pswd":"pswd2","privl":[12,13,14]},
-	{ "ip":"221.226.65.2" ,"mqid":20002,"user":"user3","pswd":"pswd3","privl":[13]},
-	{ "ip":"221.226.65.2" ,"mqid":20003,"user":"user4","pswd":"pswd4","privl":[15]}
+	{ "ip":"221.226.65.2" ,"mqid":20001,"user":"user1","pswd":"pswd1","privl":[12,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20002,"user":"user2","pswd":"pswd2","privl":[12,13,14,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20003,"user":"user3","pswd":"pswd3","privl":[13]},
+	{ "ip":"221.226.65.2" ,"mqid":20004,"user":"user4","pswd":"pswd4","privl":[15]},
+	{ "ip":"221.226.65.2" ,"mqid":20005,"user":"user5","pswd":"pswd5","privl":[12,13]},
+	{ "ip":"221.226.65.2" ,"mqid":20006,"user":"user6","pswd":"pswd6","privl":[12,13,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20007,"user":"user7","pswd":"pswd7","privl":[12,13,14,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20008,"user":"user8","pswd":"pswd8","privl":[12,13,14,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20009,"user":"user9","pswd":"pswd9","privl":[12,13,14,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20010,"user":"user10","pswd":"pswd10","privl":[12,13,14,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20011,"user":"user11","pswd":"pswd11","privl":[12,13,14,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20012,"user":"user12","pswd":"pswd12","privl":[12,13,14,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20013,"user":"user13","pswd":"pswd13","privl":[12,13,14,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20014,"user":"user14","pswd":"pswd14","privl":[12,13,14,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20015,"user":"user15","pswd":"pswd15","privl":[12,13,14,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20016,"user":"user16","pswd":"pswd16","privl":[12,13,14,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20017,"user":"user17","pswd":"pswd17","privl":[12,13,14,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20018,"user":"user18","pswd":"pswd18","privl":[12,13,14,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20019,"user":"user19","pswd":"pswd19","privl":[12,13,14,15]},
+	{ "ip":"221.226.65.2" ,"mqid":20020,"user":"user20","pswd":"pswd20","privl":[12,13,14,15]}
 ]

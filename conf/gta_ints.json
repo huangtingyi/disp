@@ -11,18 +11,5 @@
 	],
 	"id": 		"xjhtz",
 	"passwd":	"6XMwWF8J",
-	"init_codes":	1780,
-	"workroot":	"/stock/work",
-	"ah_max_cnt":	1000,
-	"ah_max_delay":	5,
-	"qh_max_cnt":	1000,
-	"qh_max_delay":	5,
-	"th_max_cnt":	1000,
-	"th_max_delay":	5,
-	"oz_max_cnt":	1000,
-	"oz_max_delay":	5,
-	"qz_max_cnt":	1000,
-	"qz_max_delay":	5,
-	"tz_max_cnt":	1000,
-	"tz_max_delay":	5	
+	"workroot":	"/stock/work"
 }

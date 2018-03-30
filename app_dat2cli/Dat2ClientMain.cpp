@@ -145,8 +145,6 @@ int Dat2Client::Init()
 	//读取系统配置信息
 	read_json(m_sCfgJsonPath, tree);
 	m_iSemLockKey = tree.get<int>("SemLockKey");
-	strcpy(m_sUserPrivJsonPath, tree.get < string > ("UserPrivFilePath").c_str());
-	strcpy(m_sOutDispJsonPath, tree.get < string > ("OutDispRouteFile").c_str());
 
 	m_iPort = 		tree.get<int>("Port");
 	m_iSocketSendLen = 	tree.get<int>("SocketSendLen");
@@ -216,7 +214,7 @@ int Dat2Client::diffTimeStr(char *curr_time_str, const char *last_time_str)
 int Dat2Client::run(int argc, char *argv[])
 {
 	SetProcessSignal();
-	for (int c; (c = getopt(argc, argv, "c:p:d:k:")) != EOF;){
+	for (int c; (c = getopt(argc, argv, "c:p:d:k:r:u:")) != EOF;){
 		switch (c)
 		{
 		case 'c':
@@ -231,10 +229,18 @@ int Dat2Client::run(int argc, char *argv[])
 		case 'p':
 			strcpy(m_sCfgJsonPath, optarg);
 			break;
+		case 'r':
+			strcpy(m_sOutDispJsonPath, optarg);
+			break;
+		case 'u':
+			strcpy(m_sUserPrivJsonPath, optarg);
+			break;
 		case '?':
 		default:
 			printf("Usage: %s \n", argv[0]);
-			printf("   [-p cftpath ]\n");
+			printf("   [-p cfgpath ]\n");
+			printf("   [-r disppath ]\n");
+			printf("   [-u user_privlegepath ]\n");
 			printf("   [-d DebugFlag ]\n");
 			printf("   [-c 1-Check IP;0-UnCheck IP ]\n");
 			printf("   [-k 1:set socket buffer len 0: do not set socket buffer len]\n");
