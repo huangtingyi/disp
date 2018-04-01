@@ -59,8 +59,8 @@ installdir()
 			cp bin/dat2cli		../bin
 			cp bin/gta_ints         ../bin
 			cp bin/gta_ints_2       ../bin
-			cp bin/gta_stat         ../bin
 			cp bin/gta_replay       ../bin
+			cp bin/gta_stat         ../bin
 			cp bin/index_stat       ../bin
 			cp bin/gta_test         ../bin
 			;;
