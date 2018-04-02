@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 	strcpy(sPrivilegeName,	"./user_privilege.json");
 	strcpy(sWorkRoot,	"/stock/work");
 
-	for (int c; (c = getopt(argc, argv, "d:c:r:u:w:t:m:h:")) != EOF;){
+	for (int c; (c = getopt(argc, argv, "d:c:r:u:w:t:m:o:h:")) != EOF;){
 
 		switch (c){
 		case 'd':
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 		passwd 	= tRoot.get<string>("passwd");
 	}
 	catch (...) {
-		printf("文件 %s 不存在或格式非法.\n",sCfgJsonName);
+		printf("file %s not exist or fileformat error.\n",sCfgJsonName);
 		exit(1);
 	}
 
