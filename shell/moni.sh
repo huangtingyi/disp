@@ -47,6 +47,8 @@ do
 
 	echo -e " `date '+%Y/%m/%d %k:%M:%S'`	RX=$RX \t TX=$TX"
 
+	netstat -na | egrep "8888|8866|8896|Address"
+	
 	##增加进程占用的cpu监控
 	top -b -n1 `$pidof_bin gta_ints dat2cli | sed 's/[0-9]*/-p&/g'` | egrep "gta_ints|dat2cli|sshd|COMMAND"
 	##增加消息队列监控
