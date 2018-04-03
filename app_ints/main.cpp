@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 		}
 
 		StockSymbol* pStock = StockList1;
-		const int sz = StockList1.Size();
+		int sz = StockList1.Size();
 		VectorStockCodeSH vSH;
 		VectorStockCodeSZ vSZ;
 
@@ -186,6 +186,27 @@ int main(int argc, char *argv[])
 		string strCodesSH,strCodesSZ;
 		vSH.strForSub(strCodesSH);
 		vSZ.strForSub(strCodesSZ);
+		
+		//初始化涨停跌停数组
+		InitLimitArray();
+		//获取静态上海数据,获取涨停跌停数值
+		CDataBuffer<SSEL2_Static> Snap_Quotation;
+		ret = pApiBase->QuerySnap_SSEL2_Static((char*)(strCodesSH.c_str()), Snap_Quotation);
+		if (Ret_Success != ret) {
+			return false;
+		}
+		// 获取全部快照
+		sz = Snap_Quotation.Size();
+		for (int i = 0; i < sz; ++i) {
+			SSEL2_Static& SS = Snap_Quotation[i];
+			int iStockCode=atoi(SS.Symbol);
+			
+			if(iStockCode>=0&&iStockCode<MAX_STOCK_CODE){
+				LIMIT[iStockCode].WarrantDownLimit=	SS.PriceDownLimit;
+				LIMIT[iStockCode].WarrantUpLimit=	SS.PriceUpLimit;
+			}
+			//g_LimitPriceMgr.update(SS.Symbol, SS.PriceUpLimit, SS.PriceDownLimit);
+		}
 
 		//上海L2集合竞价
 		ret = pApiBase->Subscribe(Msg_SSEL2_Auction, (char*)(strCodesSH.c_str()));

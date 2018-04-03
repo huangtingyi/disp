@@ -33,6 +33,7 @@ int8b AddNewSec(int8b t,int iMilliSec)
 struct D31IndexItemStruct
 {
 	struct D31IndexItemStruct *pNext;
+	int	iStockCode;	//股票代码
 	int	nActionDay;	//委托日期(YYYYMMDD)
 	int	nTime;		//委托时间(HHMMSSmmm)
 	int8b	alBuyAmount[MAX_LEVEL_CNT];	//主买额度，单位（分）
@@ -101,42 +102,44 @@ void TDF_TRANSACTION2TinyTransaction(struct TDF_TRANSACTION *pi,struct TinyTrans
 }
 void TDF_TRANSACTION2TinyOrderS(struct TDF_TRANSACTION *pi,struct TinyOrderStruct *po)
 {
-	po->pNext=NULL;
-	po->nActionDay=	pi->nActionDay+20000000;
-	po->nTime=	pi->nTime;
+//	po->pNext=NULL;
+//	po->nActionDay=	pi->nActionDay+20000000;
+//	po->nTime=	pi->nTime;
 	po->iStockCode=	atoi(pi->szCode);
 	po->iPrice=	(int)pi->nPrice;
 	po->nVolume=	pi->nVolume;
 	po->nOrder=	pi->nAskOrder;
-	po->nBSFlag=	(int)'S';
+//	po->nBroker=	0;
+//	po->nBSFlag=	(int)'S';
 }
 void TDF_TRANSACTION2TinyOrderB(struct TDF_TRANSACTION *pi,struct TinyOrderStruct *po)
 {
-	po->pNext=NULL;
-	po->nActionDay=	pi->nActionDay+20000000;
-	po->nTime=	pi->nTime;
+//	po->pNext=NULL;
+//	po->nActionDay=	pi->nActionDay+20000000;
+//	po->nTime=	pi->nTime;
 	po->iStockCode=	atoi(pi->szCode);
 	po->iPrice=	(int)pi->nPrice;
 	po->nVolume=	pi->nVolume;
 	po->nOrder=	pi->nBidOrder;
-	po->nBSFlag=	(int)'B';
+//	po->nBroker=	0;
+//	po->nBSFlag=	(int)'B';
 }
 void TDF_ORDER2TinyOrder(struct TDF_ORDER *pi,struct TinyOrderStruct *po)
 {
-	po->pNext=NULL;
-	po->nActionDay=	pi->nActionDay+20000000;
-	po->nTime=	pi->nTime;
+//	po->pNext=NULL;
+//	po->nActionDay=	pi->nActionDay+20000000;
+//	po->nTime=	pi->nTime;
 	po->iStockCode=	atoi(pi->szCode);
 	po->iPrice=	(int)pi->nPrice;
 	po->nVolume=	pi->nVolume;
 	po->nOrder=	pi->nOrder;
-	po->nBroker=	pi->nBroker;
-	po->nBSFlag=	pi->chFunctionCode;
+//	po->nBroker=	pi->nBroker;
+//	po->nBSFlag=	pi->chFunctionCode;
 }
 
 int iMaxDelaySec=20;
 char sCalcDate[15],sCalcBgn[15],sSourcePath[1024],sWorkRoot[1024];
-BINTREE *TRS_ORD_ROOT=NULL,*ORD_ROOT=NULL;
+BINTREE *TRS_ORD_ROOT=NULL,*ORD_ROOT=NULL,*D31_ROOT=NULL;
 
 int data_search_bintree_stock_code_order(void *pValue,void*pData)
 {
@@ -157,7 +160,7 @@ void assign_insert_bintree_stock_code_order_e(void **ppData,void *pData)
 
 int AddThData2TrsOrdTree(FILE *fpIn,int nBgnActionDay,int nBgnTime,BINTREE **PP)
 {
-	int nCurActionDay,nCurTime;
+	int nCurActionDay,nCurTime,iCount=0;
 	long lItemLen=(sizeof(SSEL2_Transaction))+sizeof(long long);
 	char sBuffer[2048];
 	long long *pll=(long long*)sBuffer;
@@ -168,6 +171,7 @@ int AddThData2TrsOrdTree(FILE *fpIn,int nBgnActionDay,int nBgnTime,BINTREE **PP)
 	while(1){
 		//size_t fread ( void *buffer, size_t size, size_t count, FILE *stream) ;
 		if(fread((void*)sBuffer,lItemLen,1,fpIn)!=1){
+			printf("mount process th all count=%d.\n",iCount);
 			printf("end of file break.\n");
 			break;
 		}
@@ -179,7 +183,11 @@ int AddThData2TrsOrdTree(FILE *fpIn,int nBgnActionDay,int nBgnTime,BINTREE **PP)
 		if(nCurActionDay!=nBgnActionDay) break;
 			
 		if(nCurTime<nBgnTime) continue;
-			
+		
+		
+		if((++iCount)%500000==0)
+			printf("mount process th count=%d.\n",iCount);
+
 		GTA2TDF_SSEL2_T(p[0],t);
 		
 		TDF_TRANSACTION2TinyOrderS(&t,&os);
@@ -235,7 +243,7 @@ int AddThData2TrsOrdTree(FILE *fpIn,int nBgnActionDay,int nBgnTime,BINTREE **PP)
 
 int AddTzData2TrsOrdTree(FILE *fpIn,int nBgnActionDay,int nBgnTime,BINTREE **PP)
 {
-	int nCurActionDay,nCurTime;
+	int nCurActionDay,nCurTime,iCount=0;
 	long lItemLen=(sizeof(SZSEL2_Transaction))+sizeof(long long);
 	char sBuffer[2048];
 	long long *pll=(long long*)sBuffer;
@@ -246,6 +254,7 @@ int AddTzData2TrsOrdTree(FILE *fpIn,int nBgnActionDay,int nBgnTime,BINTREE **PP)
 	while(1){
 		//size_t fread ( void *buffer, size_t size, size_t count, FILE *stream) ;
 		if(fread((void*)sBuffer,lItemLen,1,fpIn)!=1){
+			printf("mount process tz all count=%d.\n",iCount);
 			printf("end of file break.\n");
 			break;
 		}
@@ -257,7 +266,10 @@ int AddTzData2TrsOrdTree(FILE *fpIn,int nBgnActionDay,int nBgnTime,BINTREE **PP)
 		if(nCurActionDay!=nBgnActionDay) break;
 			
 		if(nCurTime<nBgnTime) continue;
-			
+		
+		if((++iCount)%500000==0)
+			printf("mount process tz count=%d.\n",iCount);
+
 		GTA2TDF_SZSEL2_T(p[0],t);
 		
 		TDF_TRANSACTION2TinyOrderS(&t,&os);
@@ -313,7 +325,7 @@ int AddTzData2TrsOrdTree(FILE *fpIn,int nBgnActionDay,int nBgnTime,BINTREE **PP)
 
 int AddOzData2OrdTree(FILE *fpIn,int nBgnActionDay,int nBgnTime,BINTREE **PP)
 {
-	int nCurActionDay,nCurTime;
+	int nCurActionDay,nCurTime,iCount=0;
 	long lItemLen=(sizeof(SZSEL2_Order))+sizeof(long long);
 	char sBuffer[2048];
 	long long *pll=(long long*)sBuffer;
@@ -324,6 +336,7 @@ int AddOzData2OrdTree(FILE *fpIn,int nBgnActionDay,int nBgnTime,BINTREE **PP)
 	while(1){
 		//size_t fread ( void *buffer, size_t size, size_t count, FILE *stream) ;
 		if(fread((void*)sBuffer,lItemLen,1,fpIn)!=1){
+			printf("mount process oz all count=%d.\n",iCount);
 			printf("end of file break.\n");
 			break;
 		}
@@ -335,7 +348,10 @@ int AddOzData2OrdTree(FILE *fpIn,int nBgnActionDay,int nBgnTime,BINTREE **PP)
 		if(nCurActionDay!=nBgnActionDay) break;
 			
 		if(nCurTime<nBgnTime) continue;
-			
+		
+		if((++iCount)%500000==0)
+			printf("mount process oz count=%d.\n",iCount);
+
 		GTA2TDF_SZSEL2_O(p[0],od);
 		
 		TDF_ORDER2TinyOrder(&od,&o);
@@ -444,7 +460,10 @@ int main(int argc, char *argv[])
 	if(AddTzData2TrsOrdTree(fpTzIn,nBgnActionDay,nBgnTime,&TRS_ORD_ROOT)<0) return -1;
 	if(AddOzData2OrdTree(fpOzIn,nBgnActionDay,nBgnTime,&ORD_ROOT)<0) return -1;
 	
-	
+
+sleep(300);
+	printf("hello world.\n");
+
 	fclose(fpThIn);
 	fclose(fpTzIn);
 	fclose(fpOzIn);

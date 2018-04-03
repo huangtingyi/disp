@@ -165,10 +165,6 @@ void TDF_ORDER_QUEUE2Order_queue(Order_queue &output, const TDF_ORDER_QUEUE&src)
 	}
 }
 
-#define MAX_USER_NAME_LEN 64
-#define MAX_STOCK_CODE	1000000
-#define MAX_CLIENT_CNT 1024
-
 struct UserStruct
 {
 	struct UserStruct *pNext;
@@ -703,6 +699,13 @@ void CallBackBase::Deal_Message_SSEL2_Quotation(SubData *subdata)
 	Order_queue 	oq0,oq1;
 	string strMd,strOq0,strOq1;
 
+	int iStockCode=atoi(RealSSEL2Quotation->Symbol);
+
+	if(iStockCode>0&&iStockCode<MAX_STOCK_CODE){
+		RealSSEL2Quotation->WarrantDownLimit=	LIMIT[iStockCode].WarrantDownLimit;
+		RealSSEL2Quotation->WarrantUpLimit=	LIMIT[iStockCode].WarrantUpLimit;
+	}
+
 	for(int i=0;i<max_trans_cnt;i++)
 	GTA2TDF_SSEL2(RealSSEL2Quotation[0],m, q[0],q[1]);
 
@@ -730,7 +733,6 @@ void CallBackBase::Deal_Message_SSEL2_Quotation(SubData *subdata)
 	oq0.SerializeToString(&strOq0);
 	oq1.SerializeToString(&strOq1);
 
-	int iStockCode=atoi(RealSSEL2Quotation->Symbol);
 		//校验代码合法性
 	if(iStockCode>0&&iStockCode<MAX_STOCK_CODE){
 		SendMsg2Cli(iStockCode,'M',strMd);

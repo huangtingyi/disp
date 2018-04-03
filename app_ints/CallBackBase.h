@@ -4,6 +4,16 @@
 #include "../Common/IoService.h"
 #include "../Common/SubData.h"
 
+
+#define MAX_USER_NAME_LEN 64
+#define MAX_CLIENT_CNT 1024
+#ifndef MAX_STOCK_CODE
+#define MAX_STOCK_CODE	1000000
+#endif
+
+extern struct LimitUpDownStruct LIMIT[MAX_STOCK_CODE];
+
+
 typedef struct _filename_set_
 {
 	string gtaqhName;

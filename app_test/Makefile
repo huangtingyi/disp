@@ -20,7 +20,7 @@ INC= -I../Include -I../Common -I../public
 LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_setup -lboost_system -lprotobuf -lrt
 
 #测试工程文件
-Example_SRC=$(wildcard ./*.cpp ../public/getToday.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp ../GTA2csv/*.cpp ../../cs_public/getToday/*.cpp ../GTA2TDF/*.cpp )
+Example_SRC=$(wildcard ./*.cpp ../public/getToday.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp ../GTA2csv/*.cpp ../GTA2TDF/GTA2TDF.cpp )
 Example_OBJS=$(patsubst %.cpp, %.o, $(Example_SRC))
 
 #所有目标文件
