@@ -65,17 +65,22 @@ installdir()
 			cp bin/gta_test         ../bin
 			;;
 		shell)
-			cp  shell/chkipsend.sh	../bin
-			cp  shell/moni.sh	../bin
-			cp  shell/shutdown.sh	../bin
-			cp  shell/startup.sh	../bin
-			cp -r shell/putip.exp	../bin
+			cp shell/chkipsend.sh	../bin
+			cp shell/putip.exp	../bin
+			cp shell/moni.sh	../bin
+			cp shell/startup.sh	../bin
+			cp shell/shutdown.sh	../bin
+			cp shell/killsysxl.sh	../bin
+			cp shell/databackup.sh	../bin
+			cp shell/dataclean.sh	../bin
+			cp shell/logbackup.sh	../bin
+			cp shell/logclean.sh	../bin
 			;;
 		conf)   
 			cp conf/cfg.json	../bin
 			cp conf/disp.json       ../bin
 			cp conf/gta_ints.json   ../bin
-			cp conf/user_privilege.json     ../bin
+			cp conf/user_privilege.json ../bin
 			cp conf/config.ini   	../bin
 			;;
 		*)

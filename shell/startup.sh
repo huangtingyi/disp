@@ -41,6 +41,30 @@ $pidof_bin -x gta_ints && echo "gta_ints is running" && exit 2;
 $pidof_bin -x dat2cli && echo "dat2cli is running" && exit 2;
 $pidof_bin -x moni.sh && echo "moni.sh is running" && exit 2;
 
+##清除mq队列
+ipcs -q | grep "0x" | awk '{print $2}' | while read tmp
+do
+	ipcrm -q $tmp 1>/dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		echo "ipcrm -q $tmp sucess"
+	fi
+done
+
+##清除信号量
+ipcs -s | grep "0x" | awk '{print $2}' | while read tmp
+do
+	ipcrm -s $tmp 1>/dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		echo "ipcrm -s $tmp sucess"
+	fi
+done
+
+##清空disp.json文件
+cat > $disp_file << 'EOF'
+{
+    "users": ""
+}
+EOF
 
 cd $HOME/bin
 

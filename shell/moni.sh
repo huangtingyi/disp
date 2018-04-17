@@ -12,7 +12,7 @@ while true
 do
 	##09点15分之前，15点15分之后，11点45分到12点45分布监控
 	my_date=`date "+%k%M%S"`
-	if [ $my_date -gt "151500" ] ||
+	if [ $my_date -gt "153000" ] ||
 		[ "$my_date" -lt "090000" ] ||
 		[ "$my_date" -gt "114500" -a "$my_date" -lt "124500" ]; then
 		echo -e "`date '+%Y/%m/%d %k:%M:%S'` this time no monitor"
@@ -50,7 +50,7 @@ do
 	sudo netstat -nap | egrep "gta_ints|dat2cli|Address"
 	
 	##增加进程占用的cpu监控
-	top -b -n1 `$pidof_bin gta_ints dat2cli | sed 's/[0-9]*/-p&/g'` | egrep "gta_ints|dat2cli|sshd|COMMAND"
+	top -b -n1 -H `$pidof_bin gta_ints dat2cli | sed 's/[0-9]*/-p&/g'` | egrep "gta_ints|dat2cli|sshd|COMMAND" | head -12
 	##增加消息队列监控
 	ipcs -q
 done

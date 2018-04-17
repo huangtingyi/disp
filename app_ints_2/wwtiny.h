@@ -12,6 +12,8 @@ int ArcTime(time_t t,char sTime[15]);
 int ChkTime(char sAnswerTime[15]);
 int ChkDate(char sDate[9]);
 int GetHostTime(char sHostTime[15]);
+int GetHostTimeX(char sHostTime[15],char sMiniSec[4]);
+
 time_t tGetHostTime();
 
 int LeapYear(char sTempDate[15]);
