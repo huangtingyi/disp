@@ -40,6 +40,10 @@ dataroot=${dataroot:-/data}
 
 if [ $# -eq 0 ];then
 	clean_bakdate=`date -d "$cleandate $backupdays days ago"  "+%Y%m%d"`
+	##如果是星期一、二，要扣除周末两天
+	if [ "`date +%w`" -le 2 ];then
+		workdays=`echo "$workdays + 2" | bc`
+	fi
 	clean_workdate=`date -d "$cleandate $workdays days ago"  "+%Y%m%d"`
 else
 	clean_bakdate="$cleandate";

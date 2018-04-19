@@ -553,6 +553,16 @@ void CallBackBase::OnSubscribe_SSEL2_Quotation(const SSEL2_Quotation& RealSSEL2Q
 
 	UTIL_Time stTime;
 	PUTIL_GetLocalTime(&stTime);
+	
+	//必须将数据调整放在这，避免回放程序错误
+	int iStockCode=atoi(RealSSEL2Quotation.Symbol);
+
+	if(iStockCode>0&&iStockCode<MAX_STOCK_CODE){
+
+		SSEL2_Quotation *p=(SSEL2_Quotation *)&RealSSEL2Quotation;
+		p->WarrantDownLimit=	LIMIT[iStockCode].WarrantDownLimit;
+		p->WarrantUpLimit=	LIMIT[iStockCode].WarrantUpLimit;
+	}
 
 	//接收到数据后，先放入本地队列，等待数据处理接口处理
 	SubData *subdata = new SubData;
@@ -699,13 +709,6 @@ void CallBackBase::Deal_Message_SSEL2_Quotation(SubData *subdata)
 	Order_queue 	oq0,oq1;
 	string strMd,strOq0,strOq1;
 
-	int iStockCode=atoi(RealSSEL2Quotation->Symbol);
-
-	if(iStockCode>0&&iStockCode<MAX_STOCK_CODE){
-		RealSSEL2Quotation->WarrantDownLimit=	LIMIT[iStockCode].WarrantDownLimit;
-		RealSSEL2Quotation->WarrantUpLimit=	LIMIT[iStockCode].WarrantUpLimit;
-	}
-
 	for(int i=0;i<max_trans_cnt;i++)
 	GTA2TDF_SSEL2(RealSSEL2Quotation[0],m, q[0],q[1]);
 
@@ -732,6 +735,8 @@ void CallBackBase::Deal_Message_SSEL2_Quotation(SubData *subdata)
 	md.SerializeToString(&strMd);
 	oq0.SerializeToString(&strOq0);
 	oq1.SerializeToString(&strOq1);
+
+	int iStockCode=atoi(RealSSEL2Quotation->Symbol);
 
 		//校验代码合法性
 	if(iStockCode>0&&iStockCode<MAX_STOCK_CODE){
