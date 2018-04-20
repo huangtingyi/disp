@@ -6,6 +6,52 @@
 #include <string.h>
 
 
+/*将节点插入到LISTHEAD的头部*/
+void Insert2List(LISTHEAD *ptHead,LIST *p)
+{
+	if(ptHead->pHead==NULL){
+		p->pNext=NULL;
+		ptHead->pHead=ptHead->pTail=p;
+		return;
+	}
+	
+	p->pNext=ptHead->pHead;
+	ptHead->pHead=p;
+}
+/*将节点追加到LISTHEAD的尾部*/
+void Append2List(LISTHEAD *ptHead,LIST *p)
+{
+	if(ptHead->pTail==NULL){
+		p->pNext=NULL;
+		ptHead->pHead=ptHead->pTail=p;
+		return;
+	}
+	//把表项加入到最后
+	ptHead->pTail->pNext=p;
+	
+	//调整尾指针
+	ptHead->pTail=p;
+	//确保只有一项
+	p->pNext=NULL;
+}
+/*将整个链表追加到LISTHEAD的尾部*/
+void AppendList2List(LISTHEAD *ptHead,LIST *p)
+{
+	if(ptHead->pTail==NULL){
+		ptHead->pHead=p;
+		while(p->pNext!=NULL) p=p->pNext;
+		ptHead->pTail=p;
+		return;
+	}
+	
+	//接上链表
+	ptHead->pTail->pNext=p;
+	
+	//找到尾指针
+	while(p->pNext!=NULL) p=p->pNext;
+	ptHead->pTail=p;
+}
+
 /*统计链表节点数目*/
 int CountList(LIST* ptHead)
 {

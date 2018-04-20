@@ -7,7 +7,6 @@
 struct D31IndexItemStruct
 {
 	struct D31IndexItemStruct *pNext;
-	int	iStockCode;	//股票代码
 	int	nActionDay;	//委托日期(YYYYMMDD)
 	int	nTime;		//委托时间(HHMMSSmmm)
 	int8b	alBidAmount[MAX_LEVEL_CNT];	//主买额度，单位（分）
@@ -50,19 +49,22 @@ struct TinyOrderStruct
 	int 	nOrder;	        //委托号
 	int     nBroker;	//经济商编号
 	int     nBSFlag;  	//委托代码('B','S','C')
-
-	int	iFlag;		//逐单标志[1,已累计,0未累计]
-	int	iZbFlag;	//计算标志[1,已累计,0未累计]
-	int	iOppZbFlag;	//对方逐笔标志[1,已累计,0未累计]
-
+	
+	int	iCloseFlag;	//订单关闭标志，0未关闭，1已关闭
 	int	nOrderSeq;	//成交序列号
 	long	lOrderAmnt;	//成交金额
+	
+	int	nOriOrdPrice;	//原始委托价格
+	int	nOriOrdVolume;	//原始委托量
+	long	lOriOrdAmnt;	//原始委托金额
+	
 };
 struct PriceOrderStruct
 {
 	int nPrice;
 	int nOrder;
 };
+
 struct IndexStatStruct
 {
 	struct IndexStatStruct *pNext;	//下一支股票的数据
@@ -72,24 +74,20 @@ struct IndexStatStruct
 	int nT0;
 	int iS0Cnt;		//S0链表的大小
 	int iPreS0Cnt;		//在S0链表中，发现的小于nPreT0的记录数
-/*
-	int nAskDownPrice;	//卖出最低成交价,单位（分）
-	int nBidUpPrice;	//买入最高成交价,单位（分）
-	int nAskMaxOrder;	//卖出最大订单号，对应被动盘最低价
-	int nBidMaxOrder;	//买入最大订单号，对应被动盘最高价
-*/	
+	
 	BINTREE *ASK_MAX;	//以成卖出交价为索引，成交价和最大ASK_ORDER的关系
 	BINTREE *BID_MAX;	//以成买入交价为索引，成交价和最大BID_ORDER的关系
 	struct D31IndexItemStruct Zd;		//逐单统计数据
 	struct D31IndexItemStruct Zb;		//逐笔统计数据
 	BINTREE *M_ORDER;			//合并订单数据，按ORDER_ID索引
-	BINTREE *R_ORDER;			//真实订单数据，按ORDER_ID索引
-	struct TinyOrderStruct PreS0M;		//之前的合并订单数据
-	struct TinyOrderStruct PreS0R;		//之前的实际订单数据
-	struct TinyOrderStruct *pS1M;		//合并订单数据列表(T0,之后的订单数据};
-	struct TinyOrderStruct *pS1R;		//实际订单数据列表(T0,之后的订单数据};
-	struct TinyTransactionStruct *pS0Head;	//存放(T0-1,T0]的交易数据
-	struct TinyTransactionStruct *pS1Head;  //存放(T0,之后的交易数据};
+//	struct TinyOrderStruct PreS0M;		//之前的合并订单数据
+//	struct TinyOrderStruct *pS1M;		//合并订单数据列表(T0,之后的订单数据};
+//	struct TinyTransactionStruct *pS0Head;	//存放(T0-1,T0]的交易数据
+//	struct TinyTransactionStruct *pS1Head;  //存放(T0,之后的交易数据};
+
+	LISTHEAD S0O;	//存放所有的M_ORDER中的订单列表
+	LISTHEAD S0T;	//存放(T0-1,T0]的交易数据
+	LISTHEAD S1T;	//存放(T0,之后的交易数据}
 };
 
 #define MY_GET_MILLI_SEC(x)	(x%1000)

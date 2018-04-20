@@ -32,6 +32,20 @@ typedef struct __List__
 	struct __List__ *pNext;
 } LIST;
 
+typedef struct __List__Head__
+{
+        LIST *pHead;
+        LIST *pTail;
+} LISTHEAD;
+
+/*将节点插入到LISTHEAD的头部*/
+void Insert2List(LISTHEAD *ptHead,LIST *p);
+/*将节点追加到LISTHEAD的尾部*/
+void Append2List(LISTHEAD *ptHead,LIST *p);
+
+/*将整个链表追加到LISTHEAD的尾部*/
+void AppendList2List(LISTHEAD *ptHead,LIST *p);
+
 
 /*计算链表的个数*/
 int CountList(LIST* ptHead);

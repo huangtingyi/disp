@@ -68,11 +68,13 @@ void TDF_TRANSACTION2TinyOrderS(struct TDF_TRANSACTION *pi,struct TinyOrderStruc
 	po->nOrder=	pi->nAskOrder;
 	po->nBroker=	0;
 	po->nBSFlag=	pi->nBSFlag;
-	po->iFlag=	0;
-	po->iZbFlag=	0;
-	po->iOppZbFlag=	0;
 	po->nOrderSeq=	0;
 	po->lOrderAmnt=(long)(pi->nPrice)*pi->nVolume/100;
+	
+	po->iCloseFlag=0;
+	po->nOriOrdPrice=0;
+	po->nOriOrdVolume=0;
+	po->lOriOrdAmnt=0;
 }
 void TDF_TRANSACTION2TinyOrderB(struct TDF_TRANSACTION *pi,struct TinyOrderStruct *po)
 {
@@ -85,11 +87,13 @@ void TDF_TRANSACTION2TinyOrderB(struct TDF_TRANSACTION *pi,struct TinyOrderStruc
 	po->nOrder=	pi->nBidOrder;
 	po->nBroker=	0;
 	po->nBSFlag=	pi->nBSFlag;
-	po->iFlag=	0;
-	po->iZbFlag=	0;
-	po->iOppZbFlag=	0;
 	po->nOrderSeq=	0;
 	po->lOrderAmnt=(long)(pi->nPrice)*pi->nVolume/100;
+	
+	po->iCloseFlag=0;
+	po->nOriOrdPrice=0;
+	po->nOriOrdVolume=0;
+	po->lOriOrdAmnt=0;
 }
 void TDF_ORDER2TinyOrder(struct TDF_ORDER *pi,struct TinyOrderStruct *po)
 {
@@ -97,16 +101,19 @@ void TDF_ORDER2TinyOrder(struct TDF_ORDER *pi,struct TinyOrderStruct *po)
 	po->nActionDay=	pi->nActionDay;
 	po->nTime=	pi->nTime;
 	po->iStockCode=	atoi(pi->szCode);
-	po->nPrice=	(int)pi->nPrice;
-	po->nVolume=	pi->nVolume;
+	po->nPrice=	0;
+	po->nVolume=	0;
 	po->nOrder=	pi->nOrder;
 	po->nBroker=	pi->nBroker;
 	po->nBSFlag=	pi->chFunctionCode;
-	po->iFlag=	0;
-	po->iZbFlag=	0;
-	po->iOppZbFlag=	0;
 	po->nOrderSeq=	0;
-	po->lOrderAmnt=(long)(pi->nPrice)*pi->nVolume/100;
+	po->lOrderAmnt= 0;
+	
+	po->iCloseFlag=	0;
+	po->nOriOrdPrice=(int)pi->nPrice;
+	po->nOriOrdVolume=pi->nVolume;
+	po->lOriOrdAmnt=(long)(pi->nPrice)*pi->nVolume/100;
+
 }
 
 void GTA2TDF_QH2T(void *p, TDF_TRANSACTION *pt)
@@ -202,6 +209,10 @@ void  GTA2TDF_QZ2T(void *p, TDF_TRANSACTION *pt)
 	//int	    nBidOrder;	                //叫买方委托序号
 	pt->nBidOrder = int(pi->BuyOrderID);
 }
+int data_search_bintree_order_2(void *pValue,void*pData)
+{
+	return *((int*)pValue)-((struct TinyOrderStruct *)pData)->nOrder;
+}
 struct IndexStatStruct *NewInitIndexStat(int iStockCode,int nActionDay,int nPreT0,int nT0)
 {
 	struct IndexStatStruct *p;
@@ -228,14 +239,13 @@ int data_search_bintree_stock_code_order(void *pValue,void*pData)
 }
 void assign_insert_bintree_stock_code_order_e(void **ppData,void *pData)
 {
-	struct TinyOrderStruct **pptHead,*p=(struct TinyOrderStruct *)pData;
+	LISTHEAD *pS0O;
+	struct TinyOrderStruct *p=(struct TinyOrderStruct *)pData;
 	
-	pptHead=&(p->pNext->pNext);
+	pS0O=(LISTHEAD*)(p->pNext);
 	
-	p->pNext=NULL;
-	
-	InsertList((LIST**)pptHead,(LIST*)p);
-	
+	Append2List(pS0O,(LIST*)p);
+
 	*ppData=pData;
 }
 
@@ -289,43 +299,28 @@ int AddTinyOrder2List(struct TinyOrderStruct **pp,struct TinyOrderStruct *p)
 	return 0;
 }
 
-int AddTransaction2IndexStatMerge(struct TDF_TRANSACTION *pi,int nT0,
-	struct IndexStatStruct *pIndexStat)
+int AddTransaction2IndexStat(struct TDF_TRANSACTION *pi,struct IndexStatStruct *pIndexStat)
 {
 	struct TinyOrderStruct ob,os;
 
 	TDF_TRANSACTION2TinyOrderS(pi,&os);
 	TDF_TRANSACTION2TinyOrderB(pi,&ob);
-
-	if(pi->nTime<=nT0){
 		
-		//将链表头的指针带入
-		os.pNext=&(pIndexStat->PreS0M);
-		//卖出订单合并到交易合并订单树中
-		if(AddTinyOrder2Tree(&(pIndexStat->M_ORDER),&os)<0){
-			printf("error add ask tiny order to tree\n");
-			return -1;
-		}
-		
-		//将链表头的指针带入
-		ob.pNext=&(pIndexStat->PreS0M);
-		//买入订单合并到交易合并订单树中
-		if(AddTinyOrder2Tree(&(pIndexStat->M_ORDER),&ob)<0){
-			printf("error add bid tiny order to tree \n");
-			return -1;
-		}
+	//将链表头的指针带入
+	os.pNext=(struct TinyOrderStruct*)&(pIndexStat->S0O);
+	//卖出订单合并到交易合并订单树中
+	if(AddTinyOrder2Tree(&(pIndexStat->M_ORDER),&os)<0){
+		printf("error add ask tiny order to tree\n");
+		return -1;
 	}
-	else{
-		//卖出订单添加到交易合并订单链表中
-		if(AddTinyOrder2List(&(pIndexStat->pS1M),&os)<0){
-			printf("error add ask tiny order to list\n");
-			return -1;
-		}
-		//买入订单添加到交易合并订单链表中
-		if(AddTinyOrder2List(&(pIndexStat->pS1M),&ob)<0){
-			printf("error add bid tiny order to list\n");
-			return -1;
-		}
+		
+	//将链表头的指针带入
+	//ob.pNext=&(pIndexStat->PreS0M);
+	ob.pNext=(struct TinyOrderStruct*)&(pIndexStat->S0O);
+	//买入订单合并到交易合并订单树中
+	if(AddTinyOrder2Tree(&(pIndexStat->M_ORDER),&ob)<0){
+		printf("error add bid tiny order to tree \n");
+		return -1;
 	}
 	return 0;
 }
@@ -340,6 +335,11 @@ int AddTransaction2IndexStatMerge(struct TDF_TRANSACTION *pi,int nT0,
 **/
 int data_search_bintree_price_order(void *pValue,void*pData)
 {
+	int res;
+
+	if((res= ((struct PriceOrderStruct *)pValue)->nOrder-
+		((struct PriceOrderStruct *)pData)->nOrder)!=0) return res;
+	
 	return ((struct PriceOrderStruct *)pValue)->nPrice-
 		((struct PriceOrderStruct *)pData)->nPrice;
 }
@@ -394,8 +394,8 @@ int data_search_bintree_price_order_1(void *pValue,void*pData)
 		((struct PriceOrderStruct *)pData)->nPrice;
 }
 
-//遍历PreS0M,PreS0R,根据原则，删除订单数据
-void DeleteCloseOrder(struct TinyOrderStruct **pptHead,BINTREE **ppORDER,
+//遍历S0O,根据原则，删除订单数据
+void DeleteCloseOrder(LISTHEAD *pS0O,BINTREE **ppORDER,
 	struct IndexStatStruct *p)
 {
 //	int4b DeleteBin(BINTREE **pptHead,void *p,
@@ -405,7 +405,13 @@ void DeleteCloseOrder(struct TinyOrderStruct **pptHead,BINTREE **ppORDER,
         struct PriceOrderStruct *pPriceOrder;
         BINTREE *pBin,*BS_MAX;
         
-        ptHead=*pptHead;
+//        struct TinyOrderStruct **pptHead=(struct TinyOrderStruct *)&(pS0O->pHead)
+        
+        pS0O->pHead=NULL;
+        pS0O->pTail=NULL;
+
+
+        ptHead=(struct TinyOrderStruct *)pS0O->pHead;
         
         while(ptHead!=NULL){
         	pTemp=ptHead;
@@ -415,7 +421,7 @@ void DeleteCloseOrder(struct TinyOrderStruct **pptHead,BINTREE **ppORDER,
 			(void**)&pTinyOrder)==NOTFOUND){
 			printf("logic error search.\n");
 			pTemp->pNext=NULL;
-			InsertList((LIST**)pptHead,(LIST*)pTemp);
+			Append2List(pS0O,(LIST*)pTemp);
 			continue;
 		}
 		
@@ -429,14 +435,14 @@ void DeleteCloseOrder(struct TinyOrderStruct **pptHead,BINTREE **ppORDER,
 		if(SearchBin(BS_MAX,pTemp,data_search_bintree_price_order_1,
 			(void**)&pPriceOrder)==NOTFOUND){
 			pTemp->pNext=NULL;
-			InsertList((LIST**)pptHead,(LIST*)pTemp);
+			Append2List(pS0O,(LIST*)pTemp);
 			continue;
 		}
 
 		//同样价格、同样方向，有更大订单号成交，则本订单号放弃
 		if(pTemp->nOrder>=pPriceOrder->nOrder){
 			pTemp->pNext=NULL;
-			InsertList((LIST**)pptHead,(LIST*)pTemp);
+			Append2List(pS0O,(LIST*)pTemp);
 			continue;
 		}
 			
@@ -445,7 +451,7 @@ void DeleteCloseOrder(struct TinyOrderStruct **pptHead,BINTREE **ppORDER,
 		if(pBin==NULL){
 			printf("logic error search.\n");
 			pTemp->pNext=NULL;
-			InsertList((LIST**)pptHead,(LIST*)pTemp);
+			Append2List(pS0O,(LIST*)pTemp);
 			continue;
 		}
 		free(pBin);
@@ -454,141 +460,94 @@ void DeleteCloseOrder(struct TinyOrderStruct **pptHead,BINTREE **ppORDER,
 }
 void DeleteCloseOrderIndexStat(struct IndexStatStruct *p)
 {
-	DeleteCloseOrder(&(p->PreS0M.pNext),&(p->M_ORDER),p);
-	DeleteCloseOrder(&(p->PreS0R.pNext),&(p->R_ORDER),p);
+	DeleteCloseOrder(&(p->S0O),&(p->M_ORDER),p);
 }
-int data_search_bintree_order_2(void *pValue,void*pData)
+void AskOrder2D31(struct TinyOrderStruct *p,struct TinyTransactionStruct *pt,
+	struct D31IndexItemStruct *pD31)
 {
-	return *((int*)pValue)-((struct TinyOrderStruct *)pData)->nOrder;
-}
-void AskOrder2D31(struct TinyOrderStruct *pAskOrder,struct TinyTransactionStruct *pt,
-	struct D31IndexItemStruct *pD31,struct TinyOrderStruct **ppLkHead)
-{
-	int iOrderNo=0;
-
-	if(pAskOrder->iFlag==0){
-		pAskOrder->iFlag=iOrderNo=1;
-		
-		pAskOrder->pTmpNext=*ppLkHead;
-		*ppLkHead=pAskOrder;
-	}
-
+	int lAmnt=p->lOriOrdAmnt?p->lOriOrdAmnt:p->lOrderAmnt;
+	
 	for(int i=0;i<MAX_LEVEL_CNT;i++){
-		if(alAmntLevel[i]>pAskOrder->lOrderAmnt) break;	
+		if(alAmntLevel[i]>lAmnt) break;
+
 		pD31->alAskAmount[i]+=	(long)pt->nVolume*pt->nPrice/100;
 		pD31->aiAskVolume[i]+=	pt->nVolume;
 		
-	//	pD31->aiAskOrderNum[i]+=iOrderNo;
-		//只记录第一单
+		//只统计委托单的第一笔成交
 		if(pt->nAskOrderSeq==1)pD31->aiAskOrderNum[i]++;
 	}
 }
-void BidOrder2D31(struct TinyOrderStruct *pBidOrder,struct TinyTransactionStruct *pt,
-	struct D31IndexItemStruct *pD31,struct TinyOrderStruct **ppLkHead)
+void BidOrder2D31(struct TinyOrderStruct *p,struct TinyTransactionStruct *pt,
+	struct D31IndexItemStruct *pD31)
 {
-	int iOrderNo=0;
 	
-	if(pBidOrder->iFlag==0){
-		pBidOrder->iFlag=iOrderNo=1;
-		
-		pBidOrder->pTmpNext=*ppLkHead;
-		*ppLkHead=pBidOrder;
-	}
-	
+	int lAmnt=p->lOriOrdAmnt?p->lOriOrdAmnt:p->lOrderAmnt;
+
 	for(int i=0;i<MAX_LEVEL_CNT;i++){
-		if(alAmntLevel[i]>pBidOrder->lOrderAmnt) break;	
+		if(alAmntLevel[i]>lAmnt) break;	
 		pD31->alBidAmount[i]+=	(long)pt->nVolume*pt->nPrice/100;
 		pD31->aiBidVolume[i]+=	pt->nVolume;
 		
-	//	pD31->aiBidOrderNum[i]+=iOrderNo;
-		//只记录第一单
+		//只统计委托单的第一笔成交
 		if(pt->nBidOrderSeq==1)pD31->aiBidOrderNum[i]++;
 	}
 }
 
-void AskOrder2D31Zb(struct TinyOrderStruct *pAskOrder,struct TinyTransactionStruct *pt,
-	struct D31IndexItemStruct *pD31,struct TinyOrderStruct *pOppOrder)
+void AskOrder2D31Zb(struct TinyOrderStruct *p,struct TinyTransactionStruct *pt,
+	struct D31IndexItemStruct *pD31)
 {
-	int iOrderNo=0;
-	
-	if(pAskOrder->iZbFlag==0)
-		pAskOrder->iZbFlag=iOrderNo=1;
-
-	pOppOrder->iOppZbFlag=1;
-
-	if(pt->iStockCode==603912&&iOrderNo==1){
-		printf("-----------------------------------------------------------the sale order=%d.\n",pAskOrder->nOrder);
-	}
+	int lAmnt=p->lOriOrdAmnt?p->lOriOrdAmnt:p->lOrderAmnt;
 
 	for(int i=0;i<MAX_LEVEL_CNT;i++){
-		if(alAmntLevel[i]>pAskOrder->lOrderAmnt) break;	
+		if(alAmntLevel[i]>lAmnt) break;	
 		pD31->alAskAmount[i]+=	(long)pt->nVolume*pt->nPrice/100;
 		pD31->aiAskVolume[i]+=	pt->nVolume;
 		
-		//如果本交易的对手的单未被统计，则算本单为一单
-		if(pAskOrder->iOppZbFlag==0)
-			pD31->aiAskOrderNum[i]+=iOrderNo;
-//		if(pt->nAskOrderSeq==1)pD31->aiAskOrderNum[i]++;
-
+		//只统计委托单的第一笔成交
+		if(pt->nAskOrderSeq==1)pD31->aiAskOrderNum[i]++;
 	}
 }
 
-void BidOrder2D31Zb(struct TinyOrderStruct *pBidOrder,struct TinyTransactionStruct *pt,
-	struct D31IndexItemStruct *pD31,struct TinyOrderStruct *pOppOrder)
+void BidOrder2D31Zb(struct TinyOrderStruct *p,struct TinyTransactionStruct *pt,
+	struct D31IndexItemStruct *pD31)
 {
-	int iOrderNo=0;
-	
-	if(pBidOrder->iZbFlag==0)
-		pBidOrder->iZbFlag=iOrderNo=1;
-
-	pOppOrder->iOppZbFlag=1;
-
-	if(pt->iStockCode==603912&&iOrderNo==1){
-		printf("-----------------------------------------------------------the buy order=%d.\n",pBidOrder->nOrder);
-	}
+	int lAmnt=p->lOriOrdAmnt?p->lOriOrdAmnt:p->lOrderAmnt;
 
 	for(int i=0;i<MAX_LEVEL_CNT;i++){
-		if(alAmntLevel[i]>pBidOrder->lOrderAmnt) break;	
+		if(alAmntLevel[i]>lAmnt) break;
 		pD31->alBidAmount[i]+=	(long)pt->nVolume*pt->nPrice/100;
 		pD31->aiBidVolume[i]+=	pt->nVolume;
 
-		//如果本交易的对手的单未被统计，则算本单为一单
-//		if(pBidOrder->iOppZbFlag==0)
-//			pD31->aiBidOrderNum[i]+=iOrderNo;
+		//只统计委托单的第一笔成交
 		if(pt->nBidOrderSeq==1)pD31->aiBidOrderNum[i]++;
 	}
 }
 
-//b)根据pS0Head列表中，循环查找M_ORDER和R_ORDER表中，生成 D31IndexItem数据；
+//b)根据S0T列表中，循环查找M_ORDER表中，生成 D31IndexItem数据；
 int GenD31Stat(struct IndexStatStruct *p)
 {
 	struct D31IndexItemStruct *pD31Zd=&(p->Zd),*pD31Zb=&(p->Zb);
-	BINTREE *M_ORDER=p->M_ORDER,*R_ORDER=p->R_ORDER;
+	BINTREE *M_ORDER=p->M_ORDER;
 	
-	struct TinyOrderStruct *pAskOrder,*pBidOrder,*ptLkHead=NULL;
+	struct TinyOrderStruct *pAskOrder,*pBidOrder;
 	struct TinyTransactionStruct *ptHead,*pTemp;
 	
-	ReverseList((LIST**)&(p->pS0Head));
+//	ReverseList((LIST**)&(p->pS0Head));
 	
-	ptHead=p->pS0Head;
+	ptHead=(struct TinyTransactionStruct *)p->S0T.pHead;
 	
 	while(ptHead!=NULL){
 		pTemp=ptHead;
 		ptHead=ptHead->pNext;
 
 		//找到卖方订单金额
-		if(SearchBin(R_ORDER,(void*)&(pTemp->nAskOrder),
-			data_search_bintree_order_2,(void**)&pAskOrder)==NOTFOUND){
-			if(SearchBin(M_ORDER,(void*)&(pTemp->nAskOrder),
-				data_search_bintree_order_2,(void**)&pAskOrder)==NOTFOUND)return -1;
-		}
+		if(SearchBin(M_ORDER,(void*)&(pTemp->nAskOrder),
+			data_search_bintree_order_2,(void**)&pAskOrder)==NOTFOUND)return -1;
 				
 		//找到买方订单金额
-		if(SearchBin(R_ORDER,(void*)&(pTemp->nBidOrder),
-			data_search_bintree_order_2,(void**)&pBidOrder)==NOTFOUND){
-			if(SearchBin(M_ORDER,(void*)&(pTemp->nBidOrder),
-				data_search_bintree_order_2,(void**)&pBidOrder)==NOTFOUND)return -1;
-		}
+		if(SearchBin(M_ORDER,(void*)&(pTemp->nBidOrder),
+			data_search_bintree_order_2,(void**)&pBidOrder)==NOTFOUND)return -1;
+
 		
 		//这个逻辑稍后要移到加载逻辑中
 		pAskOrder->nOrderSeq++;
@@ -598,23 +557,15 @@ int GenD31Stat(struct IndexStatStruct *p)
 		pTemp->nBidOrderSeq=pBidOrder->nOrderSeq;
 
 		//统计逐单信息
-		AskOrder2D31(pAskOrder,pTemp,pD31Zd,&ptLkHead);
-		BidOrder2D31(pBidOrder,pTemp,pD31Zd,&ptLkHead);
+		AskOrder2D31(pAskOrder,pTemp,pD31Zd);
+		BidOrder2D31(pBidOrder,pTemp,pD31Zd);
 
 		//统计逐笔信息
 		if(pTemp->nBSFlag=='S')
-			AskOrder2D31Zb(pAskOrder,pTemp,pD31Zb,pBidOrder);
-		else	BidOrder2D31Zb(pBidOrder,pTemp,pD31Zb,pAskOrder);
+			AskOrder2D31Zb(pAskOrder,pTemp,pD31Zb);
+		else	BidOrder2D31Zb(pBidOrder,pTemp,pD31Zb);
 	}
-	
-	//将标志复位
-	while(ptLkHead!=NULL){
-		ptLkHead->iFlag=0;
-		ptLkHead->iZbFlag=0;
-		ptLkHead->iOppZbFlag=0;
-		ptLkHead=ptLkHead->pTmpNext;
-	}
-		
+			
 	return 0;
 }
 int WriteD31Stat(FILE *fp,struct IndexStatStruct *p)
@@ -622,19 +573,21 @@ int WriteD31Stat(FILE *fp,struct IndexStatStruct *p)
 	int i;
 	struct D31IndexItemStruct *pD31;
 
-	fprintf(fp,"code=%06d,t=%d,zd,zb\n",p->iStockCode,p->nT0);
+	fprintf(fp,"code=%06d,t=%09d,zd,zb\n",p->iStockCode,p->nT0);
 
 	
 	pD31=&(p->Zb);
 	for(i=0;i<MAX_LEVEL_CNT;i++)
-		fprintf(fp,"zb:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n",alAmntLevel[i]/1000000,
+		fprintf(fp,"zb:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n",
+			alAmntLevel[i]/1000000,
 			pD31->alBidAmount[i],pD31->aiBidVolume[i],pD31->aiBidOrderNum[i],
 			pD31->alAskAmount[i],pD31->aiAskVolume[i],pD31->aiAskOrderNum[i]);
 
 
 	pD31=&(p->Zd);
 	for(i=0;i<MAX_LEVEL_CNT;i++)
-		fprintf(fp,"zd:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n",alAmntLevel[i]/1000000,
+		fprintf(fp,"zd:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n",
+			alAmntLevel[i]/1000000,
 			pD31->alBidAmount[i],pD31->aiBidVolume[i],pD31->aiBidOrderNum[i],
 			pD31->alAskAmount[i],pD31->aiAskVolume[i],pD31->aiAskOrderNum[i]);
 	
@@ -659,7 +612,9 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 	long long *pll=(long long*)sBuffer;
 	void *p=(void*)(sBuffer+sizeof(long long));
 	TDF_TRANSACTION t;
-	struct TinyTransactionStruct tt,*pt,**ppSXHead;
+	struct TinyTransactionStruct tt,*pt;
+	
+	LISTHEAD *pSXT;
 
 	long lCurPos=*plCurPos;
 
@@ -714,7 +669,7 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 		}
 
 		//将Transaction数据生成Order数据，添加到Merge结构中
-		if(AddTransaction2IndexStatMerge(&t,nT0,pIndexStat)<0){
+		if(AddTransaction2IndexStat(&t,pIndexStat)<0){
 			printf("error add transaction to index stat file=%s,pos=%ld\n",
 			sFileName,lCurPos);
 			return -1;
@@ -730,21 +685,22 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
                 }
 
 		//从lCurPos,读到 nT0, 对于大于 nPreT0的部分，加入到
-		//pS0Head，大于nT0的数据加到pS1Head,遇到，遇到大于nEndTime0的数据停止;
+		//S0T，大于nT0的数据加到pS1Head,遇到，遇到大于nEndTime0的数据停止;
 		if(t.nTime<=nPreT0) continue;
 
 		if(t.nTime<=nT0)
-			ppSXHead=&(pIndexStat->pS0Head);
-		else	ppSXHead=&(pIndexStat->pS1Head);
+			pSXT=&(pIndexStat->S0T);
+		else	pSXT=&(pIndexStat->S1T);
 
-		if((pt=(struct TinyTransactionStruct*)malloc(sizeof(struct TinyTransactionStruct)))==NULL){
+		if((pt=(struct TinyTransactionStruct*)malloc(
+			sizeof(struct TinyTransactionStruct)))==NULL){
 			printf("error malloc TinyTransactionStruct  file=%s,pos=%ld\n",
 				sFileName,lCurPos);
 			return -1;
 		}
 		memcpy((void*)pt,(void*)&tt,sizeof(struct TinyTransactionStruct));
 
-		InsertList((LIST**)ppSXHead,(LIST*)pt);
+		Append2List(pSXT,(LIST*)pt);
 
 		//遇到大于nEndTime0的数据停止
 		if(t.nTime>=nEndTime0){
@@ -761,7 +717,7 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 }
 
 
-/*二、加载订单数据到R_ORDER；
+/*二、加载订单数；
 返回值：
 	0 到达文件末尾，或大于nEndTime0,放回
 	-1	处理错误
@@ -776,7 +732,7 @@ int MountOrdData2IndexStatArray(char sFileName[],int nBgnActionDay,
 	long long *pll=(long long*)sBuffer;
 	SZSEL2_Order *p=(SZSEL2_Order*)(sBuffer+sizeof(long long));
 	TDF_ORDER od;
-	struct TinyOrderStruct o;
+	struct TinyOrderStruct o,*pOrder,*pTemp;
 	struct IndexStatStruct *pIndexStat;
 
 	if((fp=fopen(sFileName,"r"))==NULL){
@@ -818,19 +774,38 @@ int MountOrdData2IndexStatArray(char sFileName[],int nBgnActionDay,
 			InsertList((LIST**)&INDEX_HEAD,(LIST*)pIndexStat);
 		}
 
+		if(SearchBin(pIndexStat->M_ORDER,(void*)&od.nOrder,
+			data_search_bintree_order_2,(void**)&pOrder)==FOUND){
+
+			pOrder->iCloseFlag=	1;
+			pOrder->nOriOrdPrice=	od.nPrice;
+			pOrder->nOriOrdVolume=	od.nVolume;
+			pOrder->lOriOrdAmnt=	(long)od.nPrice*od.nVolume/100;
+
+			//遇到大于nEndTime0的数据停止
+			if(od.nTime>=nEndTime0) break;
+			continue;
+		}
+
 		TDF_ORDER2TinyOrder(&od,&o);
 
 		//将链表头的指针带入
-		o.pNext=&(pIndexStat->PreS0R);
-
-		//实际订单订单添加到实际订单树中
-		//注意，这个函数对于重复订单数据会有问题
-		//注意，交易号重复的数据的上一个函数会有问题
-		if(AddTinyOrder2Tree(&(pIndexStat->R_ORDER),&o)<0){
-			printf("error add realorder tiny order to tree\n");
+		//o.pNext=&(pIndexStat->PreS0M);
+		o.pNext=(struct TinyOrderStruct*)&(pIndexStat->S0O);
+		
+		if((pTemp=(struct TinyOrderStruct*)malloc(
+			sizeof(struct TinyOrderStruct)))==NULL){
+			printf("malloc TinyOrderStruct error.\n");
 			return -1;
 		}
+		memcpy((void*)pTemp,(void*)&o,sizeof(struct TinyOrderStruct));
 
+		if(InsertBin(&(pIndexStat->M_ORDER),(void *)pTemp,
+			data_search_bintree_stock_code_order,
+			assign_insert_bintree_stock_code_order_e)<0){
+			printf("insert bin malloc error th.\n");
+			return -1;
+		}
 		//遇到大于nEndTime0的数据停止
 		if(od.nTime>=nEndTime0) break;
 	}
@@ -1018,7 +993,7 @@ int main(int argc, char *argv[])
 		printf("hello world tp=%d,tc=%d.\n",nPreT0,nT0);
 
 		nPreT0=nT0;
-		nT0=iAddMilliSec(nT0,1000);
+		nT0=iAddMilliSec(nT0,1000*60);
 		
 		printf("hello world tp=%d,tc=%d.\n",nPreT0,nT0);
 		break;
