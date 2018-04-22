@@ -181,7 +181,7 @@ time_hh=`echo $chk_time | cut -c 1-2`
 time_mm=`echo $chk_time | cut -c 4-5`
 
 
-echo zb_a_0=$zb_a_0 zb_v_0=$zb_v_0 code=$sz_code
+echo zb_a_0=$zb_a_0 zb_v_0=$zb_v_0 code=$sz_code chk-time=$chk_time
 
 printf "code=%06d,t=%02s%02s00000,zd,zb\n" $sz_code $time_hh $time_mm
 
@@ -224,6 +224,13 @@ ask_amnt=$zs_a_0
 ask_volume=$zs_v_0
 ask_ordernum=$zs_n_0
 
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
+
 printf "zb:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 0   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
 zb_a_5=`echo $zb_a_5*1000000+0.5 | bc`
@@ -251,6 +258,13 @@ bid_ordernum=$zb_n_5
 ask_amnt=$zs_a_5
 ask_volume=$zs_v_5
 ask_ordernum=$zs_n_5
+
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
 
 printf "zb:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 5   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
@@ -280,6 +294,13 @@ ask_amnt=$zs_a_10
 ask_volume=$zs_v_10
 ask_ordernum=$zs_n_10
 
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
+
 printf "zb:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 10   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
 zb_a_20=`echo $zb_a_20*1000000+0.5 | bc`
@@ -307,6 +328,13 @@ bid_ordernum=$zb_n_20
 ask_amnt=$zs_a_20
 ask_volume=$zs_v_20
 ask_ordernum=$zs_n_20
+
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
 
 printf "zb:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 20   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
@@ -336,6 +364,13 @@ ask_amnt=$zs_a_40
 ask_volume=$zs_v_40
 ask_ordernum=$zs_n_40
 
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
+
 printf "zb:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 40   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
 zb_a_60=`echo $zb_a_60*1000000+0.5 | bc`
@@ -364,6 +399,13 @@ ask_amnt=$zs_a_60
 ask_volume=$zs_v_60
 ask_ordernum=$zs_n_60
 
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
+
 printf "zb:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 60   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
 zb_a_80=`echo $zb_a_80*1000000+0.5 | bc`
@@ -391,6 +433,13 @@ bid_ordernum=$zb_n_80
 ask_amnt=$zs_a_80
 ask_volume=$zs_v_80
 ask_ordernum=$zs_n_80
+
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
 
 printf "zb:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 80   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
@@ -421,7 +470,15 @@ ask_amnt=$zs_a_100
 ask_volume=$zs_v_100
 ask_ordernum=$zs_n_100
 
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
+
 printf "zb:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 100   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
+
 
 zb_a_200=`echo $zb_a_200*1000000+0.5 | bc`
 zb_a_200=${zb_a_200%.*}
@@ -444,10 +501,17 @@ zs_n_200=${zs_n_200%.*}
 bid_amnt=$zb_a_200
 bid_volume=$zb_v_200
 bid_ordernum=$zb_n_200
-
 ask_amnt=$zs_a_200
 ask_volume=$zs_v_200
 ask_ordernum=$zs_n_200
+
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
+	
 
 printf "zb:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 200   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
@@ -476,6 +540,13 @@ bid_ordernum=$zb_n_500
 ask_amnt=$zs_a_500
 ask_volume=$zs_v_500
 ask_ordernum=$zs_n_500
+
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
 
 printf "zb:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 500   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
@@ -508,6 +579,13 @@ ask_amnt=$ws_a_0
 ask_volume=$ws_v_0
 ask_ordernum=$ws_n_0
 
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
+
 printf "zd:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 0   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
 wb_a_5=`echo $wb_a_5*1000000+0.5 | bc`
@@ -535,6 +613,13 @@ bid_ordernum=$wb_n_5
 ask_amnt=$ws_a_5
 ask_volume=$ws_v_5
 ask_ordernum=$ws_n_5
+
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
 
 printf "zd:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 5   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
@@ -564,6 +649,13 @@ ask_amnt=$ws_a_10
 ask_volume=$ws_v_10
 ask_ordernum=$ws_n_10
 
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
+
 printf "zd:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 10   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
 wb_a_20=`echo $wb_a_20*1000000+0.5 | bc`
@@ -591,6 +683,13 @@ bid_ordernum=$wb_n_20
 ask_amnt=$ws_a_20
 ask_volume=$ws_v_20
 ask_ordernum=$ws_n_20
+
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
 
 printf "zd:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 20   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
@@ -620,6 +719,13 @@ ask_amnt=$ws_a_40
 ask_volume=$ws_v_40
 ask_ordernum=$ws_n_40
 
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
+
 printf "zd:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 40   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
 wb_a_60=`echo $wb_a_60*1000000+0.5 | bc`
@@ -648,6 +754,13 @@ ask_amnt=$ws_a_60
 ask_volume=$ws_v_60
 ask_ordernum=$ws_n_60
 
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
+
 printf "zd:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 60   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
 wb_a_80=`echo $wb_a_80*1000000+0.5 | bc`
@@ -675,6 +788,13 @@ bid_ordernum=$wb_n_80
 ask_amnt=$ws_a_80
 ask_volume=$ws_v_80
 ask_ordernum=$ws_n_80
+
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
 
 printf "zd:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 80   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
@@ -705,6 +825,13 @@ ask_amnt=$ws_a_100
 ask_volume=$ws_v_100
 ask_ordernum=$ws_n_100
 
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
+
 printf "zd:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 100   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
 wb_a_200=`echo $wb_a_200*1000000+0.5 | bc`
@@ -733,6 +860,13 @@ ask_amnt=$ws_a_200
 ask_volume=$ws_v_200
 ask_ordernum=$ws_n_200
 
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
+
 printf "zd:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 200   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 
 wb_a_500=`echo $wb_a_500*1000000+0.5 | bc`
@@ -760,6 +894,13 @@ bid_ordernum=$wb_n_500
 ask_amnt=$ws_a_500
 ask_volume=$ws_v_500
 ask_ordernum=$ws_n_500
+
+bid_amnt=${bid_amnt:-0}
+bid_volume=${bid_volume:-0}
+bid_ordernum=${bid_ordernum:-0}
+ask_amnt=${ask_amnt:-0}
+ask_volume=${ask_volume:-0}
+ask_ordernum=${ask_ordernum:-0}
 
 printf "zd:i=%-5ld\tbm=%-10ld\tbv=%-6d\tbo=%d\tam=%-10ld\tav=%-6d\tao=%d\n" 500   $bid_amnt $bid_volume $bid_ordernum $ask_amnt $ask_volume $ask_ordernum
 

@@ -46,6 +46,10 @@ void Append2List(LISTHEAD *ptHead,LIST *p);
 /*将整个链表追加到LISTHEAD的尾部*/
 void AppendList2List(LISTHEAD *ptHead,LIST *p);
 
+/*将LISTHEAD链表释放到，并将链表设空*/
+void Destroy2List(LISTHEAD *ptHead);
+
+
 
 /*计算链表的个数*/
 int CountList(LIST* ptHead);
@@ -114,7 +118,7 @@ typedef struct __Bin_Tree__
 	struct __Bin_Tree__ *pLeft;
 	struct __Bin_Tree__ *pRight;
 	void   *pData;
-	int    diff;
+	int    diff;		/*平衡因子、右子树高度 扣减 左子数高度*/
 }   BINTREE;
 void LinkBin(BINTREE *ptHead,void (*link_node_v)(void **,void **));
 void HandShakeBin(BINTREE *ptHead);

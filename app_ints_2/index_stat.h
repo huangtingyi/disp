@@ -63,6 +63,7 @@ struct PriceOrderStruct
 {
 	int nPrice;
 	int nOrder;
+	int nOrderTime;
 };
 
 struct IndexStatStruct
@@ -74,6 +75,11 @@ struct IndexStatStruct
 	int nT0;
 	int iS0Cnt;		//S0链表的大小
 	int iPreS0Cnt;		//在S0链表中，发现的小于nPreT0的记录数
+	
+	int iAskMaxCnt;		//ASK_MAX树的节点数
+	int iBidMaxCnt;		//BID_MAX树的节点数
+	int iS0OCnt;		//M_ORDER树的节点数
+	int iFreeS0OCnt;	//释放掉的S0D数据
 	
 	BINTREE *ASK_MAX;	//以成卖出交价为索引，成交价和最大ASK_ORDER的关系
 	BINTREE *BID_MAX;	//以成买入交价为索引，成交价和最大BID_ORDER的关系

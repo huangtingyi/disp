@@ -51,7 +51,20 @@ void AppendList2List(LISTHEAD *ptHead,LIST *p)
 	while(p->pNext!=NULL) p=p->pNext;
 	ptHead->pTail=p;
 }
-
+/*将LISTHEAD链表释放到，并将链表设空*/
+void Destroy2List(LISTHEAD *p)
+{
+	LIST *ptHead,*pTemp;
+	
+	ptHead=p->pHead;
+	p->pHead=p->pTail=NULL;
+	
+	while(ptHead!=NULL){
+		pTemp=ptHead;
+		ptHead=ptHead->pNext;
+		free(pTemp);
+	}
+}
 /*统计链表节点数目*/
 int CountList(LIST* ptHead)
 {
@@ -343,6 +356,11 @@ void AdjustBin(BINTREE **pptHead)
 {
 	BINTREE *pTemp,*ptPre,*ptCur;
 
+/*	if((*pptHead)->diff==2&&
+		(*pptHead)->pRight==NULL){
+		return;
+	}
+*/
 	switch((*pptHead)->diff){
 	case 2:
 	ptPre=*pptHead;
@@ -575,25 +593,17 @@ int4b DeleteBinMin(BINTREE **pptHead, BINTREE **pptCur)
 
         diff=(*pptHead)->diff;
         
-        if((*pptHead)->pLeft!=NULL){
-                if(DeleteBinMin(&((*pptHead)->pLeft),pptCur)==LOWER)
-                        (*pptHead)->diff++;
+        if((*pptHead)->pLeft==NULL){/*(*pptHead)->pLeft==NULL here(*pptHead)->diff in (0,1)*/
+        	pTemp=*pptHead;
+        	*pptHead=pTemp->pRight;
+        	*pptCur=pTemp;
+        	return LOWER;
         }
-        else{/*(*pptHead)->pLeft==NULL here(*pptHead)->diff in (0,1)*/
-                if((*pptHead)->diff==1){
-			pTemp=*pptHead;
-			*pptHead=pTemp->pRight;
-                }
-                else{ /* (*pptHead)->diff ==0 leaves here.*/
-			pTemp=*pptHead;
-			*pptHead=NULL;
-                }
-                *pptCur=pTemp;
-                return LOWER;
-        }
-                
+
+	if(DeleteBinMin(&((*pptHead)->pLeft),pptCur)==LOWER) (*pptHead)->diff++;
+	 
         AdjustBin(pptHead);
-        
+
         if(diff!=0&&(*pptHead)->diff==0) return LOWER;
         
         return EQUAL;
@@ -602,9 +612,11 @@ int4b DeleteBinMin(BINTREE **pptHead, BINTREE **pptCur)
 int4b DeleteBin(BINTREE **pptHead,void *p,
 	int4b ( *pFunction)(void *,void *),BINTREE **pptCur)
 {
-        int4b r;
+        int4b r,diff;
                 
         *pptCur=NULL;
+
+        diff=(*pptHead)->diff;
 
         if((r=(*pFunction)(p,(*pptHead)->pData))==0){
 
@@ -631,7 +643,8 @@ int4b DeleteBin(BINTREE **pptHead,void *p,
                 if(ptCur==NULL) return EQUAL;
 
                 ptCur->pLeft=(*pptHead)->pLeft;
-                ptCur->pRight=(*pptHead)->pRight;
+                //ptCur->pRight=(*pptHead)->pRight;
+                ptCur->pRight=*pptPre;
 
                 if(r==LOWER){
                         ptCur->diff=(*pptHead)->diff-1;
@@ -642,24 +655,32 @@ int4b DeleteBin(BINTREE **pptHead,void *p,
 
                 *pptHead=ptCur;
 
-                return r;
+		if(diff!=0&&(*pptHead)->diff==0) return LOWER;
+        
+		return EQUAL;
         }
 
+	//数据在右子树
         if(r>0){
                 r=DeleteBin(&((*pptHead)->pRight),p,pFunction,pptCur);
                 if(r==LOWER){
                         (*pptHead)->diff--;
                         AdjustBin(pptHead);
                 }
-                return r;
         }
 
-        r=DeleteBin(&((*pptHead)->pLeft),p,pFunction,pptCur);
-        if(r==LOWER){
-                (*pptHead)->diff++;
-                AdjustBin(pptHead);
-        }
-        return r;
+	else{
+	//数据在左子树
+		r=DeleteBin(&((*pptHead)->pLeft),p,pFunction,pptCur);
+	        if(r==LOWER){
+        	        (*pptHead)->diff++;
+                	AdjustBin(pptHead);
+		}
+	}
+
+        if(diff!=0&&(*pptHead)->diff==0) return LOWER;
+        
+        return EQUAL;
 }
 void assign_insert_bintree(void **ppData,void *pData)
 {
