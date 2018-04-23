@@ -20,6 +20,8 @@
 #define MY_DATE_CEIL_LONG 1000000000L
 
 int iWriteFlag=0,iDelayMilSec=100,iMultiTimes=1,iInfoSec=3;
+
+long lBgnTime=91500000L;
 char sDispName[1024],sSourcePath[1024],sWorkRoot[1024],sReplayDate[16];
 
 int iQhCnt=0,iThCnt=0,iAhCnt=0,iQzCnt=0,iTzCnt=0,iOzCnt=0;
@@ -47,7 +49,7 @@ int main(int argc, char *argv[])
 	strcpy(sWorkRoot,	"/stock/work");
 
 
-	for (int c; (c = getopt(argc, argv, "d:r:w:t:m:s:o:i:?:")) != EOF;){
+	for (int c; (c = getopt(argc, argv, "d:r:w:t:m:s:o:i:b:?:")) != EOF;){
 
 		switch (c){
 		case 'd':
@@ -76,6 +78,11 @@ int main(int argc, char *argv[])
 		case 'i':
 			iInfoSec=atoi(optarg);
 			break;
+		case 'b':
+			lBgnTime=atoi(optarg);
+			if(lBgnTime>=90000000L&&lBgnTime<153000000L)
+				break;
+			printf("please input correct format -b .\n");
 		case '?':
 		default:
 			printf("Usage: %s \n", argv[0]);
@@ -87,6 +94,7 @@ int main(int argc, char *argv[])
 			printf("   [-s (source-path) ]\n");
 			printf("   [-o work-root-name ]\n");
 			printf("   [-i (infosec def=3) ]\n");
+			printf("   [-b (begintime def=9:00:00:000,format hhmmssNNN) ]\n");
 			exit(1);
 			break;
 		}
@@ -238,7 +246,7 @@ void *MainReplayRunQh(void *)
 	//将这个时间确定为9:30分
 	lStartTime=	PUTIL_SystemTimeToDateTime(&sStartTime);
 	lStartTime=	lStartTime%MY_DATE_CEIL_LONG;
-	lDiffTime=	lStartTime-  91500000L;
+	lDiffTime=	lStartTime-  lBgnTime;
 
 	while(1){
 		
@@ -246,8 +254,8 @@ void *MainReplayRunQh(void *)
 		if(fread((void*)sBuffer,lItemLen,1,fpIn)!=1){
 			printf("end of file break.\n");
 			break;
-		}
-		if(feof(fpIn)) break;
+		}		
+		if(p->Time<lBgnTime)continue;
 __delay:
 		UTIL_Time stTime;
 		PUTIL_GetLocalTime(&stTime);
@@ -279,6 +287,9 @@ __delay:
 			iQhCnt=++iCount;
 			iQhTime=p->Time;
 		}
+		
+		if(feof(fpIn)) break;
+
 	}
 
 	fclose(fpIn);
@@ -318,7 +329,7 @@ void *MainReplayRunTh(void *)
 	//将这个时间确定为9:30分
 	lStartTime=	PUTIL_SystemTimeToDateTime(&sStartTime);
 	lStartTime=	lStartTime%MY_DATE_CEIL_LONG;
-	lDiffTime=	lStartTime-  91500000L;
+	lDiffTime=	lStartTime-  lBgnTime;
 
 	while(1){
 		
@@ -327,7 +338,9 @@ void *MainReplayRunTh(void *)
 			printf("end of file break.\n");
 			break;
 		}
-		if(feof(fpIn)) break;
+
+		if(p->TradeTime<lBgnTime)continue;
+
 __delay:
 		UTIL_Time stTime;
 		PUTIL_GetLocalTime(&stTime);
@@ -359,6 +372,7 @@ __delay:
 			iThTime=p->TradeTime;
 
 		}
+		if(feof(fpIn)) break;
 	}
 
 	fclose(fpIn);
@@ -396,7 +410,7 @@ void *MainReplayRunAh(void *)
 	//将这个时间确定为9:30分
 	lStartTime=	PUTIL_SystemTimeToDateTime(&sStartTime);
 	lStartTime=	lStartTime%MY_DATE_CEIL_LONG;
-	lDiffTime=	lStartTime-  91500000L;
+	lDiffTime=	lStartTime-  lBgnTime;
 
 	while(1){
 		
@@ -405,7 +419,9 @@ void *MainReplayRunAh(void *)
 			printf("end of file break.\n");
 			break;
 		}
-		if(feof(fpIn)) break;
+		
+		if(p->Time<lBgnTime)continue;
+
 __delay:
 		UTIL_Time stTime;
 		PUTIL_GetLocalTime(&stTime);
@@ -438,6 +454,7 @@ __delay:
 			iAhTime=p->Time;
 
 		}
+		if(feof(fpIn)) break;
 	}
 
 	fclose(fpIn);
@@ -477,7 +494,7 @@ void *MainReplayRunQz(void *)
 	//将这个时间确定为9:30分
 	lStartTime=	PUTIL_SystemTimeToDateTime(&sStartTime);
 	lStartTime=	lStartTime%MY_DATE_CEIL_LONG;
-	lDiffTime=	lStartTime-  91500000L;
+	lDiffTime=	lStartTime-  lBgnTime;
 
 	while(1){
 		
@@ -486,7 +503,9 @@ void *MainReplayRunQz(void *)
 			printf("end of file break.\n");
 			break;
 		}
-		if(feof(fpIn)) break;
+		
+		if((p->Time%MY_DATE_CEIL_LONG)<lBgnTime)continue;
+
 __delay:
 		UTIL_Time stTime;
 		PUTIL_GetLocalTime(&stTime);
@@ -518,6 +537,7 @@ __delay:
 			iQzCnt=++iCount;
 			iQzTime=(int)(p->Time%MY_DATE_CEIL_LONG);
 		}
+		if(feof(fpIn)) break;
 	}
 
 	fclose(fpIn);
@@ -557,7 +577,7 @@ void *MainReplayRunTz(void *)
 	//将这个时间确定为9:30分
 	lStartTime=	PUTIL_SystemTimeToDateTime(&sStartTime);
 	lStartTime=	lStartTime%MY_DATE_CEIL_LONG;
-	lDiffTime=	lStartTime-  91500000L;
+	lDiffTime=	lStartTime-  lBgnTime;
 
 	while(1){
 		
@@ -566,7 +586,8 @@ void *MainReplayRunTz(void *)
 			printf("end of file break.\n");
 			break;
 		}
-		if(feof(fpIn)) break;
+		
+		if((p->TradeTime%MY_DATE_CEIL_LONG)<lBgnTime)continue;
 __delay:
 		UTIL_Time stTime;
 		PUTIL_GetLocalTime(&stTime);
@@ -598,6 +619,7 @@ __delay:
 			iTzCnt=++iCount;
 			iTzTime=(int)(p->TradeTime%MY_DATE_CEIL_LONG);
 		}
+		if(feof(fpIn)) break;
 	}
 
 	fclose(fpIn);
@@ -636,7 +658,7 @@ void *MainReplayRunOz(void *)
 	//将这个时间确定为9:30分
 	lStartTime=	PUTIL_SystemTimeToDateTime(&sStartTime);
 	lStartTime=	lStartTime%MY_DATE_CEIL_LONG;
-	lDiffTime=	lStartTime-  91500000L;
+	lDiffTime=	lStartTime-  lBgnTime;
 
 	while(1){
 		
@@ -645,7 +667,9 @@ void *MainReplayRunOz(void *)
 			printf("end of file break.\n");
 			break;
 		}
-		if(feof(fpIn)) break;
+		
+		if((p->Time%MY_DATE_CEIL_LONG)<lBgnTime)continue;
+
 __delay:
 		UTIL_Time stTime;
 		PUTIL_GetLocalTime(&stTime);
@@ -676,6 +700,7 @@ __delay:
 			iOzCnt=++iCount;
 			iOzTime=(int)(p->Time%MY_DATE_CEIL_LONG);
 		}
+		if(feof(fpIn)) break;
 	}
 
 	fclose(fpIn);
