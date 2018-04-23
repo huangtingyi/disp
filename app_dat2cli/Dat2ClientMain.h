@@ -101,7 +101,7 @@ private:
 	//每个客户端连接所对应的超时检测器
 	////TimerHeartbeat m_Timer;
 	int m_iMqID;
-	bool m_subSomeCodes = false;
+	bool m_subSomeCodes ;
 	set<uint32_t> m_codes; //只订阅这些证券代码
 
 	TimerController *m_pTimerController;
@@ -123,11 +123,11 @@ private:
 	MessageQueue *m_poSysMQ; //总控队列
 	MessageQueue *m_poDataMQ; //数据队列
 
-	void dealCommand(string &msg);
+	bool dealCommand(string &msg);
 
-	void setSubscrible(const SubscribeRequest &req);
-	void addReduceCodes(const vector<uint32_t> &codes, const bool addReduce);
-	int writeDispJson();
+	bool setSubscrible(const SubscribeRequest &req);
+	bool addReduceCodes(const vector<uint32_t> &codes, const bool addReduce);
+	bool writeDispJson();
 	
 	void logout();
 	bool isLogined(string sUserName);
@@ -138,6 +138,7 @@ private:
 	static void runMonitorMqThread(const int iMqid);
 public:
 	static bool m_bReadSysMq; //是否读取总控队列
+	static bool m_bExitFlag ;
 };
 
 #endif

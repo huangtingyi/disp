@@ -15,7 +15,7 @@ makedir()
 		echo "clean $dir ..."
 		cd $dir
 		case $dir in
-		app_dat2cli)
+		app_dat2cli|app_agentcli)
 			rm -rf MakeFiles CMakeCache.txt CMakeFiles
 			cd ..
 		;;
@@ -29,7 +29,7 @@ makedir()
 		echo "build $dir ..."
 		cd $dir
 		case $dir in
-		app_dat2cli)
+		app_dat2cli|app_agentcli)
 			rm -rf MakeFiles CMakeCache.txt CMakeFiles
 			cmake CMakeLists.txt
 			make
@@ -63,6 +63,7 @@ installdir()
 			cp bin/gta_stat         ../bin
 			cp bin/index_stat       ../bin
 			cp bin/gta_test         ../bin
+			cp bin/agentcli		../bin
 			;;
 		shell)
 			cp shell/chkipsend.sh	../bin
@@ -75,6 +76,10 @@ installdir()
 			cp shell/dataclean.sh	../bin
 			cp shell/logbackup.sh	../bin
 			cp shell/logclean.sh	../bin
+			cp shell/startrep.sh	../bin
+			cp shell/cvnew.sh	../bin
+			cp shell/cvd31.sh	../bin
+			cp shell/iptables.sh	../bin
 			;;
 		conf)   
 			cp conf/cfg.json	../bin
@@ -101,11 +106,12 @@ main()
 		installdir conf
 		;;
 	*)
-		makedir app_dat2cli	
+		makedir app_dat2cli
 		makedir app_ints
 		makedir app_ints_2 
 		makedir app_test
 		makedir	test
+		makedir app_agentcli
 		;;
 	esac
 }

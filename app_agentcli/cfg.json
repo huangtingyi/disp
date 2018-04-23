@@ -1,0 +1,10 @@
+{
+	"server": "127.0.0.1",
+	"port": 8896,
+	"username": "TwoAgent",
+	"password": "TwoAgent",
+	"MonitorDispJsonFile": "/home/disp/src/conf/disp.json",
+	"SemLockKey": 10000,
+	"SysMqMaxLen": 512,
+	"SysMqMaxNum":15000
+}

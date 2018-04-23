@@ -57,6 +57,7 @@ void disp_buf2(char *buf, int size)
 ;
 
 bool Dat2Client::m_bReadSysMq = true;
+bool Dat2Client::m_bExitFlag = false;
 
 void signalProcess(int isignal)
 {
@@ -64,6 +65,7 @@ void signalProcess(int isignal)
 		Dat2Client::m_bReadSysMq = true;
 		return;
 	}
+	Dat2Client::m_bExitFlag = true;
 	exit(0);
 }
 
@@ -98,6 +100,16 @@ Dat2Client::Dat2Client()
 
 	m_pTimerController = NULL;
 	m_pThread = NULL;
+
+	m_mapPrivl.clear();
+	m_secHeartbeat = 0;
+	m_sUserName = "";
+	m_allCodes.clear();
+	m_Subscribed.clear();
+	m_iMqID = 0;
+	m_subSomeCodes = false;
+	m_codes.clear();
+
 #ifdef DEBUG_ONE
 	m_lRecvNum = 0;
 	m_lSendNum = 0;
@@ -327,6 +339,7 @@ int Dat2Client::run(int argc, char *argv[])
 				//处理客户端发送的订阅请求进程
 				m_iPid = iDat2CliPid;
 				RecvCliSockRequestAndProcess();
+				g_pTcpSocket->Close();
 				kill(iDat2CliPid, SIGINT);
 				logout();
 				GetSysDate(sSysDate);
@@ -337,6 +350,7 @@ int Dat2Client::run(int argc, char *argv[])
 				m_iPid = iCliReqProcPid;
 
 				RecvMqAndDisp2Cli();
+				g_pTcpSocket->Close();
 				kill(iCliReqProcPid, SIGINT);
 
 				GetSysDate(sSysDate);
@@ -377,7 +391,7 @@ int Dat2Client::RecvCliSockRequestAndProcess()
 
 	memset(m_sRecvBuffer, 0, sizeof(m_sRecvBuffer));
 
-	while(1){
+	while(!Dat2Client::m_bExitFlag){
 
 		msg_len = 2;
 		recv_len = errno = 0;
@@ -423,7 +437,10 @@ int Dat2Client::RecvCliSockRequestAndProcess()
 
 		msg.assign((char*)data+2, msg_len);
 
-		dealCommand(msg);
+		if(false == dealCommand(msg))
+		{
+			return ERROR_TRANSPORT;
+		}
 	}
 	return SUCC;
 }
@@ -529,7 +546,7 @@ int Dat2Client::RecvMqAndDisp2Cli()
 	int iRet = 0,iDataMqID = 0,iCount=0;
 	string strRecv;
 
-	while (1){
+	while (!Dat2Client::m_bExitFlag){
 
 		if (m_bReadSysMq){ //总控队列用于接收MQID，通过信号触发
 
@@ -637,8 +654,9 @@ void Dat2Client::SetProcessSignal()
 	signal(SIGUSR1, signalProcess);
 }
 
-void Dat2Client::dealCommand(string &msg)
+bool Dat2Client::dealCommand(string &msg)
 {
+	bool bret = true;
 	BizCode iBizCode;
 	string msgProtobuf;
 
@@ -675,6 +693,7 @@ void Dat2Client::dealCommand(string &msg)
 			rep.set_desc("user_invalid");
 			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
 			g_pTcpSocket->send((unsigned char *) msgBody.data(), msgBody.size());
+			bret = false;
 			break;
 		}
 		//如果已经登录则，回复已经登录信息
@@ -682,6 +701,7 @@ void Dat2Client::dealCommand(string &msg)
 			rep.set_desc("user_have_logined");
 			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
 			g_pTcpSocket->send((unsigned char *) msgBody.data(), msgBody.size());
+			bret = false;
 			break;
 		}
 		//密码错误，则将密码错误信息返回客户端
@@ -689,6 +709,7 @@ void Dat2Client::dealCommand(string &msg)
 			rep.set_desc("pswd_error");
 			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
 			g_pTcpSocket->send((unsigned char *) msgBody.data(), msgBody.size());
+			bret = false;
 			break;
 		}
 
@@ -737,7 +758,7 @@ void Dat2Client::dealCommand(string &msg)
 	{
 		SubscribeRequest req;
 		req.ParseFromString(msgProtobuf);
-		setSubscrible(req);
+		bret = setSubscrible(req);
 #ifdef DEBUG_ONE
 		char sSysDate[15] = {0};
 		GetSysDate(sSysDate);
@@ -772,7 +793,7 @@ void Dat2Client::dealCommand(string &msg)
 		{
 			codes[i] = reqCodes.operator[](i);
 		}
-		addReduceCodes(codes, req.add_red());
+		bret = addReduceCodes(codes, req.add_red());
 #ifdef DEBUG_ONE
 		char sSysDate[15] = {0};
 		GetSysDate(sSysDate);
@@ -783,6 +804,7 @@ void Dat2Client::dealCommand(string &msg)
 		break;
 	default:
 	{
+		bret = false;
 #ifdef DEBUG_ONE
 		char sSysDate[15] = {0};
 		GetSysDate(sSysDate);
@@ -792,9 +814,10 @@ void Dat2Client::dealCommand(string &msg)
 		break;
 	}
 	}
+	return bret;
 }
 
-void Dat2Client::setSubscrible(const SubscribeRequest &req)
+bool Dat2Client::setSubscrible(const SubscribeRequest &req)
 {
 	if (!req.replay()){
 
@@ -817,8 +840,11 @@ void Dat2Client::setSubscrible(const SubscribeRequest &req)
 	}
 }
 
-void Dat2Client::addReduceCodes(const vector<uint32_t> &codes, const bool addFlag)
+bool Dat2Client::addReduceCodes(const vector<uint32_t> &codes, const bool addFlag)
 {
+	if(m_sUserName.size() == 0)
+		return false;
+
 	m_subSomeCodes = true;
 
 	for (const auto code : codes){
@@ -829,9 +855,10 @@ void Dat2Client::addReduceCodes(const vector<uint32_t> &codes, const bool addFla
 
 	writeDispJson();
 	m_poDataLock->V();
+	return true;
 }
 
-int Dat2Client::writeDispJson()
+bool Dat2Client::writeDispJson()
 {
 	string str = "";
 	char sTmp[56] = { 0 };
@@ -932,7 +959,7 @@ int Dat2Client::writeDispJson()
 	}
 
 	m_poDataLock->V();
-	return 0;
+	return true;
 
 }
 bool Dat2Client::isLogined(string sUserName)
@@ -1014,7 +1041,7 @@ void Dat2Client::logout()
 
 	ptree root, readPt, items, userparam, itemsub, itemsubcodes, root_1;
 	read_json(m_sOutDispJsonPath, readPt);
-	if (readPt.count("users"))
+	if (readPt.count("users") && m_sUserName.size()>0 )
 	{
 		ptree ptChildRead = readPt.get_child("users");
 		for (auto pos : ptChildRead) //遍历数组
