@@ -819,6 +819,9 @@ bool Dat2Client::dealCommand(string &msg)
 
 bool Dat2Client::setSubscrible(const SubscribeRequest &req)
 {
+	if(m_sUserName.size() == 0)
+		return false;
+
 	if (!req.replay()){
 
 		const auto pri = m_mapPrivl.find(m_sUserName);
@@ -838,6 +841,7 @@ bool Dat2Client::setSubscrible(const SubscribeRequest &req)
 		m_Subscribed.insert(FOR_TEST);
 		writeDispJson();
 	}
+	return true;
 }
 
 bool Dat2Client::addReduceCodes(const vector<uint32_t> &codes, const bool addFlag)
