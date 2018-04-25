@@ -1,8 +1,8 @@
 #ifndef _CALLBACK_BASE_H
 #define _CALLBACK_BASE_H
 #include "GTAQTSInterfaceBase.h"
-#include "../Common/IoService.h"
-#include "../Common/SubData.h"
+#include "IoService.h"
+#include "SubData.h"
 
 #include "callsupp.h"
 

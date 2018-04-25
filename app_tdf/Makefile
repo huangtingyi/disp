@@ -16,7 +16,7 @@ TARGET_B=../bin/tdf_ints
 CXX=g++ 
 
 #头文件
-INC= -I../Include -I../Common -I../public -I../IncludeTDF
+INC= -I../Include -I../Common -I../public -I../IncludeTDF -I../app_ints
 
 #库
 LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_setup -lboost_system -lprotobuf -lrt
@@ -25,7 +25,7 @@ LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_se
 Example_SRC=$(wildcard ./main_demo.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp)
 Example_OBJS=$(patsubst %.cpp, %.o, $(Example_SRC))
 
-Example_SRC_B=$(wildcard ./main.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp)
+Example_SRC_B=$(wildcard ./main.cpp ../app_ints/callsupp.cpp ../public/wwtiny.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp)
 Example_OBJS_B=$(patsubst %.cpp, %.o, $(Example_SRC_B))
 
 

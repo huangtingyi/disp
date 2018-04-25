@@ -87,6 +87,7 @@ installdir()
 			cp conf/gta_ints.json   ../bin
 			cp conf/user_privilege.json ../bin
 			cp conf/config.ini   	../bin
+			cp conf/tdf_ints.json   ../bin
 			;;
 		*)
 			;;

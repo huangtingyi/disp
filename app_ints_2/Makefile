@@ -36,7 +36,7 @@ ExampleB_OBJS=$(patsubst %.cpp, %.o, $(ExampleB_SRC))
 ExampleC_SRC=$(wildcard ./gta_replay.cpp ../app_ints/CallBackBase.cpp ../app_ints/callsupp.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp ../GTA2TDF/GTA2TDF.cpp )
 ExampleC_OBJS=$(patsubst %.cpp, %.o, $(ExampleC_SRC))
 
-ExampleD_SRC=$(wildcard ./index_stat.cpp ./bintree.cpp ./wwtiny.cpp ../GTA2TDF/GTA2TDF.cpp )
+ExampleD_SRC=$(wildcard ./index_stat.cpp ../public/bintree.cpp ../public/wwtiny.cpp ../GTA2TDF/GTA2TDF.cpp )
 ExampleD_OBJS=$(patsubst %.cpp, %.o, $(ExampleD_SRC))
 
 

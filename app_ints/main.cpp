@@ -9,8 +9,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <boost/property_tree/json_parser.hpp>
-#include "../Common/IoService.h"
-#include "../Common/TinyThread.h"
+#include "IoService.h"
+#include "TinyThread.h"
 #ifdef _WIN32
 #include <windows.h>
 #define  SLEEP(t)  Sleep((t)*1000)
@@ -264,8 +264,6 @@ int main(int argc, char *argv[])
 
 	//退出工作线程
 	ios.Stop();
-
-	getchar();
 
 	// 当不再使用API时，需要调用此接口释放内部资源，否则会引起内存泄漏及不可预知问题
 	//详见《国泰安实时行情系统V2.X 用户手册》4.2.1.2 释放实例ReleaseInstance 章节

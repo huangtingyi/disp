@@ -7,6 +7,9 @@
 #endif
 
 
+#include <iostream>
+#include <string>
+
 struct UserStruct
 {
 	struct UserStruct *pNext;
