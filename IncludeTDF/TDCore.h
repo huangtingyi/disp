@@ -26,6 +26,7 @@ typedef unsigned long long uint64_t;
 #include <sys/types.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 typedef int int32_t;
 typedef unsigned int  uint32_t;
 typedef struct _GUID {

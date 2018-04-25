@@ -16,10 +16,10 @@ TARGET_D=../bin/index_stat
 
 
 #编译命令
-CXX=g++ 
+CXX=g++
 
 #头文件
-INC= -I../Include -I../Common -I../public -I../app_ints
+INC= -I../Include -I../Common -I../public -I../IncludeTDF -I../app_ints 
 
 #库
 LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_setup -lboost_system -lprotobuf -lrt
@@ -27,16 +27,16 @@ LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_se
 
 
 #测试工程文件
-Example_SRC=$(wildcard ./main.cpp ../app_ints/CallBackBase.cpp ../public/getToday.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp ../GTA2TDF/GTA2TDF.cpp )
+Example_SRC=$(wildcard ./main.cpp ../app_ints/CallBackBase.cpp ../app_ints/callsupp.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp ../GTA2TDF/GTA2TDF.cpp )
 Example_OBJS=$(patsubst %.cpp, %.o, $(Example_SRC))
 
-ExampleB_SRC=$(wildcard ./gta_stat.cpp ../public/getToday.cpp )
+ExampleB_SRC=$(wildcard ./gta_stat.cpp )
 ExampleB_OBJS=$(patsubst %.cpp, %.o, $(ExampleB_SRC))
 
-ExampleC_SRC=$(wildcard ./gta_replay.cpp ../app_ints/CallBackBase.cpp ../public/getToday.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp ../GTA2TDF/GTA2TDF.cpp )
+ExampleC_SRC=$(wildcard ./gta_replay.cpp ../app_ints/CallBackBase.cpp ../app_ints/callsupp.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp ../GTA2TDF/GTA2TDF.cpp )
 ExampleC_OBJS=$(patsubst %.cpp, %.o, $(ExampleC_SRC))
 
-ExampleD_SRC=$(wildcard ./index_stat.cpp ./bintree.cpp ./wwtiny.cpp ../public/getToday.cpp ../GTA2TDF/GTA2TDF.cpp )
+ExampleD_SRC=$(wildcard ./index_stat.cpp ./bintree.cpp ./wwtiny.cpp ../GTA2TDF/GTA2TDF.cpp )
 ExampleD_OBJS=$(patsubst %.cpp, %.o, $(ExampleD_SRC))
 
 
@@ -54,14 +54,14 @@ release: $(TARGET_A) $(TARGET_B) $(TARGET_C) $(TARGET_D)
 debug: $(TARGET_A) $(TARGET_B) $(TARGET_C) $(TARGET_D)
 #连接静态库
 $(TARGET_A): $(Example_OBJS)
-	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) $(TARGETPATH)/GTAQTSApi.a 
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) -L$(TARGETPATH) -lGTAQTSApi
 
 $(TARGET_B): $(ExampleB_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^
 
 $(TARGET_C): $(ExampleC_OBJS)
-	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) $(TARGETPATH)/GTAQTSApi.a 
-	
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) -L$(TARGETPATH) -lGTAQTSApi
+
 $(TARGET_D): $(ExampleD_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^
 

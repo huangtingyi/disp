@@ -6,6 +6,7 @@
 #else
 #include <sys/timeb.h>
 #include <time.h>
+#include <string.h>
 #endif
 
 bool PUTIL_GetLocalTime(UTIL_TimePtr pTime)
@@ -27,12 +28,17 @@ bool PUTIL_GetLocalTime(UTIL_TimePtr pTime)
 	pTime->iWday = stSysTime.wDayOfWeek;
 	pTime->iMillisec = stSysTime.wMilliseconds;
 #else
-	struct timeb stTime = {0};
+	struct timeb stTime ;
+
+	memset((void*)&stTime,0,sizeof(struct timeb));
+
 	if (0 != ftime(&stTime))
 	{
 		return false;
 	}
-	struct tm stNow = {0};
+	struct tm stNow;
+	memset((void*)&stNow,0,sizeof(struct tm));
+
 	localtime_r(&stTime.time, &stNow); 
 
 	pTime->iYear = stNow.tm_year + 1900;

@@ -11,10 +11,10 @@ endif
 #最终生成程序
 TARGET_A=../bin/gta_ints
 #编译命令
-CXX=g++ 
+CXX=g++
 
 #头文件
-INC= -I../Include -I../Common -I../public
+INC= -I../Include -I../Common -I../public -I../IncludeTDF
 
 #库
 LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_setup -lboost_system -lprotobuf -lrt
@@ -33,11 +33,11 @@ release: $(TARGET_A)
 debug: $(TARGET_A)
 #连接静态库
 $(TARGET_A): $(Example_OBJS)
-	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) $(TARGETPATH)/GTAQTSApi.a 
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) -L$(TARGETPATH) -lGTAQTSApi
 
 #连接动态库
 $(TARGET_SO): $(Example_OBJS)
-	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) -L$(TARGETPATH) -lGTAQTSApi 
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) -L$(TARGETPATH) -lGTAQTSApi
 
 %.o: %.cpp
 	$(CXX) -o $@ -c $(CXXFLAGS) $(INC) $<

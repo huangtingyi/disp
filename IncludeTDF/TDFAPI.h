@@ -55,7 +55,7 @@ TDFAPI int TDF_GetCodeTable(THANDLE hTdf, const char* szMarket, TDF_CODE** pCode
 // 从万得代码来获取详细的期权代码信息
 // pCodeInfo指针由用户提供，
 // 如果成功获取，则返回TDF_ERR_SUCCESS，否则返回 TDF_ERR_NO_CODE_TABLE 或 TDF_ERR_INVALID_PARAMS
-TDFAPI int TDF_GetOptionCodeInfo(THANDLE hTdf, const char* szWindCode, TDF_OPTION_CODE* pCodeInfo);
+TDFAPI int TDF_GetOptionCodeInfo(THANDLE hTdf, const char* szWindCode, TDF_OPTION_CODE* pCodeInfo, const char* szMarket);
 
 //同步函数，关闭连接，不要在回调函数里面调用，否则会卡死
 TDFAPI int TDF_Close(THANDLE hTdf);

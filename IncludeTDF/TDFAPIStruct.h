@@ -8,7 +8,7 @@ typedef void* THANDLE;
 #endif
 
 #ifndef __int64
-#define __int64 long
+#define __int64 long long
 #endif
 #define MAXSERVER 4
 
@@ -60,7 +60,7 @@ enum TDF_MSG_ID
     MSG_SYS_DISCONNECT_NETWORK,     //网络断开事件, 相应的结构体为NULL
     MSG_SYS_CONNECT_RESULT,         //主动发起连接的结果
     MSG_SYS_LOGIN_RESULT,           //登陆应答
-    MSG_SYS_CODETABLE_RESULT,       //获取代码表结果，收到此消息后可获取代码表
+    MSG_SYS_CODETABLE_RESULT,       //代码表结果，收到此消息后可获取对应代码表,此消息表示所有授权市场代码表可取
     MSG_SYS_QUOTATIONDATE_CHANGE,   //行情日期变更通知（已取消）
     MSG_SYS_MARKET_CLOSE,           //闭市（已取消）
     MSG_SYS_HEART_BEAT,             //服务器心跳消息, 相应的结构体为NULL
@@ -82,6 +82,12 @@ enum TDF_MSG_ID
 	MSG_REF_ETFL_LIST  = 1,			//收到参考数据(如ETF文件)
 	//市场事件消息
 	MSG_SYS_MARKET_EVENT = -9,		//市场事件通知消息(如市场清盘，转数等),收到此事件的清盘或者快照后可获取快照和期权信息
+
+	//单个市场代码表通知.由于某些较小市场数据回调时，同时请求的其他市场才处理完代码表，行情数据较MSG_SYS_CODETABLE_RESULT先到，
+	//增加该消息，通知每一市场代码表处理结果，客户可据此选择何时请求代码表
+	MSG_SYS_SINGLE_CODETABLE_RESULT,	//单个市场代码表结果，收到此消息后可获取对应的单个市场代码表
+
+	MSG_SYS_QUOTEUNIT_CHANGE,	//价差变化
 };
 
 /******************************************************************* 系统消息 *********************************************************************/
@@ -120,7 +126,13 @@ struct TDF_CODE_RESULT
     char szMarket[256][8];  //市场代码
     int nCodeCount[256];    //代码表项数
     int nCodeDate[256];     //代码表日期
-
+};
+//数据类型MSG_SYS_SINGLE_CODETABLE_RESULT
+struct TDF_SINGLE_CODE_RESULT
+{
+	char szMarket[8];  //市场代码
+	int nCodeCount;    //代码表项数
+	int nCodeDate;     //代码表日期
 };
 //数据类型MSG_SYS_QUOTATIONDATE_CHANGE
 struct TDF_QUOTATIONDATE_CHANGE
@@ -137,16 +149,41 @@ struct TDF_MARKET_CLOSE
     char	chInfo[64];			//闭市信息
 };
 
+
+enum MARKET_EVENT_NUM
+{
+	ID_BREAKPOINT_RECV = -1,									//断点方式接受数据
+	ID_SNAP_SHOT,												//快照
+	ID_MARKET_OPEN,							//开盘
+	ID_MARKET_CLEAR,							//清盘
+	ID_MARKET_CLOSE,							//闭市
+	ID_MARKET_TRANS,							//转数
+	ID_MARKET_SAVE,							//落盘
+	ID_CLEAR_CODES,						//部分代码清盘  
+	ID_SINGLE_CODE_CLEAR,	//单个代码清盘
+	ID_MARKET_HEART_BEAT,					//市场心跳(一分钟一次)
+	ID_CODE_HEART_BEAT,				//代码心跳(无数据一分钟一次)
+	ID_TRANS_CODES,						//部分代码转数
+};
+
 struct TDF_CODE;
 //市场事件
 struct TDF_MARKET_EVENT
 {
 	char    szMarket[12];       //市场Key
-	__int64 time;				//LTC时间(自19000101起到当前日期的毫秒数)
-	int		nEvent;				//事件(0、快照 1、开盘 2、清盘 3、闭市 4、转述 5、落盘 6、部分代码清盘 7、单个代码清盘 8、市场心跳(一分钟一次) 9、代码心跳(无数据一分钟一次)),10、部分代码转数，参看ID_EVENT_OPEN
+	__int64 market_time;		//市场时间，LTC时间(自19000101起到当前日期的毫秒数)
+	__int64 vss_time;			//VSS本地时间，LTC时间(自19000101起到当前日期的毫秒数)
+	int		nEvent;				//参看MARKET_EVENT_NUM
 	int		nDate;				//市场日期
 	int     nCodeSize;			//代码数(部分代码和单个代码清盘时有值)
 	TDF_CODE* pCode;			//代码信息(部分代码和单个代码清盘时有值)
+};
+
+//价差变更
+struct TDF_QUOTEUNIT_CHANGE
+{
+	char szMarket[12];
+	char szWindCode[32];
 };
 
 /******************************************************************* 代码表 *********************************************************************/
@@ -387,7 +424,6 @@ struct TDF_TRANSACTION
     int	    nBidOrder;	                //叫买方委托序号
 	const TDF_CODE_INFO *  pCodeInfo;   //代码信息， TDF_Close，清盘重连后，此指针无效
 };
-
 //数据类型MSG_DATA_ORDER
 struct TDF_ORDER
 {
@@ -400,9 +436,9 @@ struct TDF_ORDER
 	int 	nVolume;		//委托数量
 	char    chOrderKind;	//委托类别
 	char    chFunctionCode;	//委托代码('B','S','C')
-	int     nBroker;		//经纪商编码
-	char    chStatus;		//委托状态
-	char	chFlag;			//标志
+	int     nBroker;		//经纪商编码(PT市场有效)
+	char    chStatus;		//委托状态(PT市场有效)
+	char	chFlag;			//标志(PT市场有效)
 	const TDF_CODE_INFO *  pCodeInfo;     //代码信息， TDF_Close，清盘重连后，此指针无效
 };
 //数据类型MSG_DATA_ORDERQUEUE
@@ -473,6 +509,8 @@ enum TDF_ENVIRON_SETTING
 	TDF_ENVIRON_SOURCE_MODE_VALUE,			//双活数据源模式下参数的值
 	TDF_ENVIRON_OUT_LOG,					//1、当前目录下创建log，否则在当前路径有log文件夹时创建到log文件夹中
 	TDF_ENVIRON_SNAPSHOT_ENENT,				//1、发送快照事件和清盘通知但快照不发送到回调函数，否则直接发送快照到回调函数，无快照通知, 测试中
+	TDF_ENVIRON_ORIGINAL_VOL,				//原始结构有效，1、指数成交量和成交额的单位为股和元，默认为100股和100元
+	TDF_ENVIRON_BREAKPOINT,					//1.网络断开后断点续传，else.请求最新快照
 };
 //双活模式设置
 enum TDF_SOURCE_SETTING
@@ -482,38 +520,6 @@ enum TDF_SOURCE_SETTING
 };
 //单服务器配置（可用多服务器实现，保留单服务器配置以兼容旧API使用方法）
 //相比旧API，少了：nReconnectCount、nReconnectGap、nProtocol，nDate
-
-struct TDF_OPEN_SETTING_BASE {
-	//回调函数设置
-	TDF_DataMsgHandler pfnMsgHandler;			//数据消息处理回调
-	TDF_SystemMsgHandler pfnSysMsgNotify;		//系统消息通知回调
-
-												//订阅设置									--注意：订阅是市场独立的！对于每个市场必须订阅市场或代码，只订阅市场，则发送此市场全部代码。
-	const char* szMarkets;						// 市场订阅(主)！例如"SZ;SH;CF;SHF;DCE;SHF"，需要订阅的市场列表，以“;”分割
-	const char* szResvMarkets;					// 市场订阅(缺)！例如"SZ;SH;CF;SHF;DCE;SHF"，需要订阅的市场列表，以“;”分割，建议为""	
-	const char* szSubScriptions;				//例如"600000.sh;ag.shf;000001.sz"，需要订阅的股票，以“;”分割
-	unsigned int nTypeFlags;					// 数据类型订阅！支持订阅3种类型TRANSACTION;ORDER;ORDERQUEUE。 ！注意：行情数据任何时候都发送，不需要订阅! 参见enum DATA_TYPE_FLAG
-
-	unsigned int nTime;							//为0则请求实时行情，(0xffffffff从头请求,待开发)
-	unsigned int nConnectionID;					//连接ID，连接回调消息的附加结构 TDF_CONNECT_RESULT中 会包含这个ID
-};
-
-struct TDF_SERVER_INFO
-{
-	char szIp[32];		//IP
-	char szPort[8];		//端口
-	char szUser[64];	//用户名
-	char szPwd[64];		//密码
-};
-
-struct TDF_OPEN_SETTING :public TDF_SERVER_INFO, public TDF_OPEN_SETTING_BASE {};
-struct TDF_OPEN_SETTING_EXT : public TDF_OPEN_SETTING_BASE {
-	//服务器设置
-	TDF_SERVER_INFO	siServer[MAXSERVER];	//服务器信息
-	unsigned int nServerNum;				//服务器数量
-};
-
-#if 0
 struct TDF_OPEN_SETTING
 {
     char szIp[32];
@@ -535,6 +541,13 @@ struct TDF_OPEN_SETTING
 };
 
 //多服务器配置
+struct TDF_SERVER_INFO
+{
+	char szIp[32];		//IP
+	char szPort[8];		//端口
+	char szUser[64];	//用户名
+	char szPwd[64];		//密码
+};
 struct TDF_OPEN_SETTING_EXT
 {
 	//服务器设置
@@ -546,15 +559,14 @@ struct TDF_OPEN_SETTING_EXT
 	
 	//unsigned int nProtocol;               //协议号，为0则为默认，或者0x6001
 	//订阅设置                              --注意：订阅是市场独立的！对于每个市场必须订阅市场或代码，只订阅市场，则发送此市场全部代码。
-	const char* szMarkets;					// 市场订阅(主)！例如"SZ;SH;CF;SHF;DCE;SHF"，需要订阅的市场列表，以“;”分割
-	const char* szResvMarkets;              // 市场订阅(缺)！例如"SZ;SH;CF;SHF;DCE;SHF"，需要订阅的市场列表，以“;”分割,建议为""
+	const char* szMarkets;				// 市场订阅(主)！例如"SZ-2-0;SH-1-1;"，需要订阅的市场列表，以“;”分割
+	const char* szResvMarkets;              // 市场订阅(缺)！例如"SZ-2-0;SH-1-1;"，需要订阅的市场列表，以“;”分割,建议为""
 	const char* szSubScriptions;            // 代码订阅！例如"600000.sh;ag.shf;000001.sz"，需要订阅的股票，以“;”分割
 	unsigned int nTypeFlags;                // 数据类型订阅！支持订阅3种类型TRANSACTION;ORDER;ORDERQUEUE。 ！注意：行情数据任何时候都发送，不需要订阅! 参见enum DATA_TYPE_FLAG
 
 	unsigned int nTime;                     //为0则请求实时行情，为0xffffffff从头请求
 	unsigned int nConnectionID;             //连接ID，连接回调消息的附加结构 TDF_CONNECT_RESULT中 会包含这个ID，消息头也会包含该ID
 };
-#endif
 //代理服务器设置
 enum TDF_PROXY_TYPE
 {

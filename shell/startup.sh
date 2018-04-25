@@ -68,23 +68,23 @@ EOF
 
 cd $HOME/bin
 
-nohup $gta_ints_bin -w $writeflag -o $workroot -c $gta_file -r $disp_file -u $user_file 1>$gta_ints_log 2>&1 &
+nohup $gta_ints_bin -w$writeflag -o$workroot -c$gta_file -r$disp_file -u$user_file 1>$gta_ints_log 2>&1 &
 sleep 1
 $pidof_bin -x gta_ints
 if [ $? -ne 0 ]; then
 	echo "`date '+%Y/%m/%d %k:%M:%S'` gta_ints is startup FAIL..";
-	echo "$gta_ints_bin -w $writeflag -o $workroot -c $gta_file -r $disp_file -u $user_file"
+	echo "$gta_ints_bin -w$writeflag -o$workroot -c$gta_file -r$disp_file -u$user_file"
 	exit 3;
 fi
 
 echo "`date '+%Y/%m/%d %k:%M:%S'` gta_ints is startup SUCESS.."
 
-nohup $dat2cli_bin -w $writeusr -o $workroot -p $cfg_file -r $disp_file -u $user_file 1>$dat2cli_log 2>&1 &
+nohup $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
 sleep 1
 $pidof_bin -x dat2cli
 if [ $? -ne 0 ]; then
 	echo "`date '+%Y/%m/%d %k:%M:%S'` dat2cli is startup FAIL..";
-	echo "$dat2cli_bin -w $writeusr -o $workroot -p $cfg_file -r $disp_file -u $user_file"
+	echo "$dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file"
 	exit 3;
 fi
 

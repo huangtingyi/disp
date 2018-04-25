@@ -128,7 +128,7 @@ void GTA2TDF_SSEL2(const SSEL2_Quotation &src, TDF_MARKET_DATA &m, TDF_ORDER_QUE
 	//__int64		 iVolume;				//成交总量
 	m.iVolume = src.TotalVolume;
 	//__int64		 iTurnover;				//成交总金额
-	m.iTurnover = __int64(src.TotalAmount);
+	m.iTurnover = (__int64)(src.TotalAmount);
 	//__int64		 nTotalBidVol;			//委托买入总量
 	m.nTotalBidVol = src.TotalBuyOrderVolume;
 	//__int64		 nTotalAskVol;			//委托卖出总量
@@ -308,25 +308,25 @@ void GTA2TDF_SZSEL2(const SZSEL2_Quotation &src, TDF_MARKET_DATA &m, TDF_ORDER_Q
 
 	for (unsigned i = 0; i < LEVEL_TEN; ++i) {
 		//完全复制获取数据		
-		m.nAskVol[i] = __int64(src.SellLevel[i].Volume);
+		m.nAskVol[i] = (__int64)(src.SellLevel[i].Volume);
 		m.nAskPrice[i] = yuan2percentFen(src.SellLevel[i].Price);
 	}
 	for (unsigned i = 0; i < LEVEL_TEN; ++i) {
 		//完全复制获取数据__int64 nBidVol[10];			//申买量
-		m.nBidVol[i] = __int64(src.BuyLevel[i].Volume);
+		m.nBidVol[i] = (__int64)(src.BuyLevel[i].Volume);
 		m.nBidPrice[i] = yuan2percentFen(src.BuyLevel[i].Price);
 	}
 
 	//int nNumTrades;						//成交笔数
 	m.nNumTrades = int(src.TotalNo);
 	//__int64		 iVolume;				//成交总量
-	m.iVolume = __int64(src.TotalVolume + 0.5);
+	m.iVolume = (__int64)(src.TotalVolume + 0.5);
 	//__int64		 iTurnover;				//成交总金额
-	m.iTurnover = __int64(src.TotalAmount);
+	m.iTurnover = (__int64)(src.TotalAmount);
 	//__int64		 nTotalBidVol;			//委托买入总量
-	m.nTotalBidVol = __int64(src.TotalBuyOrderVolume + 0.5);
+	m.nTotalBidVol = (__int64)(src.TotalBuyOrderVolume + 0.5);
 	//__int64		 nTotalAskVol;			//委托卖出总量
-	m.nTotalAskVol = __int64(src.TotalSellOrderVolume + 0.5);
+	m.nTotalAskVol = (__int64)(src.TotalSellOrderVolume + 0.5);
 	//__int64 nWeightedAvgBidPrice;		//加权平均委买价格
 	m.nWeightedAvgBidPrice = yuan2percentFen(src.WtAvgBuyPrice);
 	//__int64 nWeightedAvgAskPrice;		//加权平均委卖价格

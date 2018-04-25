@@ -108,6 +108,10 @@ int print_MY_TYPE_SSEL2_Transaction(char *buf,char sCodeList[],int iTimeFlag,
 
 	return 0;
 }
+int64_t my_yuan2percentFen(const double yuan) 
+{
+	return int64_t((yuan + 0.00005) * 10000);
+}
 int print_MY_TYPE_SSEL2_Auction(char *buf,char sCodeList[],int iTimeFlag,
 	long lBgnTime,long *plCurTime,char *outbuf)
 {
@@ -124,13 +128,18 @@ int print_MY_TYPE_SSEL2_Auction(char *buf,char sCodeList[],int iTimeFlag,
 	static int iFirstFlag=1;
 	if(iFirstFlag){
 		iFirstFlag=0;
-		printf("%s\t%s\t%s\t%s\t%s\t%s\n",
+		printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 			"picktime",
 			"localtime",
 			"packtime",
 			"createtime",
 			"stockcode",
-			"difftime");
+			"difftime",
+			"quotation_flag",
+			"open_price",
+			"auction_volume",
+			"leave_volume",
+			"side");
 	}
 
 	long lTmpTime=(long)((*(long long *)buf)%MY_DATE_CEIL_LONG);
@@ -145,13 +154,18 @@ int print_MY_TYPE_SSEL2_Auction(char *buf,char sCodeList[],int iTimeFlag,
 	
 	if(*plCurTime<lBgnTime) return 2;
 
-	sprintf(outbuf,"%lld\t%d\t%lld\t%d\t%s\t%ld\n",
+	sprintf(outbuf,"%lld\t%d\t%lld\t%d\t%s\t%ld\t%s\t%d\t%d\t%d\t%c\n",
 		*(long long *)buf,	//picktime
 		p->LocalTimeStamp,	//< 数据接收时间HHMMSSMMM
 		p->PacketTimeStamp,	//< 数据包头时间YYYYMMDDHHMMSSMMM
 		p->Time,		//< 数据生成时间, 143025001 表示 14:30:25.001
 		p->Symbol,
-		lTmpTime-p->Time);
+		lTmpTime-p->Time,
+		p->QuotationFlag,
+		(int)my_yuan2percentFen(p->OpenPrice),
+		(int)p->AuctionVolume,
+		(int)p->LeaveVolume,
+		p->Side);
 
 	return 0;
 }

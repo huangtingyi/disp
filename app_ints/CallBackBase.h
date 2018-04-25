@@ -4,12 +4,7 @@
 #include "../Common/IoService.h"
 #include "../Common/SubData.h"
 
-
-#define MAX_USER_NAME_LEN 64
-#define MAX_CLIENT_CNT 1024
-#ifndef MAX_STOCK_CODE
-#define MAX_STOCK_CODE	1000000
-#endif
+#include "callsupp.h"
 
 extern struct LimitUpDownStruct LIMIT[MAX_STOCK_CODE];
 
@@ -98,18 +93,6 @@ private:
 	FileNameSet m_fileSet;
 	int	m_iWriteFlag;	
 };
-
-void LockWorkThread();
-void UnLockWorkThread();
-int IsWorkThreadLock();
-
-void InitUserArray(char sDispName[],struct DispRuleStruct *p);
-void RefreshUserArray(char sDispName[],struct DispRuleStruct *p);
-
-int WatchFileCloseWriteAndLock(char sFileName[]);
-
-extern struct DispRuleStruct R;
-extern char sRefreshDispName[1024];
 
 
 #endif  //_CALLBACK_BASE_H

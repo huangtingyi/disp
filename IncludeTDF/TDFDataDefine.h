@@ -5,12 +5,14 @@
 
 //#include <stdint.h>
 #include <assert.h>
-#include "HHTradeDataSetDefine.h"
 #ifndef _WIN32
 #include "TDCore.h"
 #else
 typedef long long int64_t;
 #endif
+
+#include "HHTradeDataSetDefine.h"
+
 typedef signed char int8_t;
 typedef short int16_t;
 typedef int int32_t;
@@ -52,6 +54,7 @@ typedef unsigned int uint32_t;
 #define TD_HANDLE_MINUTE     0x01
 #define TD_HANDLE_MATCH_TICK 0x02
 #define TD_HANDLE_NO_KDAY    0x04
+#define TD_HANDLE_ONLY_ONE_RECORD  0x08
 //快照事件标志定义（nEventFlags）
 #define TD_SP_STATUS_CLEAR     0x01
 #define TD_SP_STATUS_NOT_TRADE 0x02
@@ -67,7 +70,7 @@ typedef unsigned int uint32_t;
 #define ID_EVENT_HEARTBETA                8  //整个市场行情心跳
 #define ID_EVENT_CODE_HEARTBETA           9  //单个代码心跳
 #define ID_EVENT_TRANS_CODES              10 //部分代码转述
-
+#define ID_EVENT_VSS_HEARTBETA            11 //转码机固定时间发送心跳？
 
 /*struct TickHead{
 	int bitMap[5];
@@ -87,6 +90,8 @@ typedef unsigned int uint32_t;
 	int chDec;
 	int resv[20];
 };*/
+#define VOLUME_BACKWARD 0x01
+
 struct Tick_Ext_Head{
 	int nChangeCount;
 	int nChangeIndex[4];
@@ -100,7 +105,7 @@ struct TDFMarketExchangeSet
 	char   chExchangeNameCJ2[12]; // 交易所简称2
 	char   chMarket[4];           // 交易所标志:SZ;SH;CF;DCE;SHF;CZC;HK;HKF;O;N
 	int    nMarketID;             // 市场ID
-	int    nFlags;                // 标志位（保留）
+	int    nFlags;                // 标志位（保留）: VOLUME_BACKWARD:是否容许量回退
 	int    nMDFlags;              // MarketData数据处理标志(0:委托队列同MD同时更新，1:分置更新)
 	int    nAskBidDeeps;          // 买卖盘个数
 	int    nAskBidFlags;          // 买卖盘标志(0x80:有订单数量)
@@ -126,6 +131,7 @@ struct TD_Code_Packet
     int  nRecord;            // 当日编号
     int  nType;              // 证券类型
     int  nLotSize;           // 交易量纲
+    int  nQuoteUnit;         // 20170320 Add:报价单位（价差）（元，定点4位小数）- 和当前成交价匹配
     int  nID;                // ID
     GUID guid;               // GUID
     char chDec;              // 显示小数位
@@ -237,6 +243,10 @@ union TD_AB_Ext
         int nCurDelta;      // 虚实度
         int nUnderlingPrice;// 标的品种价格
     }Futures;
+	struct TD_AB_Bonds
+	{
+		int nSettlement;    // 结算价
+	}Bond;
 };
 
 //买卖盘
@@ -324,6 +334,12 @@ union TD_Exdata
 	{
 		int nNetValue;          // 净值
 		int nIOPV;              // IOPV 净值估值(EFT)
+		int nETFBuyNumber;       // ETF申购笔数
+		int nETFSellNumber;      // ETF赎回笔数
+		int64_t iETFBuyAmount;   // ETF申购数量
+		int64_t iETFBuyMoney;    // ETF申购金额
+		int64_t iETFSellAmount;  // ETF赎回数量
+		int64_t iETFSellMoney;   // ETF赎回金额
 	}ETF;
 	struct TD_Exdata_Bond
 	{
@@ -522,6 +538,8 @@ struct TDMarketData_Head
     int   nAskBidFlags;       // 报价标志 0x80:有订单数量
     int   nExchItems;         // 交易时间节数
     int   nTimeDif;           // 时差（该市场的交易时段所用的时区当天和东八区之间时间差的分钟数。如美国东部时区为-5，交易所采用夏令时，在夏天美国的交易所timediff填”-720”((-5+1-8)*60=-720)） 
+							  //2016/10/19修改为： 低2个字节和现在一样，表示该行情的时间(包含夏令时)和东八区的时间差值。从低位起第三个字节表示该行情时间当前夏令时时间与正常时间偏移分钟数，没有夏令时的或者非夏令时时间填0。最高字节保持0. 
+							  //2017/3/15时区偏移量含义修改：低2个字节表示行情所在时区和东八区时间差值分钟数，其他含义一致
     short nBeginTime[8];      // 交易节开始时间（分钟数）
     short nEndTime[8];        // 交易节结束时间（分钟数）
 	char  chExchTimeFlags[8]; // 20160511：交易节标志
@@ -666,7 +684,7 @@ struct TDMarketData_Packet
 
 	//基本数据
 	int64_t iPreVolume;       // 前成交量
-	int64_t iHandleFlag;      // 数据处理标志目前有2个：TD_HANDLE_MINUTE(0x01) :表示此笔行情参与分钟线计算；TD_HANDLE_MATCH_TICK(0x02)  :表示此笔行情参与MATCH_TICK计算; TD_HANDLE_NO_KDAY(0x04):表示此笔快照不能用于生产日k线
+	int64_t iHandleFlag;      // 数据处理标志目前有3个：TD_HANDLE_MINUTE(0x01) :表示此笔行情参与分钟线计算；TD_HANDLE_MATCH_TICK(0x02)  :表示此笔行情参与MATCH_TICK计算; TD_HANDLE_NO_KDAY(0x04):表示此笔快照不能用于生产日k线
 	int64_t iAvgPrice;
     int64_t nPreClose;	      // 前收盘
 	int64_t nHighLimit;       // 涨停价
@@ -718,6 +736,7 @@ struct TDMarketData_Packet
 #define ID_TDFDATATYPE_MARKET_EVENT  15 // 市场事件通知
 #define ID_TDFDATATYPE_CODE_EVENT    16 // 代码事件通知
 #define ID_TDFDATATYPE_OTC_OPTION    17 // 场外期权
+#define ID_TDFDATATYPE_QUOTEUNITCHANGE    19 // 价差变更
 //#define ID_TDFDATATYPE_CODE_CLEAR_LIST 18 //清盘代码列表
 //#define ID_TDFDATATYPE_SSE_HKAMOUNT		14 // 上交所港股通额度
 //#define ID_TDFDATATYPE_SSE_HKSTKSTATUS	15 // 上交所港股通股票状态
@@ -897,13 +916,14 @@ struct TDBar_K_Head
 	int  nTicks;
 };
 struct TDEventInfo{
-	int64_t time;
+	int64_t market_time;
+	int64_t vss_time;
 	int nEventCode;
 };
 struct TDClearCodes{
 	int64_t time;
 	unsigned int nRecordLen;
-	int* records;
+	int* records;  //需释放
 };
 
 // K线数据

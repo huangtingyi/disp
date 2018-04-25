@@ -112,6 +112,7 @@ main()
 		makedir app_test
 		makedir	test
 		makedir app_agentcli
+		makedir app_tdf
 		;;
 	esac
 }
