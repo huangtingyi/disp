@@ -1,22 +1,30 @@
 #include <boost/filesystem.hpp>
 #include "Gta2csv.h"
+#include "wwtiny.h"
 
-#include "../public/getToday.h"
 
 string Gta2csv::dir;
 
 Gta2csv::Gta2csv(const string &c)
 	: m_code(c) {}
 
-void Gta2csv::createFile() {
+void Gta2csv::createFile() 
+{
+	char sHostTime[15];
+
 	string strTmp;
 	getFileName(strTmp);
-	//string dirCode = GTA2csv::dir + '\\' + getToday() + '\\' + m_code + '\\';
-	//_mkdir(dirCode.c_str());
+
 	boost::filesystem::path p = Gta2csv::dir;
 
+	GetHostTime(sHostTime);
+	
+	string todayStr;
 	string dirCode = p.generic_string();
-	dirCode = dirCode + '/' + getToday() + '/' + m_code + '/';
+	
+	todayStr.assign(sHostTime,8);
+
+	dirCode = dirCode + '/' + todayStr + '/' + m_code + '/';
 	p = dirCode;
 	boost::filesystem::create_directories(p);
 	

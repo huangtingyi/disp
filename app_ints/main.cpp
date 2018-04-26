@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'w':
 			iWriteFlag=atoi(optarg);
-			if(iWriteFlag!=1&&iWriteFlag!=2) iWriteFlag=0;
+			if(iWriteFlag!=1&&iWriteFlag!=2&&iWriteFlag!=3) iWriteFlag=0;
 			break;
 		case '?':
 		default:
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 			printf("   [-u user-privilege-name ]\n");
 			printf("   [-o work-root-name ]\n");
 			printf("   [-d DebugFlag ]\n");
-			printf("   [-w (1,writegta,2 writetdf,other nowrite) ]\n");
+			printf("   [-w (1,writegta,2 writetdf,3,write gta&tdf, other nowrite) ]\n");
 			exit(1);
 			break;
 		}

@@ -36,7 +36,7 @@ CallBackBase::CallBackBase(int iWriteFlag,string& strWork)
 	GetHostTime(sHostTime);
 	sHostTime[8]=0;
 	
-	if(iWriteFlag==1){
+	if(iWriteFlag&1){
 		m_fileSet.gtaqhName=	strWork+"/gta_qh_"+string(sHostTime)+".dat";
 		m_fileSet.gtaahName=	strWork+"/gta_ah_"+string(sHostTime)+".dat";
 		m_fileSet.gtathName=	strWork+"/gta_th_"+string(sHostTime)+".dat";
@@ -52,7 +52,7 @@ CallBackBase::CallBackBase(int iWriteFlag,string& strWork)
 		m_fileSet.fpGtaOz=	fopen(m_fileSet.gtaozName.c_str(),"ab+");
 
 	}
-	else if(iWriteFlag==2){
+	if(iWriteFlag&2){
 		m_fileSet.tdfmktName=	strWork+"/tdf_mkt_"+string(sHostTime)+".dat";
 		m_fileSet.tdfqueName=	strWork+"/tdf_que_"+string(sHostTime)+".dat";
 		m_fileSet.tdftraName=	strWork+"/tdf_tra_"+string(sHostTime)+".dat";
@@ -260,12 +260,12 @@ void CallBackBase::Deal_Message_SSEL2_Quotation(SubData *subdata)
 	for(int i=0;i<max_trans_cnt;i++)
 	GTA2TDF_SSEL2(RealSSEL2Quotation[0],m, q[0],q[1]);
 
-	if(m_iWriteFlag==1){
+	if(m_iWriteFlag&1){
 		fwrite((const void*)&(subdata->cur_time),sizeof(subdata->cur_time),1,m_fileSet.fpGtaQh);
 		fwrite((const void*)RealSSEL2Quotation,sizeof(SSEL2_Quotation),1,m_fileSet.fpGtaQh);
 		fflush(m_fileSet.fpGtaQh);
 	}
-	else if(m_iWriteFlag==2){
+	if(m_iWriteFlag&2){
 
 		fwrite((const void*)&(subdata->cur_time),sizeof(subdata->cur_time),1,m_fileSet.fpTdfMkt);
 		fwrite((const void*)&m,sizeof(TDF_MARKET_DATA),1,m_fileSet.fpTdfMkt);
@@ -312,12 +312,12 @@ void CallBackBase::Deal_Message_SSEL2_Transaction(SubData *subdata)
 	for(int i=0;i<max_trans_cnt;i++)
 	GTA2TDF_SSEL2_T(RealSSEL2Transaction[0],t);
 
-	if(m_iWriteFlag==1){
+	if(m_iWriteFlag&1){
 		fwrite((const void*)&(subdata->cur_time),sizeof(subdata->cur_time),1,m_fileSet.fpGtaTh);
 		fwrite((const void*)RealSSEL2Transaction,sizeof(SSEL2_Transaction),1,m_fileSet.fpGtaTh);
 		fflush(m_fileSet.fpGtaTh);
 	}
-	else if(m_iWriteFlag==2){
+	if(m_iWriteFlag&2){
 		fwrite((const void*)&(subdata->cur_time),sizeof(subdata->cur_time),1,m_fileSet.fpTdfTra);
 		fwrite((const void*)&t,sizeof(TDF_TRANSACTION),1,m_fileSet.fpTdfTra);
 		fflush(m_fileSet.fpTdfTra);
@@ -347,12 +347,12 @@ void CallBackBase::Deal_Message_SSEL2_Auction(SubData *subdata)
 	for(int i=0;i<max_trans_cnt;i++)
 	GTA2TDF_SSEL2_AM(RealSSEL2Auction[0],m);
 
-	if(m_iWriteFlag==1){
+	if(m_iWriteFlag&1){
 		fwrite((const void*)&(subdata->cur_time),sizeof(subdata->cur_time),1,m_fileSet.fpGtaAh);
 		fwrite((const void*)RealSSEL2Auction,sizeof(SSEL2_Auction),1,m_fileSet.fpGtaAh);
 		fflush(m_fileSet.fpGtaAh);
 	}
-	else if(m_iWriteFlag==2){
+	if(m_iWriteFlag&2){
 		fwrite((const void*)&(subdata->cur_time),sizeof(subdata->cur_time),1,m_fileSet.fpTdfMkt);
 		fwrite((const void*)&m,sizeof(TDF_MARKET_DATA),1,m_fileSet.fpTdfMkt);
 		fflush(m_fileSet.fpTdfMkt);
@@ -389,12 +389,12 @@ void CallBackBase::Deal_Message_SZSEL2_Quotation(SubData *subdata)
 	for(int i=0;i<max_trans_cnt;i++)
 	GTA2TDF_SZSEL2(RealSZSEL2Quotation[0],m, q[0],q[1]);
 
-	if(m_iWriteFlag==1){
+	if(m_iWriteFlag&1){
 		fwrite((const void*)&(subdata->cur_time),sizeof(subdata->cur_time),1,m_fileSet.fpGtaQz);
 		fwrite((const void*)RealSZSEL2Quotation,sizeof(SZSEL2_Quotation),1,m_fileSet.fpGtaQz);
 		fflush(m_fileSet.fpGtaQz);
 	}
-	else if(m_iWriteFlag==2){
+	if(m_iWriteFlag&2){
 
 		fwrite((const void*)&(subdata->cur_time),sizeof(subdata->cur_time),1,m_fileSet.fpTdfMkt);
 		fwrite((const void*)&m,sizeof(TDF_MARKET_DATA),1,m_fileSet.fpTdfMkt);
@@ -442,12 +442,12 @@ void CallBackBase::Deal_Message_SZSEL2_Transaction(SubData *subdata)
 	for(int i=0;i<max_trans_cnt;i++)
 	GTA2TDF_SZSEL2_T(RealSZSEL2Transaction[0],t);
 
-	if(m_iWriteFlag==1){
+	if(m_iWriteFlag&1){
 		fwrite((const void*)&(subdata->cur_time),sizeof(subdata->cur_time),1,m_fileSet.fpGtaTz);
 		fwrite((const void*)RealSZSEL2Transaction,sizeof(SZSEL2_Transaction),1,m_fileSet.fpGtaTz);
 		fflush(m_fileSet.fpGtaTz);
 	}
-	else if(m_iWriteFlag==2){
+	if(m_iWriteFlag&2){
 		fwrite((const void*)&(subdata->cur_time),sizeof(subdata->cur_time),1,m_fileSet.fpTdfTra);
 		fwrite((const void*)&t,sizeof(TDF_TRANSACTION),1,m_fileSet.fpTdfTra);
 		fflush(m_fileSet.fpTdfTra);
@@ -480,12 +480,12 @@ void CallBackBase::Deal_Message_SZSEL2_Order(SubData *subdata)
 	for(int i=0;i<max_trans_cnt;i++)
 	GTA2TDF_SZSEL2_O(RealSZSEL2Order[0],o);
 
-	if(m_iWriteFlag==1){
+	if(m_iWriteFlag&1){
 		fwrite((const void*)&(subdata->cur_time),sizeof(subdata->cur_time),1,m_fileSet.fpGtaOz);
 		fwrite((const void*)RealSZSEL2Order,sizeof(SZSEL2_Order),1,m_fileSet.fpGtaOz);
 		fflush(m_fileSet.fpGtaOz);
 	}
-	else if(m_iWriteFlag==2){
+	if(m_iWriteFlag&2){
 		fwrite((const void*)&(subdata->cur_time),sizeof(subdata->cur_time),1,m_fileSet.fpTdfOrd);
 		fwrite((const void*)&o,sizeof(TDF_ORDER),1,m_fileSet.fpTdfOrd);
 		fflush(m_fileSet.fpTdfOrd);

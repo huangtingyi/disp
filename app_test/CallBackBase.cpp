@@ -158,7 +158,7 @@ void CallBackBase::Deal_Message(SubData *subdata)
     case Msg_SSEL2_Quotation:
         {
             SSEL2_Quotation *RealSSEL2Quotation = (SSEL2_Quotation*)&subdata->data[0];
-			m_gta2csvMgr.writeCsv(*RealSSEL2Quotation);
+		m_gta2csvMgr.writeCsv(*RealSSEL2Quotation);
 #if 0
             if( count < 10 )// ·ÀÖ¹Êä³öÌ«¶àÄÚÈÝ
             {
