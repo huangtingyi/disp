@@ -1034,3 +1034,40 @@ int HostTimeEff(char sEffDate[],char sExpDate[])
 		strcmp(sHostTime,sExpDate)<0) return true;
 	return false;
 }
+
+/*某个时间加上iMilliSec数，iMillicSec参数最大支持*/
+int iAddMilliSec(int iTime,int iMilliSec)
+{
+	int iSec,iMin,iHour;
+
+	iMilliSec+=(MY_GET_MILLI_SEC(iTime)+
+		(MY_GET_SEC(iTime)+MY_GET_MIM(iTime)*60+MY_GET_HOUR(iTime)*3600)*1000);
+
+	iSec=iMilliSec/1000;
+	iMin=iSec/60;iHour=iMin/60;
+	iSec=iSec%60;iMin=iMin%60;
+
+	iTime=iMilliSec%1000+(iSec+iMin*100+iHour*10000)*1000;
+
+	return iTime;
+}
+
+int nGetHostCurTime()
+{
+	char sHostTime[15],sMilliSec[4];
+
+	GetHostTimeX(sHostTime,sMilliSec);
+
+	return atoi(sHostTime+8)*1000+atoi(sMilliSec);
+}
+
+//某个求两个时间的diff差值
+int iSubMilliSec(int iTime,int iTime1)
+{
+	
+	int iMilliSec=(MY_GET_MILLI_SEC(iTime)+
+		(MY_GET_SEC(iTime)+MY_GET_MIM(iTime)*60+MY_GET_HOUR(iTime)*3600)*1000);
+	
+	return iMilliSec-(MY_GET_MILLI_SEC(iTime1)+
+		(MY_GET_SEC(iTime1)+MY_GET_MIM(iTime1)*60+MY_GET_HOUR(iTime1)*3600)*1000);
+}

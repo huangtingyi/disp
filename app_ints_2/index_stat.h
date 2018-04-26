@@ -96,9 +96,4 @@ struct IndexStatStruct
 	LISTHEAD S1T;	//存放(T0,之后的交易数据}
 };
 
-#define MY_GET_MILLI_SEC(x)	(x%1000)
-#define MY_GET_SEC(x)		((x%100000)/1000)
-#define MY_GET_MIM(x)		((x%10000000)/100000)
-#define MY_GET_HOUR(x)		(x/10000000)
-
 #endif

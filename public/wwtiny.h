@@ -92,6 +92,17 @@ int LikeX(char sStr[],char P[]);
 
 int HostTimeEff(char sEffDate[],char sExpDate[]);
 
+#define MY_GET_MILLI_SEC(x)	(x%1000)
+#define MY_GET_SEC(x)		((x%100000)/1000)
+#define MY_GET_MIM(x)		((x%10000000)/100000)
+#define MY_GET_HOUR(x)		(x/10000000)
+
+/*某个时间加上iMilliSec数，iMillicSec参数最大支持*/
+int iAddMilliSec(int iTime,int iMilliSec);
+int nGetHostCurTime();
+//某个求两个时间的diff差值
+int iSubMilliSec(int iTime,int iTime1);
+
 
 
 #endif
