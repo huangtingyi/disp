@@ -64,6 +64,7 @@ installdir()
 			cp bin/index_stat       ../bin
 			cp bin/gta_test         ../bin
 			cp bin/agentcli		../bin
+			cp bin/tdf_ints		../bin
 			;;
 		shell)
 			cp shell/chkipsend.sh	../bin
@@ -80,6 +81,7 @@ installdir()
 			cp shell/cvnew.sh	../bin
 			cp shell/cvd31.sh	../bin
 			cp shell/iptables.sh	../bin
+			cp shell/startdf.sh	../bin
 			;;
 		conf)   
 			cp conf/cfg.json	../bin
