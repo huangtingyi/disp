@@ -543,7 +543,7 @@ int main(int argc, char** argv)
 
 #define GETRECORD(pBase, TYPE, nIndex) ((TYPE*)((char*)(pBase) + sizeof(TYPE)*(nIndex)))
 #define PRINTNUM  1
-static int recordNum = 5;
+//static int recordNum = 5;
 
 void RecvData(THANDLE hTdf, TDF_MSG* pMsgHead)
 {
@@ -564,69 +564,26 @@ void RecvData(THANDLE hTdf, TDF_MSG* pMsgHead)
 			iCount,getpid(),(unsigned int)pthread_self());
 	}
 
-
-	recordNum++;
 	switch(pMsgHead->nDataType)
 	{
 	case MSG_DATA_MARKET:
-	{
-		if (recordNum > PRINTNUM){
-			recordNum = 0;
-			DumpScreenMarket((TDF_MARKET_DATA*)pMsgHead->pData, nItemCount);
-		}
-
-	}
+		DumpScreenMarket((TDF_MARKET_DATA*)pMsgHead->pData, nItemCount);
 	break;
 	case MSG_DATA_FUTURE:
-	{
-		if (recordNum > PRINTNUM){
-			recordNum = 0;
-			DumpScreenFuture(hTdf,(TDF_FUTURE_DATA*)pMsgHead->pData, nItemCount);
-		}
-	}
+		DumpScreenFuture(hTdf,(TDF_FUTURE_DATA*)pMsgHead->pData, nItemCount);
 	break;
 
 	case MSG_DATA_INDEX:
-	{
-		if (recordNum > PRINTNUM){
-			recordNum = 0;
-			DumpScreenIndex((TDF_INDEX_DATA*)pMsgHead->pData, nItemCount);
-		}
-	}
+		DumpScreenIndex((TDF_INDEX_DATA*)pMsgHead->pData, nItemCount);
 	break;
 	case MSG_DATA_TRANSACTION:
-	{
-		if (recordNum > PRINTNUM){
-			recordNum = 0;
-			DumpScreenTransaction((TDF_TRANSACTION*)pMsgHead->pData, nItemCount);
-		}
-	}
+		DumpScreenTransaction((TDF_TRANSACTION*)pMsgHead->pData, nItemCount);
 	break;
 	case MSG_DATA_ORDERQUEUE:
-	{
-		if (recordNum > PRINTNUM){
-			recordNum = 0;
-			DumpScreenOrderQueue((TDF_ORDER_QUEUE*)pMsgHead->pData, nItemCount);
-		}
-//		TDF_ORDER_QUEUE* pLastOrderQueue = GETRECORD(pMsgHead->pData,TDF_ORDER_QUEUE, nItemCount-1);
-/*
-		printf( "接收到委托队列记录:代码：%s, 业务发生日:%d, 时间:%d, 委托价格:%d，订单数量:%d \n",
-		 	pLastOrderQueue->szWindCode,
-		 	(int)pLastOrderQueue->nActionDay,
-		 	(int)pLastOrderQueue->nTime,
-		 	(int)pLastOrderQueue->nPrice,
-		 	(int)pLastOrderQueue->nOrders);
-*/
-	}
+		DumpScreenOrderQueue((TDF_ORDER_QUEUE*)pMsgHead->pData, nItemCount);
 	break;
 	case MSG_DATA_ORDER:
-	{
-		if (recordNum > PRINTNUM){
-			recordNum = 0;
-			DumpScreenOrder((TDF_ORDER*)pMsgHead->pData, nItemCount);
-		}
-
-	}
+		DumpScreenOrder((TDF_ORDER*)pMsgHead->pData, nItemCount);
 	break;
 	default:
 	break;
