@@ -17,6 +17,8 @@
 
 #include "public.h"
 
+#include <pthread.h>
+
 
 using namespace std;
 
@@ -555,10 +557,11 @@ void RecvData(THANDLE hTdf, TDF_MSG* pMsgHead)
 	static int iCount=0,iPreCnt=0;
 	
 	iCount++;
-
-	if((iCount-iPreCnt)>MY_INFO_CNT){
+//printf("This thread's id is %u \n", (unsigned int)pthread_self());
+	if((iCount-iPreCnt)>=MY_INFO_CNT){
 		iPreCnt=iCount;
-		printf("--------------------------------------receive count=%d,pid=%d.\n",iCount,getpid());
+		printf("--------------------------------------receive count=%d,pid=%d tid=%u.\n",
+			iCount,getpid(),(unsigned int)pthread_self());
 	}
 
 
