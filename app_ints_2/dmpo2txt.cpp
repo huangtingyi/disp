@@ -161,7 +161,8 @@ int print_MY_TYPE_TDF_TRA(char *buf,char sCodeList[],int iTimeFlag,
 	}
 	if(*plCurTime<lBgnTime) return 2;
 
-	if(p->chOrderKind==0) p->chOrderKind='0';
+	if(p->chOrderKind==0) 	p->chOrderKind='0';
+	else			p->chOrderKind='1';
 	if(p->chFunctionCode==0) p->chFunctionCode='0';
 
 	sprintf(outbuf,"%lld\t%d\t%s\t%d\

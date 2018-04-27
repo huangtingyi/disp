@@ -489,28 +489,29 @@ int main(int argc, char** argv)
 
 	//启动处理数据服务
 	ios.Start();
-
-	TDF_OPEN_SETTING settings;
-
+	
+	TDF_OPEN_SETTING_EXT settings;
+	
 	memset((void*)&settings, 0, sizeof(settings));
+	strcpy(settings.siServer[0].szIp, host.c_str());
+	sprintf(settings.siServer[0].szPort, "%d",port);
+	strcpy(settings.siServer[0].szUser,id.c_str());
+	strcpy(settings.siServer[0].szPwd,passwd.c_str());
 
-	strcpy(settings.szIp,	host.c_str());
-	sprintf(settings.szPort, "%d",port);
-	strcpy(settings.szUser, id.c_str());
-	strcpy(settings.szPwd,  passwd.c_str());
+	settings.nServerNum = 1; //必须设置： 有效的连接配置个数（当前版本应<=2)
 
 	settings.pfnMsgHandler = RecvData; //设置数据消息回调函数
 	settings.pfnSysMsgNotify = RecvSys;//设置系统消息回调函数
+	settings.szMarkets = "SZ-2-0;SH-2-0";//需要订阅的市场列表
 
-	settings.szMarkets = "SZ-2-0;SH-2-0";	  //需要订阅的市场列表
-
-	settings.szSubScriptions = "";	//"600030.SH"; //600030.SH;104174.SH;103493.SH";	//需要订阅的股票,为空则订阅全市场
-	settings.nTime = 0;		//请求的时间，格式HHMMSS，为0则请求实时行情，为0xffffffff从头请求
+	settings.szSubScriptions = ""; //"600030.SH"; //600030.SH;104174.SH;103493.SH";	//需要订阅的股票,为空则订阅全市场
+	settings.nTime = 0;//请求的时间，格式HHMMSS，为0则请求实时行情，为0xffffffff从头请求
 	settings.nTypeFlags = (DATA_TYPE_NONE|DATA_TYPE_TRANSACTION|DATA_TYPE_ORDER|DATA_TYPE_ORDERQUEUE); //请求的品种
 	TDF_ERR nErr = TDF_ERR_SUCCESS;
 	THANDLE hTDF = NULL;
 
-	hTDF = TDF_Open(&settings, &nErr);
+	hTDF = TDF_OpenExt(&settings, &nErr);
+
 
 	if (hTDF==NULL){
 		printf("TDF_Open return error: %d\n", nErr);
