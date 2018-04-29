@@ -275,8 +275,8 @@ void CallBackBase::Deal_Message_SSEL2_Quotation(SubData *subdata)
 		fwrite((const void*)&q[1],sizeof(TDF_ORDER_QUEUE),1,m_fileSet.fpTdfQue);
 	}
 
-	//中午休市期间，行情数据就不要了
-	if((m.nTime>113000000&&m.nTime<130000000)||m.nTime>150000000) return;
+	//中午休市期间以及收盘后的，行情数据就不要了
+	if((m.nTime>113100000&&m.nTime<130000000)||m.nTime>151000000) return;
 	
 	TDF_MARKET_DATA2MktData(md,m);
 
@@ -359,7 +359,7 @@ void CallBackBase::Deal_Message_SSEL2_Auction(SubData *subdata)
 	}
 
 	//9点25分后，成交量为0的，上海集合竞价的数据，就不要转为行情了
-	if(m.nTime>92500000&&m.iVolume==0) return;
+	if(m.nTime>92400000&&m.iVolume==0) return;
 
 	TDF_MARKET_DATA2MktData(md,m);
 
@@ -408,7 +408,7 @@ void CallBackBase::Deal_Message_SZSEL2_Quotation(SubData *subdata)
 	}
 
 	//中午休市期间，行情数据就不要了
-	if((m.nTime>113000000&&m.nTime<130000000)||m.nTime>150000000) return;
+	if((m.nTime>113100000&&m.nTime<130000000)||m.nTime>151000000) return;
 
 	TDF_MARKET_DATA2MktData(md,m);
 

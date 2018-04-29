@@ -65,6 +65,7 @@ installdir()
 			cp bin/gta_test         ../bin
 			cp bin/agentcli		../bin
 			cp bin/tdf_ints		../bin
+			cp bin/gta2tdf		../bin
 			;;
 		shell)
 			cp shell/chkipsend.sh	../bin

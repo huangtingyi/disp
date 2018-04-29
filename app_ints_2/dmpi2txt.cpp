@@ -27,7 +27,7 @@
 
 #define MY_DATE_CEIL_LONG 1000000000L
 
-int64_t my_yuan2percentFen(const double yuan) 
+int64_t my_yuan2percentFen(const double yuan)
 {
 	return int64_t((yuan + 0.00005) * 10000);
 }
@@ -53,7 +53,7 @@ int print_MY_TYPE_SSEL2_Quotation(char *buf,char sCodeList[],int iTimeFlag,
 	}
 
 	long lTmpTime=(long)((*(long long *)buf)%MY_DATE_CEIL_LONG);
-	
+
 	switch(iTimeFlag){
 		case 1: *plCurTime=p->Time;break;
 		case 2: *plCurTime=lTmpTime;break;
@@ -61,7 +61,7 @@ int print_MY_TYPE_SSEL2_Quotation(char *buf,char sCodeList[],int iTimeFlag,
 		case 4:	*plCurTime=(long)(p->PacketTimeStamp%MY_DATE_CEIL_LONG);break;
 		default:*plCurTime=p->Time;break;
 	}
-	
+
 	if(*plCurTime<lBgnTime) return 2;
 
 
@@ -223,7 +223,7 @@ int print_MY_TYPE_SSEL2_Transaction(char *buf,char sCodeList[],int iTimeFlag,
 		case 4:	*plCurTime=(long)(p->PacketTimeStamp%MY_DATE_CEIL_LONG); break;
 		default:*plCurTime=p->TradeTime;break;
 	}
-	
+
 	if(*plCurTime<lBgnTime) return 2;
 
 	sprintf(outbuf,"%lld\t%d\t%lld\t%d\t%s\t%d\
@@ -236,12 +236,12 @@ int print_MY_TYPE_SSEL2_Transaction(char *buf,char sCodeList[],int iTimeFlag,
 		iSubMilliSec((int)lTmpTime,(int)p->TradeTime),//第二行开始
 		p->QuotationFlag,  			///< 1=上海南汇机房行情源；2=深圳福永机房行情源
 		(int)p->RecID,                  	///< 业务索引, 从 1 开始，按 TradeChannel连续
-		(int)p->TradeChannel,           	///< 成交通道, 
-		(int)my_yuan2percentFen(p->TradePrice),	///< 成交价格, 
+		(int)p->TradeChannel,           	///< 成交通道,
+		(int)my_yuan2percentFen(p->TradePrice),	///< 成交价格,
 		(int)p->TradeVolume,            	///< 成交数量, 股票：股,权证：份,债券：张
-		(int)my_yuan2percentFen(p->TradeAmount),///< 成交金额, 
-		(int)p->BuyRecID,               	///< 买方订单号, 
-		(int)p->SellRecID,              	///< 卖方订单号, 
+		(int)my_yuan2percentFen(p->TradeAmount),///< 成交金额,
+		(int)p->BuyRecID,               	///< 买方订单号,
+		(int)p->SellRecID,              	///< 卖方订单号,
 		p->BuySellFlag            		///< 内外盘标志, B – 外盘,主动买,S – 内盘,主动卖,N – 未知
 		);
 
@@ -286,7 +286,7 @@ int print_MY_TYPE_SSEL2_Auction(char *buf,char sCodeList[],int iTimeFlag,
 		case 4:	*plCurTime=(long)(p->PacketTimeStamp%MY_DATE_CEIL_LONG);break;
 		default:*plCurTime=p->Time;break;
 	}
-	
+
 	if(*plCurTime<lBgnTime) return 2;
 
 	sprintf(outbuf,"%lld\t%d\t%lld\t%d\t%s\t%d\t%s\t%d\t%d\t%d\t%c\n",
@@ -495,8 +495,8 @@ int print_MY_TYPE_SZSEL2_Transaction(char *buf,char sCodeList[],int iTimeFlag,
 		(int)p->BuyOrderID,                  	///< 买方委托索引
 		(int)p->SellOrderID,           		///< 卖方委托索引
 		p->SymbolSource,			///< 证券代码源
-		(int)my_yuan2percentFen(p->TradePrice),	///< 成交价格, 
-		(int)my_yuan2percentFen(p->TradeVolume),///< 成交金额, 
+		(int)my_yuan2percentFen(p->TradePrice),	///< 成交价格,
+		(int)my_yuan2percentFen(p->TradeVolume),///< 成交金额,
 		p->TradeType            		///< 成交类别：4=撤销，主动或自动撤单执行报告；F=成交，成交执行报告
 		);
 
@@ -593,7 +593,7 @@ int print_MY_TYPE_TDF_MKT(char *buf,char sCodeList[],int iTimeFlag,
 		(int)p->nTime,		//委托时间YYYYMMDDHHMMSSMMM
 		p->szCode,
 		iSubMilliSec((int)lTmpTime,(int)p->nTime),//第一行继续
-		(int)p->nStatus,	//状态  
+		(int)p->nStatus,	//状态
 		(int)p->nPreClose,	//前收盘
 		(int)p->nOpen,		//开盘价
 		(int)p->nHigh,		//最高价
@@ -851,7 +851,8 @@ int main(int argc, char *argv[])
 			printf("   [-b begin-time (def=0) ]\n");
 			printf("   [-e end-time (def=99999999999) ]\n");
 			printf("   [-t type (1-qh,2-th,3-ah,4-qz,5-tz,6-oz,mtoq|MTOQ=>mkt,trs,ord,que) ]\n");
-			printf("   [-d delay sec (-e,-l multi-code effect) ]\n");        
+			printf("   [-d delay sec (-e,-l multi-code effect) ]\n");
+			printf("   [-l codelist (e.g \"000001,603912,002415\") ]\n");
 			printf("   [-f time_flag (def=1,1-createtime,2-picktime,3-localtime,4-packtime) ]\n");
 			exit(1);
 			break;
@@ -934,11 +935,11 @@ int main(int argc, char *argv[])
 
 			//如果只选一只股票，则直接break
 			if(strlen(sCodeStr)==6) break;
-			
+
 			//如果选多支股票，或全选，则容许跳过10秒,
 			//为了避免因为一只股票超时，而导致其他股票的endtime之前的数据没取了
 			if(lCurTime>(lEndTime+iDelaySec*1000L)) break;
-			
+
 			iExceedCnt++;
 			continue;
 		}

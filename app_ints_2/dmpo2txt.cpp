@@ -517,6 +517,7 @@ int main(int argc, char *argv[])
 			printf("   [-e end-time (def=99999999999) ]\n");
 			printf("   [-t type (mtoq|MTOQ=>mkt,trs,ord,que) ]\n");
 			printf("   [-d delay sec (-e,-l multi-code effect) ]\n");
+			printf("   [-l codelist (e.g \"000001,603912,002415\") ]\n");
 			printf("   [-f time_flag (def=1,1-createtime,2-picktime) ]\n");
 			exit(1);
 			break;

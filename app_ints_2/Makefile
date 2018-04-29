@@ -14,6 +14,7 @@ TARGET_B=../bin/dmpi2txt
 TARGET_C=../bin/gta_replay
 TARGET_D=../bin/index_stat
 TARGET_E=../bin/dmpo2txt
+TARGET_F=../bin/gta2tdf
 
 #编译命令
 CXX=g++
@@ -42,6 +43,9 @@ ExampleD_OBJS=$(patsubst %.cpp, %.o, $(ExampleD_SRC))
 ExampleE_SRC=$(wildcard ./dmpo2txt.cpp ../public/wwtiny.cpp ../public/mktdata.pb.cpp )
 ExampleE_OBJS=$(patsubst %.cpp, %.o, $(ExampleE_SRC))
 
+ExampleF_SRC=$(wildcard ./gta2tdf.cpp ../GTA2TDF/GTA2TDF.cpp ../public/wwtiny.cpp )
+ExampleF_OBJS=$(patsubst %.cpp, %.o, $(ExampleF_SRC))
+
 
 #所有目标文件
 OBJS= $(Example_OBJS)
@@ -49,11 +53,12 @@ OBJBS= $(ExampleB_OBJS)
 OBJCS= $(ExampleC_OBJS)
 OBJDS= $(ExampleD_OBJS)
 OBJES= $(ExampleE_OBJS)
+OBJEF= $(ExampleF_OBJS)
 
 
 .PHONY: debug release clean
 
-release: $(TARGET_A) $(TARGET_B) $(TARGET_C) $(TARGET_D) $(TARGET_E)
+release: $(TARGET_A) $(TARGET_B) $(TARGET_C) $(TARGET_D) $(TARGET_E) $(TARGET_F)
 
 debug: $(TARGET_A) $(TARGET_B) $(TARGET_C) $(TARGET_D)
 #连接静态库
@@ -72,10 +77,13 @@ $(TARGET_D): $(ExampleD_OBJS)
 $(TARGET_E): $(ExampleE_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
 
+$(TARGET_F): $(ExampleF_OBJS)
+	$(CXX) -o $@ $(CXXFLAGS) $^
+
 %.o: %.cpp
 	$(CXX) -o $@ -c $(CXXFLAGS) $(INC) $<
 
 clean:
-	rm -fr $(TARGET_A) $(TARGET_B) $(TARGET_C) $(TARGET_D) $(TARGET_E) $(OBJS) $(OBJBS) $(OBJCS) $(OBJDS) $(OBJES)
+	rm -fr $(TARGET_A) $(TARGET_B) $(TARGET_C) $(TARGET_D) $(TARGET_E) $(TARGET_E) $(OBJS) $(OBJBS) $(OBJCS) $(OBJDS) $(OBJES) $(OBJFS)
 
 
