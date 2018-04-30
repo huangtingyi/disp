@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 
 	IoService	ios;
 	//订阅消息回调类
-	CallBackBase CallbackBase(iWriteFlag,strWork);
+	CallBackBase CallbackBase(iWriteFlag,sReplayDate,strWork);
 	CallbackBase.SetIoService(&ios);
 
 	//启动处理数据服务

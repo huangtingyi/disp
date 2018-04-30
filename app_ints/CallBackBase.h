@@ -44,7 +44,7 @@ typedef struct _filename_set_
 class CallBackBase :public IGTAQTSCallbackBase
 {
 public:
-	CallBackBase(int iWriteFlag,string &strWork);
+	CallBackBase(int iWriteFlag,char sDataDate[],string &strWork);
 	virtual ~CallBackBase();
 
 	void SetIoService(IoService *ios);

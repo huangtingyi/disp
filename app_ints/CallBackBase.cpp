@@ -28,12 +28,15 @@ int GetHostTime(char sHostTime[15])
 
 	return 0;
 }
-CallBackBase::CallBackBase(int iWriteFlag,string& strWork)
+CallBackBase::CallBackBase(int iWriteFlag,char sDataDate[],string& strWork)
 {
 	m_ios = 0;
 	char sHostTime[15];
 	
-	GetHostTime(sHostTime);
+	if(strlen(sDataDate)==0)
+		GetHostTime(sHostTime);
+	else	strcpy(sHostTime,sDataDate);
+	
 	sHostTime[8]=0;
 	
 	if(iWriteFlag&1){

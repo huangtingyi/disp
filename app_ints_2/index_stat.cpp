@@ -1151,12 +1151,12 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 		}
 */
                 //建立价格和最大的成交ORDER之间的关系
-                if(AdjustIndexStatS0(pIndexStat,&tt)<0){
+/*               if(AdjustIndexStatS0(pIndexStat,&tt)<0){
 			printf("error add index stat s0 file=%s,pos=%ld\n",
 				sFileName,lCurPos);
 			return -1;
                 }
-
+*/
 		//从lCurPos,读到 nT0, 对于大于 nPreT0的部分，加入到
 		//S0T，大于nT0的数据加到pS1Head,遇到，遇到大于nEndTime0的数据停止;
 		if(t.nTime<nPreT0) continue;
