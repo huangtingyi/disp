@@ -172,7 +172,8 @@ jmp_a100=`echo $stat_info | awk -F, '{print $141 }'`
 
 
 #code=603912,t=93000000,zd,zb
-sz_code=`echo $d31_file | cut -c 9-14`
+d31_base_file=`basename $d31_file`
+sz_code=`echo $d31_base_file | cut -c 9-14`
 #sz_code=${sz_code##*0}
 #s/[0-9]*/-p&/g
 sz_code=`echo $sz_code | sed 's/^0*//'`

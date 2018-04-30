@@ -56,11 +56,11 @@ struct TinyTransactionStruct
 	
 	int	nAskOrderSeq;	//卖方委托单成交序号，卖成笔数
 	int	nBidOrderSeq;	//买方委托单成交序号，买成笔数
-	int	nAskJmpSeq;	//跳卖序列
-	int	nBidJmpSeq;	//跳买序列
+//	int	nAskJmpSeq;	//跳卖序列
+//	int	nBidJmpSeq;	//跳买序列
 
-	struct TinyOrderStruct *pAskOrder;
-	struct TinyOrderStruct *pBidOrder;
+//	struct TinyTransactionStruct *pAskOrder; //叫卖序号相同的交易列表
+//	struct TinyTransactionStruct *pBidOrder; //叫买序号相同的交易列表
 };
 //每个结构40个字节，16+4*6 = 40
 struct TinyOrderStruct
@@ -87,6 +87,8 @@ struct TinyOrderStruct
 	int	nOriOrdPrice;	//原始委托价格
 	int	nOriOrdVolume;	//原始委托量
 	long	lOriOrdAmnt;	//原始委托金额
+	
+//	struct TinyOrderStruct *pJmpOrder;
 	
 };
 struct TinyQuotationStruct
@@ -138,6 +140,13 @@ struct IndexStatStruct
 	int	iQuotationCnt;		//行情笔数
 	int8b	lAddupTotalBidAmnt;	//每笔行情叫买总量的累计
 	int8b	lAddupTotalAskAmnt;	//每笔行情叫卖总量的累计
+//	int8b	lLastTotalBidAmnt;	//最后一笔行情叫买总量
+//	int8b	lLastTotalAskAmnt;	//最后一笔行情叫卖总量
+
+	int	iSamplingCnt;		//行情采样笔数
+	int8b	lAddupSamplingBidAmnt;	//每笔采样行情叫买总量的累计
+	int8b	lAddupSamplingAskAmnt;	//每笔采样行情叫卖总量的累计
+
 	
 	BINTREE *ASK_MAX;		//以成卖出交价为索引，成交价和最大ASK_ORDER的关系
 	BINTREE *BID_MAX;		//以成买入交价为索引，成交价和最大BID_ORDER的关系

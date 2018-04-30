@@ -17,6 +17,8 @@
 
 #define MY_DATE_CEIL_LONG 1000000000L
 #define MY_CLOSE_MARKET_TIME 150000000
+#define MY_OPEN_MARKET_TIME  93000000
+
 
 long alAmntLevel[MAX_LEVEL_CNT]={
 	0,
@@ -45,7 +47,7 @@ void (*GTA_Quotation2TinyQuotation)(void *p, struct TinyQuotationStruct *po);
 void TDF_TRANSACTION2TinyTransaction(struct TDF_TRANSACTION *pi,struct TinyTransactionStruct *po)
 {
 	po->pNext=NULL;
-	po->pAskOrder=po->pBidOrder=NULL;
+//	po->pAskOrder=po->pBidOrder=NULL;
 	po->nActionDay=	pi->nActionDay;
 	po->nTime=	pi->nTime;
 	po->iStockCode=	atoi(pi->szCode);
@@ -58,6 +60,9 @@ void TDF_TRANSACTION2TinyTransaction(struct TDF_TRANSACTION *pi,struct TinyTrans
 
 	po->nAskOrderSeq=0;
 	po->nBidOrderSeq=0;
+	
+//	po->nAskJmpSeq=0;
+//	po->nBidJmpSeq=0;
 }
 void TDF_TRANSACTION2TinyOrderS(struct TDF_TRANSACTION *pi,struct TinyOrderStruct *po)
 {
@@ -77,6 +82,10 @@ void TDF_TRANSACTION2TinyOrderS(struct TDF_TRANSACTION *pi,struct TinyOrderStruc
 	po->nOriOrdPrice=0;
 	po->nOriOrdVolume=0;
 	po->lOriOrdAmnt=0;
+	
+	po->nLastPrice=0;
+	po->nAskJmpSeq=0;
+	po->nBidJmpSeq=0;
 }
 void TDF_TRANSACTION2TinyOrderB(struct TDF_TRANSACTION *pi,struct TinyOrderStruct *po)
 {
@@ -96,6 +105,10 @@ void TDF_TRANSACTION2TinyOrderB(struct TDF_TRANSACTION *pi,struct TinyOrderStruc
 	po->nOriOrdPrice=0;
 	po->nOriOrdVolume=0;
 	po->lOriOrdAmnt=0;
+	
+	po->nLastPrice=0;
+	po->nAskJmpSeq=0;
+	po->nBidJmpSeq=0;
 }
 void TDF_ORDER2TinyOrder(struct TDF_ORDER *pi,struct TinyOrderStruct *po)
 {
@@ -115,6 +128,10 @@ void TDF_ORDER2TinyOrder(struct TDF_ORDER *pi,struct TinyOrderStruct *po)
 	po->nOriOrdPrice=(int)pi->nPrice;
 	po->nOriOrdVolume=pi->nVolume;
 	po->lOriOrdAmnt=(long)(pi->nPrice)*pi->nVolume/100;
+	
+	po->nLastPrice=0;
+	po->nAskJmpSeq=0;
+	po->nBidJmpSeq=0;
 
 }
 
@@ -708,15 +725,36 @@ void AskOrder2D31Ex(struct TinyOrderStruct *p,struct TinyTransactionStruct *pt,
 	}
 }
 void BidOrder2D31Ex(struct TinyOrderStruct *p,struct TinyTransactionStruct *pt,
-	struct D31IndexExtStruct *pD31)
+	struct D31IndexExtStruct *pD31,struct IndexStatStruct *pInd)
 {
 	long lAmnt=p->nOriOrdVolume?(long)p->nOriOrdVolume*(long)pt->nPrice/100:p->lOrderAmnt;
 
 	for(int i=0;i<MAX_JMP_LEVEL_CNT;i++){
 		if(alJmpLevel[i]>lAmnt) break;
+		if(i==0&&pInd->nT0==93800000&&
+			pInd->iStockCode==603912){
+				printf("=xxxxxxxxxxxxxx========%d================\n",p->nOrder);
+		}
 		pD31->alBidAmount[i]+=	(long)pt->nVolume*pt->nPrice/100;
 	}
 }
+/***
+void InsertJmpOrder(struct TinyOrderStruct **pptHead,struct TinyOrderStruct *p)
+{
+	p->pJmpOrder= *pptHead;
+	*pptHead=p;
+}
+void InsertAskOrderTransaction(struct TinyTransactionStruct **pptHead,struct TinyTransactionStruct *p)
+{
+	p->pAskOrder= *pptHead;
+	*pptHead=p;
+}
+void InsertBidOrderTransaction(struct TinyTransactionStruct **pptHead,struct TinyTransactionStruct *p)
+{
+	p->pBidOrder= *pptHead;
+	*pptHead=p;
+}
+***/
 //b)根据S0T列表中，循环查找M_ORDER表中，生成 D31IndexItem数据；
 int GenD31Stat(struct IndexStatStruct *p)
 {
@@ -784,23 +822,49 @@ int GenD31Stat(struct IndexStatStruct *p)
 		//(trans['叫卖序号'] == trans['叫卖序号'].shift(1))
 		if(pTemp->nPrice<pAskOrder->nLastPrice){
 			pAskOrder->nAskJmpSeq++;
-			pTemp->nAskJmpSeq=pAskOrder->nAskJmpSeq;
+//			pTemp->nAskJmpSeq=pAskOrder->nAskJmpSeq;
 		}
 		//价格上涨 = (trans['成交价格'] > trans['成交价格'].shift(1)) &
 		//(trans['叫买序号'] == trans['叫买序号'].shift(1))
-		if(pTemp->nPrice>pBidOrder->nLastPrice){
+		if(pTemp->nPrice>pBidOrder->nLastPrice&&
+			pBidOrder->nLastPrice!=0){
 			pBidOrder->nBidJmpSeq++;
-			pTemp->nBidJmpSeq=pBidOrder->nBidJmpSeq;
+//			pTemp->nBidJmpSeq=pBidOrder->nBidJmpSeq;
 		}
+		
+		//设置最新价
+		pAskOrder->nLastPrice=pBidOrder->nLastPrice=pTemp->nPrice;
+	}
 
+	//再做一个循环，检查跳买和跳卖的标致，如果存在跳买跳卖则统计
+	ptHead=(struct TinyTransactionStruct *)p->S0T.pHead;
+	while(ptHead!=NULL){
+		pTemp=ptHead;
+		ptHead=ptHead->pNext;
+
+		//找到卖方订单金额
+		if(SearchBin(M_ORDER,(void*)&(pTemp->nAskOrder),
+			data_search_bintree_order_2,(void**)&pAskOrder)==NOTFOUND){
+			printf("hello 3 code=%d,askord=%d time=%d,flag=%c\n",
+				p->iStockCode,pTemp->nAskOrder,pTemp->nTime,(char)(pTemp->nBSFlag));
+			printf("hello 2\n");
+			return -1;
+		}
+		//找到买方订单金额
+		if(SearchBin(M_ORDER,(void*)&(pTemp->nBidOrder),
+			data_search_bintree_order_2,(void**)&pBidOrder)==NOTFOUND){
+
+			printf("hello 3 code=%d,bidord=%d time=%d,flag=%c\n",
+				p->iStockCode,pTemp->nBidOrder,pTemp->nTime,(char)(pTemp->nBSFlag));
+			return -1;
+		}
+		
 		//d31_new[跳卖i] = trans[(trans['委卖金额'] >= i * 10000) &
 		//(trans['跳卖次数']>0)].groupby(['time_str'])['成交金额'].sum().reindex(index = trade_time)/10000
-		if(pTemp->nAskJmpSeq>0)	AskOrder2D31Ex(pAskOrder,pTemp,pD31Ex);
-
+		if(pAskOrder->nAskJmpSeq>0) AskOrder2D31Ex(pAskOrder,pTemp,pD31Ex);
 		//d31_new[跳买i] = trans[(trans['委买金额'] >= i * 10000) &
 		//(trans['跳买次数']>0)].groupby(['time_str'])['成交金额'].sum().reindex(index = trade_time)/10000
-		if(pTemp->nBidJmpSeq>0) BidOrder2D31Ex(pBidOrder,pTemp,pD31Ex);
-
+		if(pBidOrder->nBidJmpSeq>0) BidOrder2D31Ex(pBidOrder,pTemp,pD31Ex,p);
 	}
 
 	//取时间段内的最后一笔行情进行处理
@@ -831,15 +895,18 @@ int GenD31Stat(struct IndexStatStruct *p)
 
 		p->iQuotationCnt++;
 		p->lAddupTotalBidAmnt+=	ptPre->nTotalBidVol*ptPre->nWtAvgBidPrice/100;
-		p->lAddupTotalAskAmnt+=	ptPre->nTotalBidVol*ptPre->nWtAvgAskPrice/100;
+		p->lAddupTotalAskAmnt+=	ptPre->nTotalAskVol*ptPre->nWtAvgAskPrice/100;
 
 		if(p->lAddupTotalBidAmnt<0||
 			p->lAddupTotalAskAmnt<0){
 			printf("design errror.\n");
 		}
 
-		if((LIST*)ptPre==p->S0Q.pTail) break;
-		
+		if((LIST*)ptPre==p->S0Q.pTail){
+//			p->lLastTotalBidAmnt=	ptPre->nTotalBidVol*ptPre->nWtAvgBidPrice/100;
+//			p->lLastTotalAskAmnt=	ptPre->nTotalAskVol*ptPre->nWtAvgAskPrice/100;
+			break;
+		}
 		//除了最后一个节点都释放了内存
 		free(ptPre);
 	}
@@ -861,10 +928,24 @@ int GenD31Stat(struct IndexStatStruct *p)
 
 		pD31Ex->nWtAvgBidPrice=	ptCur->nWtAvgBidPrice;
 		pD31Ex->nWtAvgAskPrice=	ptCur->nWtAvgAskPrice;
-
-		pD31Ex->lAvgTotalBidAmnt=p->lAddupTotalBidAmnt/p->iQuotationCnt;
-		pD31Ex->lAvgTotalAskAmnt=p->lAddupTotalAskAmnt/p->iQuotationCnt;
 		
+		p->iSamplingCnt++;
+		p->lAddupSamplingBidAmnt+=pD31Ex->lTotalBidAmnt;
+		p->lAddupSamplingAskAmnt+=pD31Ex->lTotalAskAmnt;
+
+		pD31Ex->lAvgTotalBidAmnt=p->lAddupSamplingBidAmnt/p->iSamplingCnt;
+		pD31Ex->lAvgTotalAskAmnt=p->lAddupSamplingAskAmnt/p->iSamplingCnt;
+
+/*
+		if(p->iQuotationCnt<0){
+			pD31Ex->lAvgTotalBidAmnt=(p->lAddupTotalBidAmnt-p->lLastTotalBidAmnt)/(p->iQuotationCnt-1);
+			pD31Ex->lAvgTotalAskAmnt=(p->lAddupTotalAskAmnt-p->lLastTotalAskAmnt)/(p->iQuotationCnt-1);
+		}
+		else{
+			pD31Ex->lAvgTotalBidAmnt=p->lAddupTotalBidAmnt/p->iQuotationCnt;
+			pD31Ex->lAvgTotalAskAmnt=p->lAddupTotalAskAmnt/p->iQuotationCnt;
+		}
+*/
 		//释放最后一个节点
 		free(ptCur);
 	}
@@ -902,7 +983,7 @@ int WriteD31Stat(FILE *fp,struct IndexStatStruct *p)
 
 	return 0;
 }
-int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p)
+int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p,int iWriteFlag)
 {
 	int i;
 	struct D31IndexItemStruct *pD31;
@@ -911,27 +992,58 @@ int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p)
 //	$sz_code $prefix $tmp_time ${arr_level[i]} $bid_amnt $bid_volume $bid_num $ask_amnt $ask_volume $ask_num
 
 	pD31=&(p->Zb);
-	for(i=0;i<MAX_LEVEL_CNT;i++){
-		fprintf(fp,"%-6d,%s,%-4d,%-4d,%-10ld,%-6d,%-6d,%-10ld,%-6d,%-6d\n",
-			p->iStockCode,"z",p->nT0/100000,(int)(alAmntLevel[i]/1000000),
-			pD31->alBidAmount[i],pD31->aiBidVolume[i],pD31->aiBidOrderNum[i],
-			pD31->alAskAmount[i],pD31->aiAskVolume[i],pD31->aiAskOrderNum[i]);
+	
+	if(iWriteFlag==0){
+		for(i=0;i<MAX_LEVEL_CNT;i++){
+			fprintf(fp,"%-6d,%s,%-4d,%-4d,%-10ld,%-6d,%-6d,%-10ld,%-6d,%-6d\n",
+				p->iStockCode,"z",p->nT0/100000,(int)(alAmntLevel[i]/1000000),
+				pD31->alBidAmount[i],pD31->aiBidVolume[i],pD31->aiBidOrderNum[i],
+				pD31->alAskAmount[i],pD31->aiAskVolume[i],pD31->aiAskOrderNum[i]);
+		}
 	}
 	bzero((void*)pD31,sizeof(struct D31IndexItemStruct));
 
 	pD31=&(p->Zd);
-	for(i=0;i<MAX_LEVEL_CNT;i++){
-		fprintf(fp,"%-6d,%s,%-4d,%-4d,%-10ld,%-6d,%-6d,%-10ld,%-6d,%-6d\n",
-			p->iStockCode,"w",p->nT0/100000,(int)(alAmntLevel[i]/1000000),
-			pD31->alBidAmount[i],pD31->aiBidVolume[i],pD31->aiBidOrderNum[i],
-			pD31->alAskAmount[i],pD31->aiAskVolume[i],pD31->aiAskOrderNum[i]);
+	if(iWriteFlag==0){
+		for(i=0;i<MAX_LEVEL_CNT;i++){
+			fprintf(fp,"%-6d,%s,%-4d,%-4d,%-10ld,%-6d,%-6d,%-10ld,%-6d,%-6d\n",
+				p->iStockCode,"w",p->nT0/100000,(int)(alAmntLevel[i]/1000000),
+				pD31->alBidAmount[i],pD31->aiBidVolume[i],pD31->aiBidOrderNum[i],
+				pD31->alAskAmount[i],pD31->aiAskVolume[i],pD31->aiAskOrderNum[i]);
 
+		}
 	}
-
 	bzero((void*)pD31,sizeof(struct D31IndexItemStruct));
 
+	if(iWriteFlag==1){
+		struct D31IndexExtStruct  *pEx=&p->Ex;
+		fprintf(fp,"%-6d,%s,%-4d,%-10d,%-10d,%-12ld,%-12ld,%-10d,%-10d,%-12ld,%-12ld,\
+%-10d,%-10d,%-10d,%-10d,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld\n",
+			p->iStockCode,"e",p->nT0/100000,
+			pEx->nTenBidVolume,	//十档买量（手）
+			pEx->nTenAskVolume,	//十档卖量（手）
+			pEx->lTenBidAmnt,	//十档买额（分）
+			pEx->lTenAskAmnt,	//十档卖额（分）
+			pEx->nTotalBidVolume,	//叫买总量（手）
+			pEx->nTotalAskVolume,	//叫卖总量（手）
+			pEx->lTotalBidAmnt,	//叫买总额（分）
+			pEx->lTotalAskAmnt,	//叫卖总额（分）
+			pEx->nWtAvgBidPrice,	//加权平均叫买价（分）
+			pEx->nWtAvgAskPrice,	//加权平均叫卖价（分）
+			pEx->nLastClose,	//昨收盘价
+			pEx->nCurPrice,		//最新价
+			pEx->lAvgTotalBidAmnt,	//平均叫买总额（当日平均，分）
+			pEx->lAvgTotalAskAmnt,	//平均叫卖总额（当日平均，分）
+			pEx->alBidAmount[0],	//跳买额度20w，单位（分）
+			pEx->alAskAmount[0],	//跳卖额度20w，单位（分） 
+			pEx->alBidAmount[1],	//跳买额度50w，单位（分）
+			pEx->alAskAmount[1],	//跳卖额度50w，单位（分）
+			pEx->alBidAmount[2],	//跳买额度100w，单位（分）
+			pEx->alAskAmount[2]	//跳卖额度100w，单位（分）
+			);
+			
+	}
 	bzero((void*)&p->Ex,sizeof(struct D31IndexExtStruct));
-
 	return 0;
 }
 
@@ -1126,11 +1238,11 @@ int MountQutation2IndexStatArray(char sFileName[],int nBgnActionDay,
 
 		//从lCurPos,读到 nT0, 对于大于 nPreT0的部分，加入到
 		//S0T，大于nT0的数据加到pS1Head,遇到，遇到大于nEndTime0的数据停止;
-		if(q.nTime<nPreT0) continue;
+		if(q.nTime<=nPreT0) continue;
 
-		//实测表明,取数为 nPreT0<=x<nT0 按这个去取区间
-		//如果,q.nTime为收盘时间也归 15:00:00这个区间
-		if(q.nTime<nT0||(q.nTime==MY_CLOSE_MARKET_TIME&&nT0==MY_CLOSE_MARKET_TIME))
+		//实测表明,{对于行情的情况}取数为 nPreT0<x<=nT0 按这个去取区间
+		//开盘时候，不取9:30分整点的行情，而取前一笔行情，一般是9点25分的
+		if(q.nTime<=nT0&&q.nTime!=MY_OPEN_MARKET_TIME)				
 			pSXQ=&(pIndexStat->S0Q);
 		else	pSXQ=&(pIndexStat->S1Q);
 
@@ -1195,8 +1307,7 @@ void MoveS1Q2S0Q(struct IndexStatStruct *p,int nPreT0,int nT0)
 		pTemp=ptHead;
 		ptHead=ptHead->pNext;
 
-		if(pTemp->nTime<nT0||
-			(pTemp->nTime==MY_CLOSE_MARKET_TIME&&nT0==MY_CLOSE_MARKET_TIME))
+		if(pTemp->nTime<=nT0)
 			Append2List(pS0Q,(LIST*)pTemp);
 		else	Append2List(pS1Q,(LIST*)pTemp);
 	}
@@ -1340,7 +1451,7 @@ int GenD31StatAll()
 	return 0;
 }
 
-int WriteD31StatAll(FILE *fpD31,char sCodeStr[])
+int WriteD31StatAll(FILE *fpD31,char sCodeStr[],int iWriteFlag)
 {
 	char sTempCode[8];
 	struct IndexStatStruct *pIndexStat=INDEX_HEAD;
@@ -1352,7 +1463,7 @@ int WriteD31StatAll(FILE *fpD31,char sCodeStr[])
 		if(strlen(sCodeStr)==0||
 			strstr(sCodeStr,sTempCode)!=NULL){
 
-			if(WriteD31Stat1(fpD31,pIndexStat)<0){
+			if(WriteD31Stat1(fpD31,pIndexStat,iWriteFlag)<0){
 				printf("write d31 error.\n");
 				return -1;
 			}
@@ -1399,7 +1510,7 @@ int IsStopTime(int iTime)
 int main(int argc, char *argv[])
 {
 	FILE *fpD31;
-	int iMaxWaitSec=20,iWaitMilliSec=10;
+	int iMaxWaitSec=20,iIdleWaiteMilli=10,iWriteFlag=0;
 	int iShBusyDelay=12000,iShDelay=3000,iSzBusyDelay=12000,iSzDelay=2000;
 	int nBgnActionDay,nBgnTime,nPreT0,nT0,nEndTime0,iThRes,iTzRes,iQhRes,iQzRes;
 
@@ -1423,7 +1534,7 @@ int main(int argc, char *argv[])
 	strcpy(sDelayStr,"");
 
 	//获取命令行参数
-	for (int c; (c = getopt(argc, argv, "d:b:m:s:o:e:w:l:?:")) != EOF;){
+	for (int c; (c = getopt(argc, argv, "d:b:m:s:o:e:t:w:l:?:")) != EOF;){
 
 		switch (c){
 		case 'd':strncpy(sCalcDate, optarg,8);sCalcDate[8]=0;	break;
@@ -1432,7 +1543,9 @@ int main(int argc, char *argv[])
 		case 's':strcpy(sSourcePath, optarg);	break;
 		case 'o':strcpy(sWorkRoot, optarg);	break;
 		case 'e':strcpy(sDelayStr,optarg);	break;
-		case 'w':iWaitMilliSec=atoi(optarg);	break;
+		case 't':iIdleWaiteMilli=atoi(optarg);	break;
+		case 'w':iWriteFlag=atoi(optarg);
+			if(iWriteFlag!=1)iWriteFlag=0;	break;
 		case 'l':strcpy(sCodeStr, optarg);	break;
 		case '?':
 		default:
@@ -1442,7 +1555,9 @@ int main(int argc, char *argv[])
 			printf("   [-m max-delay-sec (def=20) ]\n");
 			printf("   [-s source-path (def=/stock/work) ]\n");
 			printf("   [-o work-root-name (def=/stock/work) ]\n");
-			printf("   [-e waitmillisec str 'b,i:b:i' ]\n");
+			printf("   [-e delay str 'b,i:b:i' ]\n");
+			printf("   [-t idlewaitmilli \n");
+			printf("   [-w writeflag (0,zbzd 1,ext info) \n");
 			printf("   [-l codelist (e.g \"000001,603912,002415\") ]\n");
 			exit(1);
 			break;
@@ -1490,11 +1605,11 @@ int main(int argc, char *argv[])
 	//得到计算的
 	nBgnActionDay=	atoi(sCalcDate);
 	nBgnTime=	atoi(sCalcBgn);
+	nT0=		nBgnTime*1000;
 
 	if(nBgnTime==93000)
-		nPreT0=iAddMilliSec(nBgnTime*1000,-1000*1800);
-	else	nPreT0=iAddMilliSec(nBgnTime*1000,-1000*60);
-	nT0=		nBgnTime*1000;
+		nPreT0=iAddMilliSec(nT0,-1000*1800);
+	else	nPreT0=iAddMilliSec(nT0,-1000*60);
 
 	while(1){
 
@@ -1551,7 +1666,7 @@ int main(int argc, char *argv[])
 			int nCurTime=nGetHostCurTime();
 			//如果没有到达最大容忍的延迟范围，则休眠后继续加载
 			if(iAddMilliSec(nLastStatTime,iMaxWaitSec*1000)<nCurTime){
-				usleep(iWaitMilliSec*1000);
+				usleep(iIdleWaiteMilli*1000);
 				continue;
 			}
 			//写告警信息，触发统计
@@ -1565,7 +1680,7 @@ int main(int argc, char *argv[])
 		if(GenD31StatAll()<0) return -1;
 
 		//将D31的数据生成文件
-		if(WriteD31StatAll(fpD31,sCodeStr)<0) return -1;
+		if(WriteD31StatAll(fpD31,sCodeStr,iWriteFlag)<0) return -1;
 
 //		printf("hello world tp=%d,tc=%d.\n",nPreT0,nT0);
 
@@ -1576,7 +1691,7 @@ int main(int argc, char *argv[])
 
 		//中午休市时，直接跳过午间休市
 		if(nT0>=113000000&&nT0<125959000)
-			nT0=130000000;
+			nT0=130100000;
 		else	//正常时段1分钟扫描一次
 			nT0=iAddMilliSec(nT0,1000*60);
 

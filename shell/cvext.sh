@@ -163,6 +163,9 @@ jmp_a50=`echo $stat_info | awk -F, '{print $139 }'`
 jmp_b100=`echo $stat_info | awk -F, '{print $140 }'`
 jmp_a100=`echo $stat_info | awk -F, '{print $141 }'`
 
+
+
+
 ##获取证券代码、小时、分钟信息
 ##sz_code=`echo $d31_file | cut -c 9-14`
 
@@ -176,71 +179,102 @@ time_mm=${chk_time:3:2}
 	
 tmp_time=`echo $time_hh*100+$time_mm | bc`
 
-#printf "code=%06.0f,t=%02s%02s00000,zd,zb\n" $sz_code $time_hh $time_mm
+sd_bv=`echo $sd_bv*100 +0.5 | bc`
+sd_bv=${sd_bv%.*}
+sd_av=`echo $sd_av*100 +0.5 | bc`
+sd_av=${sd_av%.*}
 
-declare -a arr_level
+sd_bm=`echo $sd_bm*1000000 +0.5 | bc`
+sd_bm=${sd_bm%.*}
 
-arr_level=(0 5 10 20 40 60 80 100 200 500)
+sd_am=`echo $sd_am*1000000 +0.5 | bc`
+sd_am=${sd_am%.*}
 
-frag_bid_amnt="b_a_"
-frag_bid_volume="b_v_"
-frag_bid_num="b_n_"
-frag_ask_amnt="s_a_"
-frag_ask_volume="s_v_"
-frag_ask_num="s_n_"
+jb_tv=`echo $jb_tv*100 +0.5 | bc`
+jb_tv=${jb_tv%.*}
+ja_tv=`echo $ja_tv*100 +0.5 | bc`
+ja_tv=${ja_tv%.*}
 
-var_bid_amnt=
-var_bid_volume=
-var_bid_num=
-var_ask_amnt=
-var_ask_volume=
-var_ask_num=
+jb_tm=`echo $jb_tm*1000000 +0.5 | bc`
+jb_tm=${jb_tm%.*}
 
-prefix=""
-prename=""
+ja_tm=`echo $ja_tm*1000000 +0.5 | bc`
+ja_tm=${ja_tm%.*}
 
-for prefix in "z" "w"
-do 
-	if [ $prefix = "z" ];then
-		prename="zb"
-	else
-		prename="zd"
-	fi
+last_close=`echo $last_close*10000 +0.5 | bc`
+last_close=${last_close%.*}
 
-	for(( i=0;i<${#arr_level[@]};i++))
-	do
-		var_bid_amnt=$prefix$frag_bid_amnt${arr_level[i]}
-		var_bid_volume=$prefix$frag_bid_volume${arr_level[i]}
-		var_bid_num=$prefix$frag_bid_num${arr_level[i]}
-		var_ask_amnt=$prefix$frag_ask_amnt${arr_level[i]}
-		var_ask_volume=$prefix$frag_ask_volume${arr_level[i]}
-		var_ask_num=$prefix$frag_ask_num${arr_level[i]}
-        	
-#		echo $var_bid_amnt $var_bid_volume $var_bid_num $var_ask_amnt $var_ask_volume $var_ask_num
-##		echo $(eval echo $var_bid_amnt)*1000000+0.5 | bc
-        	
-		bid_amnt=`eval echo '$'"$var_bid_amnt"`
-		bid_amnt=`echo $bid_amnt*1000000 | bc`
-		ask_amnt=`eval echo '$'"$var_ask_amnt"`
-		ask_amnt=`echo $ask_amnt*1000000 | bc`
-		
-		bid_volume=`eval echo '$'"$var_bid_volume"`
-		bid_volume=`echo $bid_volume*100 | bc`
-		ask_volume=`eval echo '$'"$var_ask_volume"`
-		ask_volume=`echo $ask_volume*100 | bc`
-		
-		bid_num=`eval echo '$'"$var_bid_num"`
-		ask_num=`eval echo '$'"$var_ask_num"`
+new_price=`echo $new_price*10000 +0.5 | bc`
+new_price=${new_price%.*}
 
-#		echo $i=${arr_level[i]} $var_bid_amnt $var_bid_volume $var_bid_num $var_ask_amnt $var_ask_volume $var_ask_num
-#		echo $i=${arr_level[i]} $bid_amnt $bid_volume $bid_num $ask_amnt $ask_volume $ask_num
-	
-#		printf "%s:i=%-5d\tbm=%-10.0f\tbv=%-6.0f\tbo=%-6.0f\tam=%-10.0f\tav=%-6.0f\tao=%-6.0f\n" $prename ${arr_level[i]} $bid_amnt $bid_volume $bid_num $ask_amnt $ask_volume $ask_num
+avg_bm=`echo $avg_bm*1000000 +0.5 | bc`
+avg_bm=${avg_bm%.*}
 
-#		printf "%-10.0f,%-6.0f,%-6.0f,%-10.0f,%-6.0f,%-6.0f\n" $bid_amnt $bid_volume $bid_num $ask_amnt $ask_volume $ask_num
-		printf "%-6.0f,%s,%-4.0f,%-4.0f,%-10.0f,%-6.0f,%-6.0f,%-10.0f,%-6.0f,%-6.0f\n" $sz_code $prefix $tmp_time ${arr_level[i]} $bid_amnt $bid_volume $bid_num $ask_amnt $ask_volume $ask_num
-	done
+avg_am=`echo $avg_am*1000000 +0.5 | bc`
+avg_am=${avg_am%.*}
 
-done
+jmp_b20=`echo $jmp_b20*1000000 +0.5 | bc`
+jmp_b20=${jmp_b20%.*}
+
+jmp_a20=`echo $jmp_a20*1000000 +0.5 | bc`
+jmp_a20=${jmp_a20%.*}
+
+jmp_b50=`echo $jmp_b50*1000000 +0.5 | bc`
+jmp_b50=${jmp_b50%.*}
+
+jmp_a50=`echo $jmp_a50*1000000 +0.5 | bc`
+jmp_a50=${jmp_a50%.*}
+
+jmp_b100=`echo $jmp_b100*1000000 +0.5 | bc`
+jmp_b100=${jmp_b100%.*}
+
+jmp_a100=`echo $jmp_a100 | sed 's/\r//g'`
+
+#jmp_a100=`echo $jmp_a100 | tr -d "\r"`
+
+jmp_a100=`echo $jmp_a100*1000000 +0.5 | bc`
+jmp_a100=${jmp_a100%.*}
+
+##做一个空数值转换
+sd_bv=${sd_bv:-0}
+sd_av=${sd_av:-0}
+sd_bm=${sd_bm:-0}
+sd_am=${sd_am:-0}
+jb_tv=${jb_tv:-0}
+ja_tv=${ja_tv:-0}
+jb_tm=${jb_tm:-0}
+ja_tm=${ja_tm:-0}
+avg_bp=${avg_bp:-0}
+avg_ap=${avg_ap:-0}
+last_close=${last_close:-0}
+new_price=${new_price:-0}
+avg_bm=${avg_bm:-0}
+avg_am=${avg_am:-0}
+jmp_b20=${jmp_b20:-0}
+jmp_a20=${jmp_a20:-0}
+jmp_b50=${jmp_b50:-0}
+jmp_a50=${jmp_a50:-0}
+jmp_b100=${jmp_b100:-0}
+jmp_a100=${jmp_a100:-0}
+
+#echo "$last_close $new_price $avg_bm $avg_am $jmp_b20 $jmp_a20 $jmp_b50 $jmp_a50 $jmp_b100 $jmp_a100 $tmp_time $tmp_time"
+#echo "$last_close $new_price $avg_bm $avg_am $jmp_b20 $jmp_a20 $jmp_b50 $jmp_a50 $jmp_b100 $jmp_a100 "
+
+#printf "code=%06.0f,t=%d,avg_bm=%d,avg_am=%d,jb20=%d,ja20=%d,jb50=%d,ja50=%d,jb100=%d,ja100=%d\n"\
+#$sz_code $tmp_time $avg_bm $avg_am \
+#$jmp_b20 $jmp_a20 $jmp_b50 $jmp_a50 $jmp_b100 $jmp_a100
+
+mytag="e"
+
+#echo "$sz_code $mytag $tmp_time $sd_bv $sd_av $sd_bm $sd_am"
+#echo "$jb_tv $ja_tv $jb_tm $ja_tm $avg_bp $avg_ap $last_close $new_price"
+#echo "$avg_bm $avg_am xx $jmp_b20 $jmp_a20 yy $jmp_b50 $jmp_a50 zz $jmp_b100 $jmp_a100"
+
+printf "%-6d,%s,%-4d,%-10d,%-10d,%-12ld,%-12ld,%-10d,%-10d,%-12ld,%-12ld,\
+%-10d,%-10d,%-10d,%-10d,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld\n" \
+$sz_code $mytag $tmp_time $sd_bv $sd_av $sd_bm $sd_am \
+$jb_tv $ja_tv $jb_tm $ja_tm $avg_bp $avg_ap $last_close $new_price \
+$avg_bm $avg_am $jmp_b20 $jmp_a20 $jmp_b50 $jmp_a50 $jmp_b100 $jmp_a100
+
 
 exit 0
