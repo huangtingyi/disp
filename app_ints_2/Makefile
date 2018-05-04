@@ -28,13 +28,13 @@ LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_se
 
 
 #测试工程文件
-Example_SRC=$(wildcard ./main.cpp ../app_ints/CallBackBase.cpp ../app_ints/callsupp.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp ../GTA2TDF/GTA2TDF.cpp )
+Example_SRC=$(wildcard ./main.cpp ../app_ints/CallBackBase.cpp ../app_ints/callsupp.cpp ../public/wwtiny.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp ../GTA2TDF/GTA2TDF.cpp )
 Example_OBJS=$(patsubst %.cpp, %.o, $(Example_SRC))
 
 ExampleB_SRC=$(wildcard ./dmpi2txt.cpp ../public/wwtiny.cpp )
 ExampleB_OBJS=$(patsubst %.cpp, %.o, $(ExampleB_SRC))
 
-ExampleC_SRC=$(wildcard ./gta_replay.cpp ../app_ints/CallBackBase.cpp ../app_ints/callsupp.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp ../GTA2TDF/GTA2TDF.cpp )
+ExampleC_SRC=$(wildcard ./gta_replay.cpp ../app_ints/CallBackBase.cpp ../app_ints/callsupp.cpp ../public/wwtiny.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp ../GTA2TDF/GTA2TDF.cpp )
 ExampleC_OBJS=$(patsubst %.cpp, %.o, $(ExampleC_SRC))
 
 ExampleD_SRC=$(wildcard ./index_stat.cpp ../public/bintree.cpp ../public/wwtiny.cpp ../GTA2TDF/GTA2TDF.cpp )

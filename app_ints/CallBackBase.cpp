@@ -14,20 +14,19 @@
 #include "MessageQueue.h"
 
 #include "TDFAPIStruct.h"
+
+#include "wwtiny.h"
 #include "callsupp.h"
 
-int GetHostTime(char sHostTime[15])
-{
-	struct tm *tm;
-	time_t	hosttime;
+#define AP_SHJJ_CLOSE_TIME	92400000
+#define AM_MARKET_OPEN_TIME	93000000
+#define AM_MARKET_CLOSE_TIME	113100000
+#define PM_MARKET_OPEN_TIME	130000000
+#define PM_MARKET_CLOSE_TIME	151000000
+#define PM_MARKET_PRE_CLOSE_TIME 145800000
 
-	time(&hosttime);
-	if((tm=(struct tm*)localtime(&hosttime))==NULL) return -1;
 
-	if(strftime(sHostTime,15,"%Y%m%d%H%M%S",tm)==(size_t)0)	return -1;
 
-	return 0;
-}
 CallBackBase::CallBackBase(int iWriteFlag,char sDataDate[],string& strWork)
 {
 	m_ios = 0;
@@ -279,7 +278,15 @@ void CallBackBase::Deal_Message_SSEL2_Quotation(SubData *subdata)
 	}
 
 	//中午休市期间以及收盘后的，行情数据就不要了
-	if((m.nTime>113100000&&m.nTime<130000000)||m.nTime>151000000) return;
+	//中午休市期间，行情数据就不要了
+	if((m.nTime>AM_MARKET_CLOSE_TIME&&m.nTime<PM_MARKET_OPEN_TIME)||
+		m.nTime>PM_MARKET_CLOSE_TIME) return;
+
+	if(m.nTime>PM_MARKET_PRE_CLOSE_TIME){
+		__int64 nClose=yuan2percentFen(RealSSEL2Quotation->ClosePrice);
+		
+		if(nClose!=0)m.nMatch=nClose;
+	}
 	
 	TDF_MARKET_DATA2MktData(md,m);
 
@@ -362,7 +369,7 @@ void CallBackBase::Deal_Message_SSEL2_Auction(SubData *subdata)
 	}
 
 	//9点25分后，成交量为0的，上海集合竞价的数据，就不要转为行情了
-	if(m.nTime>92400000&&m.iVolume==0) return;
+	if(m.nTime>AP_SHJJ_CLOSE_TIME&&m.iVolume==0) return;
 
 	TDF_MARKET_DATA2MktData(md,m);
 
@@ -411,7 +418,8 @@ void CallBackBase::Deal_Message_SZSEL2_Quotation(SubData *subdata)
 	}
 
 	//中午休市期间，行情数据就不要了
-	if((m.nTime>113100000&&m.nTime<130000000)||m.nTime>151000000) return;
+	if((m.nTime>AM_MARKET_CLOSE_TIME&&m.nTime<PM_MARKET_OPEN_TIME)||
+		m.nTime>PM_MARKET_CLOSE_TIME) return;
 
 	TDF_MARKET_DATA2MktData(md,m);
 

@@ -16,6 +16,9 @@ struct UserStruct
 	char sUserName[MAX_USER_NAME_LEN];
 	int iMqId;
 	int iMqPos;
+	int iStockCode;
+	int iSubscribed;
+	struct UserStruct *pFreeNext;
 };
 
 

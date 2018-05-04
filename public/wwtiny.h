@@ -103,6 +103,7 @@ int nGetHostCurTime();
 //某个求两个时间的diff差值
 int iSubMilliSec(int iTime,int iTime1);
 
+long nGetHostTime();
 
 
 #endif

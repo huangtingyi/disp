@@ -1071,3 +1071,12 @@ int iSubMilliSec(int iTime,int iTime1)
 	return iMilliSec-(MY_GET_MILLI_SEC(iTime1)+
 		(MY_GET_SEC(iTime1)+MY_GET_MIM(iTime1)*60+MY_GET_HOUR(iTime1)*3600)*1000);
 }
+
+long nGetHostTime()
+{
+	char sHostTime[15],sMilliSec[4];
+
+	GetHostTimeX(sHostTime,sMilliSec);
+
+	return atol(sHostTime)*1000+atol(sMilliSec);
+}

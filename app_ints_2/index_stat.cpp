@@ -19,7 +19,6 @@
 #define MY_CLOSE_MARKET_TIME 150000000
 #define MY_OPEN_MARKET_TIME  93000000
 
-
 long alAmntLevel[MAX_LEVEL_CNT]={
 	0,
 	5*10000*100,
@@ -60,7 +59,7 @@ void TDF_TRANSACTION2TinyTransaction(struct TDF_TRANSACTION *pi,struct TinyTrans
 
 	po->nAskOrderSeq=0;
 	po->nBidOrderSeq=0;
-	
+
 //	po->nAskJmpSeq=0;
 //	po->nBidJmpSeq=0;
 }
@@ -82,7 +81,7 @@ void TDF_TRANSACTION2TinyOrderS(struct TDF_TRANSACTION *pi,struct TinyOrderStruc
 	po->nOriOrdPrice=0;
 	po->nOriOrdVolume=0;
 	po->lOriOrdAmnt=0;
-	
+
 	po->nLastPrice=0;
 	po->nAskJmpSeq=0;
 	po->nBidJmpSeq=0;
@@ -105,7 +104,7 @@ void TDF_TRANSACTION2TinyOrderB(struct TDF_TRANSACTION *pi,struct TinyOrderStruc
 	po->nOriOrdPrice=0;
 	po->nOriOrdVolume=0;
 	po->lOriOrdAmnt=0;
-	
+
 	po->nLastPrice=0;
 	po->nAskJmpSeq=0;
 	po->nBidJmpSeq=0;
@@ -128,7 +127,7 @@ void TDF_ORDER2TinyOrder(struct TDF_ORDER *pi,struct TinyOrderStruct *po)
 	po->nOriOrdPrice=(int)pi->nPrice;
 	po->nOriOrdVolume=pi->nVolume;
 	po->lOriOrdAmnt=(long)(pi->nPrice)*pi->nVolume/100;
-	
+
 	po->nLastPrice=0;
 	po->nAskJmpSeq=0;
 	po->nBidJmpSeq=0;
@@ -831,7 +830,7 @@ int GenD31Stat(struct IndexStatStruct *p)
 			pBidOrder->nBidJmpSeq++;
 //			pTemp->nBidJmpSeq=pBidOrder->nBidJmpSeq;
 		}
-		
+
 		//设置最新价
 		pAskOrder->nLastPrice=pBidOrder->nLastPrice=pTemp->nPrice;
 	}
@@ -858,7 +857,7 @@ int GenD31Stat(struct IndexStatStruct *p)
 				p->iStockCode,pTemp->nBidOrder,pTemp->nTime,(char)(pTemp->nBSFlag));
 			return -1;
 		}
-		
+
 		//d31_new[跳卖i] = trans[(trans['委卖金额'] >= i * 10000) &
 		//(trans['跳卖次数']>0)].groupby(['time_str'])['成交金额'].sum().reindex(index = trade_time)/10000
 		if(pAskOrder->nAskJmpSeq>0) AskOrder2D31Ex(pAskOrder,pTemp,pD31Ex);
@@ -928,7 +927,7 @@ int GenD31Stat(struct IndexStatStruct *p)
 
 		pD31Ex->nWtAvgBidPrice=	ptCur->nWtAvgBidPrice;
 		pD31Ex->nWtAvgAskPrice=	ptCur->nWtAvgAskPrice;
-		
+
 		p->iSamplingCnt++;
 		p->lAddupSamplingBidAmnt+=pD31Ex->lTotalBidAmnt;
 		p->lAddupSamplingAskAmnt+=pD31Ex->lTotalAskAmnt;
@@ -951,7 +950,7 @@ int GenD31Stat(struct IndexStatStruct *p)
 	}
 
 	//将LISTHEAD清空
-	p->S0Q.pHead=p->S0Q.pTail=NULL;	
+	p->S0Q.pHead=p->S0Q.pTail=NULL;
 	return 0;
 }
 
@@ -986,25 +985,19 @@ int WriteD31Stat(FILE *fp,struct IndexStatStruct *p)
 int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p,int iWriteFlag)
 {
 	int i;
-	struct D31IndexItemStruct *pD31;
-
 //	fprintf(fp,"code=%06d,t=%09d,zd,zb\n",p->iStockCode,p->nT0);
 //	$sz_code $prefix $tmp_time ${arr_level[i]} $bid_amnt $bid_volume $bid_num $ask_amnt $ask_volume $ask_num
 
-	pD31=&(p->Zb);
-	
 	if(iWriteFlag==0){
+		struct D31IndexItemStruct *pD31;
+		pD31=&p->Zb;
 		for(i=0;i<MAX_LEVEL_CNT;i++){
 			fprintf(fp,"%-6d,%s,%-4d,%-4d,%-10ld,%-6d,%-6d,%-10ld,%-6d,%-6d\n",
 				p->iStockCode,"z",p->nT0/100000,(int)(alAmntLevel[i]/1000000),
 				pD31->alBidAmount[i],pD31->aiBidVolume[i],pD31->aiBidOrderNum[i],
 				pD31->alAskAmount[i],pD31->aiAskVolume[i],pD31->aiAskOrderNum[i]);
 		}
-	}
-	bzero((void*)pD31,sizeof(struct D31IndexItemStruct));
-
-	pD31=&(p->Zd);
-	if(iWriteFlag==0){
+		pD31=&p->Zd;
 		for(i=0;i<MAX_LEVEL_CNT;i++){
 			fprintf(fp,"%-6d,%s,%-4d,%-4d,%-10ld,%-6d,%-6d,%-10ld,%-6d,%-6d\n",
 				p->iStockCode,"w",p->nT0/100000,(int)(alAmntLevel[i]/1000000),
@@ -1013,8 +1006,6 @@ int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p,int iWriteFlag)
 
 		}
 	}
-	bzero((void*)pD31,sizeof(struct D31IndexItemStruct));
-
 	if(iWriteFlag==1){
 		struct D31IndexExtStruct  *pEx=&p->Ex;
 		fprintf(fp,"%-6d,%s,%-4d,%-10d,%-10d,%-12ld,%-12ld,%-10d,%-10d,%-12ld,%-12ld,\
@@ -1035,14 +1026,78 @@ int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p,int iWriteFlag)
 			pEx->lAvgTotalBidAmnt,	//平均叫买总额（当日平均，分）
 			pEx->lAvgTotalAskAmnt,	//平均叫卖总额（当日平均，分）
 			pEx->alBidAmount[0],	//跳买额度20w，单位（分）
-			pEx->alAskAmount[0],	//跳卖额度20w，单位（分） 
+			pEx->alAskAmount[0],	//跳卖额度20w，单位（分）
 			pEx->alBidAmount[1],	//跳买额度50w，单位（分）
 			pEx->alAskAmount[1],	//跳卖额度50w，单位（分）
 			pEx->alBidAmount[2],	//跳买额度100w，单位（分）
 			pEx->alAskAmount[2]	//跳卖额度100w，单位（分）
 			);
-			
+
 	}
+
+	if(iWriteFlag==2){
+		//申明为静态的，就不需要每次都bzero了
+		static struct D31ItemStruct t;
+		struct D31IndexItemStruct *pZb=&p->Zb;
+		struct D31IndexItemStruct *pZd=&p->Zd;
+		struct D31IndexExtStruct  *pEx=&p->Ex;
+
+		char sTempTime[15];
+		time_t tTempTime;
+		
+		long lTime;
+
+		lTime=nGetHostTime();
+		
+		sprintf(sTempTime,"%d%06d",p->nActionDay,p->nT0/1000);
+		tTempTime=tGetTime(sTempTime);
+
+		t.nStockCode=(unsigned int) p->iStockCode;
+		t.nTradeTime=(unsigned int) tTempTime;
+
+		for(i=0;i<MAX_LEVEL_CNT;i++){
+			t.afZbBidAmount[i]=(float)pZb->alBidAmount[i]/1000000;
+			t.afZbBidVolume[i]=(float)pZb->aiBidVolume[i]/100;
+			t.anZbBidOrderNum[i]=(unsigned short int)pZb->aiBidOrderNum[i];
+			t.afZbAskAmount[i]=(float)pZb->alAskAmount[i]/1000000;
+			t.afZbAskVolume[i]=(float)pZb->aiAskVolume[i]/100;
+			t.anZbAskOrderNum[i]=(unsigned short int)pZb->aiAskOrderNum[i];
+
+			t.afZdBidAmount[i]=(float)pZd->alBidAmount[i]/1000000;
+			t.afZdBidVolume[i]=(float)pZd->aiBidVolume[i]/100;
+			t.anZdBidOrderNum[i]=(unsigned short int)pZd->aiBidOrderNum[i];
+			t.afZdAskAmount[i]=(float)pZd->alAskAmount[i]/1000000;
+			t.afZdAskVolume[i]=(float)pZd->aiAskVolume[i]/100;
+			t.anZdAskOrderNum[i]=(unsigned short int)pZd->aiAskOrderNum[i];
+		}
+		t.fTenBidVolume=	(float)pEx->nTenBidVolume/100;
+		t.fTenAskVolume=	(float)pEx->nTenAskVolume/100;
+		t.fTenBidAmnt=		(float)pEx->lTenBidAmnt/1000000;
+		t.fTenAskAmnt=		(float)pEx->lTenAskAmnt/1000000;
+		t.fTotalBidVolume=	(float)pEx->nTotalBidVolume;
+		t.fTotalAskVolume=	(float)pEx->nTotalAskVolume;
+		t.fTotalBidAmnt=	(float)pEx->lTotalBidAmnt/1000000;
+		t.fTotalAskAmnt=	(float)pEx->lTotalAskAmnt/1000000;
+		t.fWtAvgBidPrice=	(float)pEx->nWtAvgBidPrice/10000;
+		t.fWtAvgAskPrice=	(float)pEx->nWtAvgAskPrice/10000;
+		t.fLastClose=		(float)pEx->nLastClose/10000;
+		t.fCurPrice=		(float)pEx->nCurPrice/10000;
+		t.fAvgTotalBidAmnt=	(float)pEx->lAvgTotalBidAmnt/1000000;
+		t.fAvgTotalAskAmnt=	(float)pEx->lAvgTotalAskAmnt/1000000;
+		
+		t.fBidAmount20=		(float)pEx->alBidAmount[0]/1000000;
+		t.fAskAmount20=         (float)pEx->alAskAmount[0]/1000000;
+		t.fBidAmount50=         (float)pEx->alBidAmount[1]/1000000;
+		t.fAskAmount50=         (float)pEx->alAskAmount[1]/1000000;
+		t.fBidAmount100=	(float)pEx->alBidAmount[2]/1000000;
+		t.fAskAmount100=        (float)pEx->alAskAmount[2]/1000000;
+		
+		fwrite((const void*)&lTime,sizeof(lTime),1,fp);
+		fwrite((const void*)&t,sizeof(t),1,fp);
+		fflush(fp);
+	}
+	bzero((void*)&p->Zb,sizeof(struct D31IndexItemStruct));
+	bzero((void*)&p->Zd,sizeof(struct D31IndexItemStruct));
 	bzero((void*)&p->Ex,sizeof(struct D31IndexExtStruct));
 	return 0;
 }
@@ -1068,7 +1123,7 @@ struct IndexStatStruct *GetIndexStat(int iStockCode,char sFileName[],long lCurPo
 		}
 		pTemp=AISTAT[iStockCode];
 
-			//新生成节点，插入到全局结构表中
+		//新生成节点，插入到全局结构表中
 		InsertList((LIST**)&INDEX_HEAD,(LIST*)pTemp);
 	}
 	return pTemp;
@@ -1242,7 +1297,7 @@ int MountQutation2IndexStatArray(char sFileName[],int nBgnActionDay,
 
 		//实测表明,{对于行情的情况}取数为 nPreT0<x<=nT0 按这个去取区间
 		//开盘时候，不取9:30分整点的行情，而取前一笔行情，一般是9点25分的
-		if(q.nTime<=nT0&&q.nTime!=MY_OPEN_MARKET_TIME)				
+		if(q.nTime<=nT0&&q.nTime!=MY_OPEN_MARKET_TIME)
 			pSXQ=&(pIndexStat->S0Q);
 		else	pSXQ=&(pIndexStat->S1Q);
 
@@ -1522,6 +1577,10 @@ int main(int argc, char *argv[])
 	//当前文件处理位置
 	long lThCurPos=0,lTzCurPos=0,lOzCurPos=0,lQhCurPos=0,lQzCurPos=0;
 
+//	struct D31ItemStruct XX,*p=&XX;
+
+//	printf("sizof =%ld.\n",sizeof(struct D31ItemStruct));
+
 	GetHostTime(sCurTime);
 
 	//设置参数选项的默认值
@@ -1545,7 +1604,7 @@ int main(int argc, char *argv[])
 		case 'e':strcpy(sDelayStr,optarg);	break;
 		case 't':iIdleWaiteMilli=atoi(optarg);	break;
 		case 'w':iWriteFlag=atoi(optarg);
-			if(iWriteFlag!=1)iWriteFlag=0;	break;
+			if(iWriteFlag!=1||iWriteFlag!=2)iWriteFlag=0;	break;
 		case 'l':strcpy(sCodeStr, optarg);	break;
 		case '?':
 		default:
@@ -1557,7 +1616,7 @@ int main(int argc, char *argv[])
 			printf("   [-o work-root-name (def=/stock/work) ]\n");
 			printf("   [-e delay str 'b,i:b:i' ]\n");
 			printf("   [-t idlewaitmilli \n");
-			printf("   [-w writeflag (0,zbzd 1,ext info) \n");
+			printf("   [-w writeflag (0,zbzd 1,ext 2,bin info) \n");
 			printf("   [-l codelist (e.g \"000001,603912,002415\") ]\n");
 			exit(1);
 			break;

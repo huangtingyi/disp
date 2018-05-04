@@ -1,0 +1,161 @@
+syntax = "proto3";
+
+message D31Item {
+	uint32	nStockCode=		1;
+	uint32 	nTradeTime=		2;
+	repeated float	afZbBidAmount=	3;
+	repeated float	afZbBidVolume=	4;
+	repeated uint32	anZbBidOrderNum=5;
+	repeated float	afZbAskAmount=	6;
+	repeated float	afZbAskVolume=	7;
+	repeated uint32	anZbAskOrderNum=8;
+	repeated float	afZdBidAmount=	9;
+	repeated float	afZdBidVolume=	10;
+	repeated uint32	anZdBidOrderNum=11;
+	repeated float	afZdAskAmount=	12;
+	repeated float	afZdAskVolume=	13;
+	repeated uint32	anZdAskOrderNum=14;
+	float	fTenBidVolume=		15;
+	float	fTenAskVolume=		16;
+	float	fTenBidAmnt=		17;
+	float	fTenAskAmnt=		18;
+	float	fTotalBidVolume=	19;
+	float	fTotalAskVolume=	20;
+	float	fTotalBidAmnt=		21;
+	float	fTotalAskAmnt=		22;
+	float	fWtAvgBidPrice=         23;
+	float	fWtAvgAskPrice=         24;
+	float	fLastClose=             25;
+	float	fCurPrice=              26;
+	float	fAvgTotalBidAmnt=       27;
+	float	fAvgTotalAskAmnt=       28;
+	float	fBidAmount20=           29;
+	float	fAskAmount20=           30;
+	float	fBidAmount50=           31;
+	float	fAskAmount50=           32;
+	float	fBidAmount100=          33;
+	float	fAskAmount100=          34;
+	repeated float afReserve=	35;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -9,6 +9,7 @@
 
 #include "MessageQueue.h"
 
+#include "wwtiny.h"
 #include "callsupp.h"
 
 
@@ -18,11 +19,18 @@ int VLock=0;
 
 
 struct DispRuleStruct R,T;
+struct UserStruct *pRAll=NULL,*pTAll=NULL;
 char sRefreshDispName[1024];
 
 int iMaxMqCnt=0,iSendCnt=0;;
 MessageQueue *ARRAY_MQ[MAX_CLIENT_CNT];
 
+
+void InsertFreeList(struct UserStruct **pptHead,struct UserStruct *pTemp)
+{
+	pTemp->pFreeNext=*pptHead;
+	*pptHead=pTemp;
+}
 void LockWorkThread()
 {
 	//atomic_inc(&VLock);
@@ -59,10 +67,32 @@ char *event_str[EVENT_NUM] =
 };
 ***/
 
+char *GetEventStrInfo(int mask)
+{
+	char *p;
+
+	switch (mask){
+	case 0x01: p=(char*)"IN_ACCESS";	break;
+	case 0x02: p=(char*)"IN_MODIFY";       break;
+	case 0x04: p=(char*)"IN_ATTRIB";       break;
+	case 0x08: p=(char*)"IN_CLOSE_WRITE";  break;
+	case 0x10: p=(char*)"IN_CLOSE_NOWRITE";break;
+	case 0x20: p=(char*)"IN_OPEN";         break;
+	case 0x40: p=(char*)"IN_MOVED_FROM";   break;
+	case 0x80: p=(char*)"IN_MOVED_TO";     break;
+	case 0x100:p=(char*)"IN_CREATE";       break;
+	case 0x200:p=(char*)"IN_DELETE";       break;
+	case 0x400:p=(char*)"IN_DELETE_SELF";  break;
+	case 0x800:p=(char*)"IN_MOVE_SELF";    break;
+	default:break;
+	}
+	return p;
+}
+
 int WatchFileCloseWriteAndLock(char sFileName[])
 {
 	int fd,len,i;
-	char buf[BUFSIZ];
+	char buf[BUFSIZ],sHostTime[15],sMilli[4];
 	struct inotify_event *event;
 
 	if((fd = inotify_init())<0){
@@ -79,16 +109,18 @@ int WatchFileCloseWriteAndLock(char sFileName[])
 	while( (len = read(fd, buf, sizeof(buf) - 1)) > 0 ){
 
 		printf("-----------------------------3 l=%d.\n",len);
-		
+
 		for(i=0;i<len;i+=sizeof(struct inotify_event)){
-			
+
 			event = (struct inotify_event *)&buf[i];
-			
-			fprintf(stdout, "%s --- %s\ti=%d,m=%d,l=%d\n"," ", "",i,event->mask,len);
+
+			GetHostTimeX(sHostTime,sMilli);
+			printf("%s:%s %s --- %s\ti=%d,m=%d,mi=%s l=%d\n",sHostTime,sMilli," ", "",
+				i,event->mask,GetEventStrInfo(event->mask),len);
 
 			//如果不是WRITE_CLOSE事件则继续
 			if((event->mask & 0x8)==0) continue;
-			
+
 			printf("catch WRITE-ON-CLOSE EVENT.\n");
 
 			//锁定变量
@@ -174,7 +206,7 @@ void TDF_ORDER_QUEUE2Order_queue(Order_queue &output, const TDF_ORDER_QUEUE&src)
 MessageQueue *GetMqArray(int iMqId,int *pIndex)
 {
 	MessageQueue *p;
-	
+
 	*pIndex=-1;
 
 	for(int i=0;i<iMaxMqCnt;i++){
@@ -218,16 +250,54 @@ void DeleteUserList(struct UserStruct *ptHead)
 }
 void AssignDispRule(struct DispRuleStruct *p,struct DispRuleStruct *pi)
 {
-	for(int i=0;i<MAX_STOCK_CODE;i++){
-		DeleteUserList(p->AMUSER[i]);p->AMUSER[i]=pi->AMUSER[i];
-		DeleteUserList(p->ATUSER[i]);p->ATUSER[i]=pi->ATUSER[i];
-		DeleteUserList(p->AQUSER[i]);p->AQUSER[i]=pi->AQUSER[i];
-		DeleteUserList(p->AOUSER[i]);p->AOUSER[i]=pi->AOUSER[i];
+	int i;	
+	struct UserStruct *ptHead,*pTemp;
+	
+	ptHead=pRAll;
+	
+	while(ptHead!=NULL){
+		pTemp=ptHead;
+		ptHead=ptHead->pFreeNext;
+		
+		
+		//按股票订购
+
+		if((i=pTemp->iStockCode)!=-1){
+			switch(pTemp->iSubscribed){
+			case 12:p->AMUSER[i]=NULL;break;
+			case 13:p->ATUSER[i]=NULL;break;
+			case 14:p->AQUSER[i]=NULL;break;
+			case 15:p->AOUSER[i]=NULL;break;
+			default:p->AMUSER[i]=NULL;break;
+			}
+		}
+		free(pTemp);
 	}
-	DeleteUserList(p->PMALL);p->PMALL=pi->PMALL;
-	DeleteUserList(p->PTALL);p->PTALL=pi->PTALL;
-	DeleteUserList(p->PQALL);p->PQALL=pi->PQALL;
-	DeleteUserList(p->POALL);p->POALL=pi->POALL;
+	
+	//将临时链表更新到实时链表中
+	pRAll=pTAll;
+	pTAll=NULL;
+	
+	//根据实时链表设置相应参数
+	ptHead=pRAll;
+	while(ptHead!=NULL){
+		pTemp=ptHead;
+		ptHead=ptHead->pFreeNext;
+		
+		if((i=pTemp->iStockCode)!=-1){
+			switch(pTemp->iSubscribed){
+			case 12:p->AMUSER[i]=pi->AMUSER[i];break;
+			case 13:p->ATUSER[i]=pi->ATUSER[i];break;
+			case 14:p->AQUSER[i]=pi->AQUSER[i];break;
+			case 15:p->AOUSER[i]=pi->AOUSER[i];break;
+			default:p->AMUSER[i]=NULL;break;
+			}
+		}		
+	}
+	p->PMALL=pi->PMALL;
+	p->PTALL=pi->PTALL;
+	p->PQALL=pi->PQALL;
+	p->POALL=pi->POALL;
 
 }
 void FreeDispRule(struct DispRuleStruct *p)
@@ -247,10 +317,14 @@ void FreeDispRule(struct DispRuleStruct *p)
 void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 {
 	int iSubscribed,iStockCode;
+	char sHostTime[15],sMilli[4];
 	struct UserStruct **AUSER,*pTemp,**PPALL;
 
 	boost::property_tree::ptree tRoot,tMainRoot,t,tSubscribed,tSubcodes;
 	string user,mqid;
+
+	GetHostTimeX(sHostTime,sMilli);
+	printf("%s:%s refresh BEGIN\n",sHostTime,sMilli);
 
 /*读取disp.json文件,先检查一下格式是否完整，不完整就不刷新*/
 	try {
@@ -263,9 +337,9 @@ void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 	}
 
 /*将映射表清空*/
-	
+
 	InitUserArray(sRefreshDispName,&T);
-	
+
 	for (auto it = tRoot.begin(); it != tRoot.end(); ++it) {
 
 		auto each = it->second;
@@ -276,8 +350,10 @@ void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 			tSubscribed = each.get_child("subscribed");
 			tSubcodes = each.get_child("subcodes");
 		}
-		catch (...){ 
-			//如果某个用户信息不全，则认为这个用户为没有订购  
+		catch (...){
+			//如果某个用户信息不全，则认为这个用户为没有订购
+			GetHostTimeX(sHostTime,sMilli);
+			printf("%s:%s watch exception",sHostTime,sMilli);
 			continue;
 		}
 
@@ -294,6 +370,11 @@ void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 			for (auto j = tSubscribed.begin(); j != tSubscribed.end(); ++j) {
 
 				iSubscribed=j->second.get_value<int>();
+
+				GetHostTimeX(sHostTime,sMilli);
+
+	printf("%s:%s user:%s subscribed:%d stockcode:%06d hello world.--------------------------------------------5.zzzz.\n",
+		sHostTime,sMilli,user.c_str(),iSubscribed,iStockCode);
 
 				switch(iSubscribed){
 				case 12:AUSER=&T.AMUSER[0];break;
@@ -320,9 +401,15 @@ void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 				pTemp->iMqId=	atoi(mqid.c_str());
 
 				pTemp->iMqPos=-1;
+				
+				pTemp->iStockCode=iStockCode;
+				pTemp->iSubscribed=iSubscribed;
 				/*插入到表中*/
 				pTemp->pNext=AUSER[iStockCode];
 				AUSER[iStockCode]=pTemp;
+				
+				//插入到pFreeList链表中
+				InsertFreeList(&pTAll,pTemp);
                 	}
                 }
 
@@ -332,7 +419,10 @@ void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 
 				iSubscribed=i->second.get_value<int>();
 
-	printf("hello world.--------------------------------------------5.yyyy.\n");
+				GetHostTimeX(sHostTime,sMilli);
+
+	printf("%s:%s user:%s subscribed:%d hello world.--------------------------------------------5.yyyy.\n",
+		sHostTime,sMilli,user.c_str(),iSubscribed);
 
 				switch(iSubscribed){
 				case 12:PPALL=&T.PMALL;break;
@@ -357,28 +447,38 @@ void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 
 				pTemp->iMqId=	atoi(mqid.c_str());
 				pTemp->iMqPos=-1;
+				
+				pTemp->iStockCode=-1;
+				pTemp->iSubscribed=iSubscribed;
 
 				/*插入到表中*/
 				pTemp->pNext=*PPALL;
 				*PPALL=pTemp;
+				
+				//插入到pFreeList链表中
+				InsertFreeList(&pTAll,pTemp);
 			}
                 }
 
 	}
-	
+
+	GetHostTimeX(sHostTime,sMilli);
+	printf("%s:%s refresh ASSGIN BEGIN\n",sHostTime,sMilli);
+
 	AssignDispRule(p,&T);
 
-	printf("hello world.--------------------------------------------5.8.\n");
-
+	GetHostTimeX(sHostTime,sMilli);
+	printf("%s:%s refresh END\n",sHostTime,sMilli);
 }
 int SendMsg2Mq(string &str,struct UserStruct *pCli)
 {
 	MessageQueue *mq;
-	
+	char sHostTime[15],sMilli[4];
+
 	if(pCli->iMqPos==-1){//如果没有MQ地址则到缓存中找
-		
+
 		if((mq=GetMqArray(pCli->iMqId,&pCli->iMqPos))==NULL){
-			
+
 			//若缓存中没有这个MQ，则NEW一个并OPEN它，保存到缓存里面
 			if((mq=new MessageQueue(pCli->iMqId))==NULL){
 				printf("new MessageQueue error.\n");
@@ -392,9 +492,18 @@ int SendMsg2Mq(string &str,struct UserStruct *pCli)
 		mq=	ARRAY_MQ[pCli->iMqPos];
 
 	if(mq->send(str,0)==(int)(str.length())) iSendCnt++;
+	else{
+		GetHostTimeX(sHostTime,sMilli);
+		printf("%s:%s send error user=%s pos =%d.\n",
+			sHostTime,sMilli,pCli->sUserName,iSendCnt);
+	}
 
-	if((iSendCnt%50000)==0)
-		printf("send count =%d.\n",iSendCnt);
+	if((iSendCnt%50000)==0){
+		GetHostTimeX(sHostTime,sMilli);		
+		printf("%s:%s user=%s send count =%d.\n",
+			sHostTime,sMilli,pCli->sUserName,iSendCnt);
+
+	}
 
 	return 0;
 }
@@ -403,13 +512,13 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 	char sBuffer[4];
 	unsigned int len,l0,l1;
 	struct UserStruct *pAll,*pUser;
-	
+
 	string str1;
-	
+
 //	printf("hello world.--------------------------------------------3.5.\n");
 
 	if(IsWorkThreadLock()){
-		
+
 		printf("hello world.--------------------------------------------4.\n");
 		RefreshUserArray(sRefreshDispName,&R);
 		UnLockWorkThread();
@@ -433,7 +542,7 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 	}
 
 	str1=string(sBuffer,3)+str;
-	
+
 //	strncpy(sBuffer+3,str.c_str(),str.length());
 
 	while(pUser!=NULL){
