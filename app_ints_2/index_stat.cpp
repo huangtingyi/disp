@@ -988,7 +988,7 @@ int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p,int iWriteFlag)
 //	fprintf(fp,"code=%06d,t=%09d,zd,zb\n",p->iStockCode,p->nT0);
 //	$sz_code $prefix $tmp_time ${arr_level[i]} $bid_amnt $bid_volume $bid_num $ask_amnt $ask_volume $ask_num
 
-	if(iWriteFlag==0){
+	if(iWriteFlag==1){
 		struct D31IndexItemStruct *pD31;
 		pD31=&p->Zb;
 		for(i=0;i<MAX_LEVEL_CNT;i++){
@@ -1006,7 +1006,7 @@ int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p,int iWriteFlag)
 
 		}
 	}
-	if(iWriteFlag==1){
+	if(iWriteFlag==2){
 		struct D31IndexExtStruct  *pEx=&p->Ex;
 		fprintf(fp,"%-6d,%s,%-4d,%-10d,%-10d,%-12ld,%-12ld,%-10d,%-10d,%-12ld,%-12ld,\
 %-10d,%-10d,%-10d,%-10d,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld\n",
@@ -1035,7 +1035,7 @@ int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p,int iWriteFlag)
 
 	}
 
-	if(iWriteFlag==2){
+	if(iWriteFlag==3){
 		//申明为静态的，就不需要每次都bzero了
 		static struct D31ItemStruct t;
 		struct D31IndexItemStruct *pZb=&p->Zb;
@@ -1565,7 +1565,7 @@ int IsStopTime(int iTime)
 int main(int argc, char *argv[])
 {
 	FILE *fpD31;
-	int iMaxWaitSec=20,iIdleWaiteMilli=10,iWriteFlag=0;
+	int iMaxWaitSec=20,iIdleWaiteMilli=10,iWriteFlag=1;
 	int iShBusyDelay=12000,iShDelay=3000,iSzBusyDelay=12000,iSzDelay=2000;
 	int nBgnActionDay,nBgnTime,nPreT0,nT0,nEndTime0,iThRes,iTzRes,iQhRes,iQzRes;
 
@@ -1604,7 +1604,7 @@ int main(int argc, char *argv[])
 		case 'e':strcpy(sDelayStr,optarg);	break;
 		case 't':iIdleWaiteMilli=atoi(optarg);	break;
 		case 'w':iWriteFlag=atoi(optarg);
-			if(iWriteFlag!=1||iWriteFlag!=2)iWriteFlag=0;	break;
+			if(iWriteFlag!=1&&iWriteFlag!=2&&iWriteFlag!=3)iWriteFlag=1;	break;
 		case 'l':strcpy(sCodeStr, optarg);	break;
 		case '?':
 		default:
@@ -1616,7 +1616,7 @@ int main(int argc, char *argv[])
 			printf("   [-o work-root-name (def=/stock/work) ]\n");
 			printf("   [-e delay str 'b,i:b:i' ]\n");
 			printf("   [-t idlewaitmilli \n");
-			printf("   [-w writeflag (0,zbzd 1,ext 2,bin info) \n");
+			printf("   [-w writeflag (1,zbzd 2,ext 3,bin info) \n");
 			printf("   [-l codelist (e.g \"000001,603912,002415\") ]\n");
 			exit(1);
 			break;
@@ -1654,7 +1654,8 @@ int main(int argc, char *argv[])
 	sprintf(sGtaOzName,"%s/gta_oz_%s.dat",sSourcePath,sCalcDate);
 	sprintf(sGtaQhName,"%s/gta_qh_%s.dat",sSourcePath,sCalcDate);
 	sprintf(sGtaQzName,"%s/gta_qz_%s.dat",sSourcePath,sCalcDate);
-	sprintf(sD31Name,	"%s/d31_%s.txt",sWorkRoot,sCalcDate);
+
+	sprintf(sD31Name,"%s/d31_gt_%s.txt",sWorkRoot,sCalcDate);
 
         if((fpD31=fopen(sD31Name,"w"))==NULL){
                 printf("error open file %s to write.\n",sD31Name);

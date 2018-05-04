@@ -203,6 +203,51 @@ void TDF_ORDER_QUEUE2Order_queue(Order_queue &output, const TDF_ORDER_QUEUE&src)
 	}
 }
 
+void D31_ITEM2D31Item(D31Item &o, const struct D31ItemStruct &d)
+{
+	int i;
+
+        o.set_nstockcode(d.nStockCode);
+        o.set_ntradetime(d.nTradeTime);
+        
+        for(i=0;i<10;i++) o.add_afzbbidamount(d.afZbBidAmount[i]);
+	for(i=0;i<10;i++) o.add_afzbbidvolume(d.afZbBidVolume[i]);
+	for(i=0;i<10;i++) o.add_anzbbidordernum(d.anZbBidOrderNum[i]);
+	for(i=0;i<10;i++) o.add_afzbaskamount(d.afZbAskAmount[i]);
+	for(i=0;i<10;i++) o.add_afzbaskvolume(d.afZbAskVolume[i]);
+	for(i=0;i<10;i++) o.add_anzbaskordernum(d.anZbAskOrderNum[i]);
+	for(i=0;i<10;i++) o.add_afzdbidamount(d.afZdBidAmount[i]);
+	for(i=0;i<10;i++) o.add_afzdbidvolume(d.afZdBidVolume[i]);
+	for(i=0;i<10;i++) o.add_anzdbidordernum(d.anZdBidOrderNum[i]);
+	for(i=0;i<10;i++) o.add_afzdaskamount(d.afZdAskAmount[i]);
+	for(i=0;i<10;i++) o.add_afzdaskvolume(d.afZdAskVolume[i]);
+	for(i=0;i<10;i++) o.add_anzdaskordernum(d.anZdAskOrderNum[i]);
+
+        o.set_ftenbidvolume(	    d.fTenBidVolume);
+	o.set_ftenaskvolume(        d.fTenAskVolume);
+	o.set_ftenbidamnt(          d.fTenBidAmnt);
+	o.set_ftenaskamnt(          d.fTenAskAmnt);
+	o.set_ftotalbidvolume(      d.fTotalBidVolume);
+	o.set_ftotalaskvolume(      d.fTotalAskVolume);
+	o.set_ftotalbidamnt(        d.fTotalBidAmnt);
+	o.set_ftotalaskamnt(        d.fTotalAskAmnt);
+	o.set_fwtavgbidprice(       d.fWtAvgBidPrice);
+	o.set_fwtavgaskprice(       d.fWtAvgAskPrice);
+	o.set_flastclose(           d.fLastClose);
+	o.set_fcurprice(            d.fCurPrice);
+	o.set_favgtotalbidamnt(     d.fAvgTotalBidAmnt);
+	o.set_favgtotalaskamnt(     d.fAvgTotalAskAmnt);
+	o.set_fbidamount20(         d.fBidAmount20);
+	o.set_faskamount20(         d.fAskAmount20);
+	o.set_fbidamount50(         d.fBidAmount50);
+	o.set_faskamount50(         d.fAskAmount50);
+	o.set_fbidamount100(        d.fBidAmount100);
+	o.set_faskamount100(        d.fAskAmount100);
+	
+	for(i=0;i<27;i++) o.add_afreserve(d.afReserve[i]);
+}
+
+
 MessageQueue *GetMqArray(int iMqId,int *pIndex)
 {
 	MessageQueue *p;
@@ -235,8 +280,9 @@ void InitUserArray(char sDispName[],struct DispRuleStruct *p)
 		p->ATUSER[i]=NULL;
 		p->AQUSER[i]=NULL;
 		p->AOUSER[i]=NULL;
+		p->ADUSER[i]=NULL;
 	}
-	p->PMALL=p->PTALL=p->PQALL=p->POALL=NULL;
+	p->PMALL=p->PTALL=p->PQALL=p->POALL=p->PDALL=NULL;
 	strcpy(sRefreshDispName,sDispName);
 }
 void DeleteUserList(struct UserStruct *ptHead)
@@ -268,6 +314,7 @@ void AssignDispRule(struct DispRuleStruct *p,struct DispRuleStruct *pi)
 			case 13:p->ATUSER[i]=NULL;break;
 			case 14:p->AQUSER[i]=NULL;break;
 			case 15:p->AOUSER[i]=NULL;break;
+			case 16:p->ADUSER[i]=NULL;break;
 			default:p->AMUSER[i]=NULL;break;
 			}
 		}
@@ -290,6 +337,7 @@ void AssignDispRule(struct DispRuleStruct *p,struct DispRuleStruct *pi)
 			case 13:p->ATUSER[i]=pi->ATUSER[i];break;
 			case 14:p->AQUSER[i]=pi->AQUSER[i];break;
 			case 15:p->AOUSER[i]=pi->AOUSER[i];break;
+			case 16:p->ADUSER[i]=pi->ADUSER[i];break;
 			default:p->AMUSER[i]=NULL;break;
 			}
 		}		
@@ -298,6 +346,7 @@ void AssignDispRule(struct DispRuleStruct *p,struct DispRuleStruct *pi)
 	p->PTALL=pi->PTALL;
 	p->PQALL=pi->PQALL;
 	p->POALL=pi->POALL;
+	p->PDALL=pi->PDALL;
 
 }
 void FreeDispRule(struct DispRuleStruct *p)
@@ -307,11 +356,13 @@ void FreeDispRule(struct DispRuleStruct *p)
 		DeleteUserList(p->ATUSER[i]); p->ATUSER[i]=NULL;
 		DeleteUserList(p->AQUSER[i]); p->AQUSER[i]=NULL;
 		DeleteUserList(p->AOUSER[i]); p->AOUSER[i]=NULL;
+		DeleteUserList(p->ADUSER[i]); p->ADUSER[i]=NULL;
 	}
 	DeleteUserList(p->PMALL);  p->PMALL=NULL;
 	DeleteUserList(p->PTALL);  p->PTALL=NULL;
 	DeleteUserList(p->PQALL);  p->PQALL=NULL;
 	DeleteUserList(p->POALL);  p->POALL=NULL;
+	DeleteUserList(p->PDALL);  p->PDALL=NULL;
 
 }
 void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
@@ -381,6 +432,7 @@ void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 				case 13:AUSER=&T.ATUSER[0];break;
 				case 14:AUSER=&T.AQUSER[0];break;
 				case 15:AUSER=&T.AOUSER[0];break;
+				case 16:AUSER=&T.ADUSER[0];break;
 				default:AUSER=NULL;
 				break;
 				}
@@ -429,6 +481,7 @@ void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 				case 13:PPALL=&T.PTALL;break;
 				case 14:PPALL=&T.PQALL;break;
 				case 15:PPALL=&T.POALL;break;
+				case 16:PPALL=&T.PDALL;break;
 				default:PPALL=NULL;
 				}
 				//过滤无效订购代码
@@ -537,6 +590,7 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 	case 'T': pUser=R.ATUSER[iStockCode];pAll=R.PTALL;sBuffer[2]=13;break;
 	case 'Q': pUser=R.AQUSER[iStockCode];pAll=R.PQALL;sBuffer[2]=14;break;
 	case 'O': pUser=R.AOUSER[iStockCode];pAll=R.POALL;sBuffer[2]=15;break;
+	case 'D': pUser=R.ADUSER[iStockCode];pAll=R.PDALL;sBuffer[2]=16;break;
 	default:  pUser=R.AQUSER[iStockCode];pAll=R.PQALL;sBuffer[2]=14;break;
 	break;
 	}

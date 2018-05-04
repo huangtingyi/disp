@@ -87,6 +87,8 @@ public:
 	void Deal_Message_SZSEL2_Quotation(SubData *subdata);
 	void Deal_Message_SZSEL2_Transaction(SubData *subdata);
 	void Deal_Message_SZSEL2_Order(SubData *subdata);
+	void Deal_Message_D31Item(SubData *subdata);
+
 
 	IoService	*m_ios;
 private:

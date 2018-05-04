@@ -513,3 +513,27 @@ void CallBackBase::Deal_Message_SZSEL2_Order(SubData *subdata)
 		SendMsg2Cli(iStockCode,'O',strOd);
 	}
 }
+
+void CallBackBase::Deal_Message_D31Item(SubData *subdata)
+{
+	//智能指针，会自动释放指针指向的对象，释放内存空间
+	std::unique_ptr<SubData> subdataptr(subdata);
+
+	struct D31ItemStruct *p = (struct D31ItemStruct *)&subdata->data[0];
+
+	D31Item di;
+	string strDi;
+
+
+	D31_ITEM2D31Item(di,p[0]);
+
+	di.SerializeToString(&strDi);
+
+	int iStockCode=p->nStockCode;
+		//校验代码合法性
+	if(iStockCode>0&&iStockCode<MAX_STOCK_CODE){
+
+		SendMsg2Cli(iStockCode,'D',strDi);
+	}
+}
+

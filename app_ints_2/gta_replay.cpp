@@ -9,23 +9,25 @@
 #include <stdlib.h>
 #include <sys/inotify.h>
 #include <unistd.h>
-#include "../Common/IoService.h"
-#include "../Common/TinyThread.h"
+#include "IoService.h"
+#include "TinyThread.h"
+
+#include "wwtiny.h"
 
 #include "../GTA2TDF/GTA2TDF.h"
 
 
-#include "../Common/public.h"
+#include "public.h"
 
 #define MY_DATE_CEIL_LONG 1000000000L
 
 int iWriteFlag=0,iDelayMilSec=100,iMultiTimes=1,iInfoSec=3;
 
 long lBgnTime=91500000L;
-char sDispName[1024],sSourcePath[1024],sWorkRoot[1024],sReplayDate[16];
+char sDispName[1024],sSourcePath[1024],sWorkRoot[1024],sReplayDate[15];
 
-int iQhCnt=0,iThCnt=0,iAhCnt=0,iQzCnt=0,iTzCnt=0,iOzCnt=0;
-int iQhTime,iThTime,iAhTime,iQzTime,iTzTime,iOzTime;
+int iQhCnt=0,iThCnt=0,iAhCnt=0,iQzCnt=0,iTzCnt=0,iOzCnt=0,iDiCnt=0;
+int iQhTime,iThTime,iAhTime,iQzTime,iTzTime,iOzTime,iDiTime;
 
 CallBackBase *pCallBack;
 
@@ -36,6 +38,7 @@ void *MainReplayRunAh(void *);
 void *MainReplayRunQz(void *);
 void *MainReplayRunTz(void *);
 void *MainReplayRunOz(void *);
+void *MainReplayRunD31(void *);
 
 void *MainReplayRunInfo(void *);
 
@@ -187,7 +190,18 @@ int main(int argc, char *argv[])
 	pthread_attr_setstacksize(&attr_oz, 1024*512);
 	pthread_create(&pthd_oz, NULL, MainReplayRunOz, NULL);
 
-	printf("-----------------------------6.\n");
+	printf("-----------------------------6.\n");	
+	
+	pthread_t pthd_d31;
+	pthread_attr_t attr_d31;
+
+	//加载oz回放线程
+	pthread_attr_init(&attr_d31);
+	pthread_attr_setdetachstate(&attr_d31, PTHREAD_CREATE_DETACHED);
+	pthread_attr_setstacksize(&attr_d31, 1024*512);
+	pthread_create(&pthd_d31, NULL, MainReplayRunD31, NULL);
+
+	printf("-----------------------------7.\n");
 
 	//加载info回放线程
 	pthread_t pthd_info;
@@ -197,7 +211,7 @@ int main(int argc, char *argv[])
 	pthread_attr_setstacksize(&attr_info, 1024*512);
 	pthread_create(&pthd_info, NULL, MainReplayRunInfo, NULL);
 
-	printf("-----------------------------6.\n");
+	printf("-----------------------------8.\n");
 
 	
 	//循环监视disp规则变化，如果变化则通知刷新
@@ -710,6 +724,88 @@ __delay:
 
 	return NULL;
 }
+
+void *MainReplayRunD31(void *)
+{
+	int iCount=0,nT0=0;
+	char sInFileName[1024],sBuffer[10240],sTime[15];
+	UTIL_Time sStartTime;
+	long lItemLen=0;
+	long long lStartTime,lDiffTime,lCurTime;
+	
+	FILE *fpIn;
+	
+	struct D31ItemStruct *p=(struct D31ItemStruct*)(sBuffer+sizeof(long long));	
+
+	sprintf(sInFileName,"%s/d31_gt_%s.dat",sSourcePath,sReplayDate);
+	
+	if((fpIn=fopen(sInFileName,"r"))==NULL){
+		printf("error open file %s to read.\n",sInFileName);
+		return NULL;
+	}
+	
+	lItemLen=(sizeof(struct D31ItemStruct))+sizeof(long long);
+
+	
+	//确定开始时间
+	PUTIL_GetLocalTime(&sStartTime);
+	
+	//将这个时间确定为9:30分
+	lStartTime=	PUTIL_SystemTimeToDateTime(&sStartTime);
+	lStartTime=	lStartTime%MY_DATE_CEIL_LONG;
+	lDiffTime=	lStartTime-  lBgnTime;
+
+	while(1){
+		
+		//size_t fread ( void *buffer, size_t size, size_t count, FILE *stream) ;
+		if(fread((void*)sBuffer,lItemLen,1,fpIn)!=1){
+			printf("end of file break.\n");
+			break;
+		}
+
+		sFormatTime((time_t)p->nTradeTime,sTime);
+		nT0=atoi(sTime+8)*1000;
+		
+		if(nT0<lBgnTime)continue;
+
+__delay:
+		UTIL_Time stTime;
+		PUTIL_GetLocalTime(&stTime);
+		lCurTime=PUTIL_SystemTimeToDateTime(&stTime);
+
+		if(nT0>(lCurTime%MY_DATE_CEIL_LONG-lDiffTime)){
+			//休眠指定的时长
+			usleep(iDelayMilSec*1000);
+			goto __delay;
+		}
+
+		//发送multi-times次数据
+		for(int j=0;j<iMultiTimes;j++){
+				                        	
+			//接收到数据后，先放入本地队列，等待数据处理接口处理
+			SubData *subdata = new SubData;
+			subdata->msgType = Msg_SZSEL2_Order;
+			subdata->cur_time = lCurTime;
+			subdata->data.assign((const char*)p, sizeof(SZSEL2_Order));
+                        	
+			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_D31Item,pCallBack, subdata)));
+                        	
+			pCallBack->m_ios->Post(task);
+			
+			iDiCnt=++iCount;
+			iDiTime=(int)(nT0%MY_DATE_CEIL_LONG);
+		}
+		if(feof(fpIn)) break;
+	}
+
+	fclose(fpIn);
+	
+	printf("di stock rt=%d,ct=%lld cur process count =%d.\n",
+		nT0,lCurTime%MY_DATE_CEIL_LONG,iCount);
+
+	return NULL;
+}
+
 void *MainReplayRunInfo(void *)
 {
 	int iCount=0;
@@ -726,10 +822,10 @@ qz=%-9dqzt=%-10dtz=%-9dtzt=%-10doz=%-9dozt=%-10dt=%lld\n",
 			iQzCnt,iQzTime,iTzCnt,iTzTime,iOzCnt,iOzTime,lCurTime/1000);
 */
 		if(iCount++%10==0)
-			printf("qh(%-9d)\tth(%-9d)\tah(%-9d)\tqz(%-9d)\ttz(%-9d)\toz(%-9d)\tcurtime\n",
-				 iQhTime,iThTime,iAhTime,iQzTime,iTzTime,iOzTime);
-		printf("%-9d\t%-9d\t%-9d\t%-9d\t%-9d\t%-9d\t%lld\n",
-			iQhCnt,iThCnt,iAhCnt,iQzCnt,iTzCnt,iOzCnt,lCurTime/1000);
+			printf("qh(%-9d)\tth(%-9d)\tah(%-9d)\tqz(%-9d)\ttz(%-9d)\toz(%-9d)\tdi(%-9d)\tcurtime\n",
+				 iQhTime,iThTime,iAhTime,iQzTime,iTzTime,iOzTime,iDiTime);
+		printf("%-9d\t%-9d\t%-9d\t%-9d\t%-9d\t%-9d\t%-9d\t%lld\n",
+			iQhCnt,iThCnt,iAhCnt,iQzCnt,iTzCnt,iOzCnt,iDiCnt,lCurTime/1000);
 
 	}
 	return NULL;

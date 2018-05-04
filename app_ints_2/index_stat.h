@@ -41,7 +41,6 @@ struct D31IndexExtStruct
 	int8b	alAskAmount[MAX_JMP_LEVEL_CNT];	//跳卖额度，单位（分）
 };
 
-//每个结构40个字节，16+4*6 = 40
 struct TinyTransactionStruct
 {
 	struct TinyTransactionStruct *pNext;		//下一个交易数据
@@ -62,7 +61,6 @@ struct TinyTransactionStruct
 //	struct TinyTransactionStruct *pAskOrder; //叫卖序号相同的交易列表
 //	struct TinyTransactionStruct *pBidOrder; //叫买序号相同的交易列表
 };
-//每个结构40个字节，16+4*6 = 40
 struct TinyOrderStruct
 {
 	struct TinyOrderStruct *pNext;
@@ -162,42 +160,6 @@ struct IndexStatStruct
 	LISTHEAD S1Q;	//存放[T0,之后的行情数据}
 };
 
-struct D31ItemStruct{
-	unsigned int 	nStockCode;
-	unsigned int	nTradeTime;
-	float	afZbBidAmount[10];
-	float	afZbBidVolume[10];
-	unsigned short int	anZbBidOrderNum[10];
-	float	afZbAskAmount[10];
-	float	afZbAskVolume[10];
-	unsigned short int	anZbAskOrderNum[10];
-	float	afZdBidAmount[10];
-	float	afZdBidVolume[10];
-	unsigned short int	anZdBidOrderNum[10];
-	float	afZdAskAmount[10];
-	float	afZdAskVolume[10];
-	unsigned short int	anZdAskOrderNum[10];
-        float   fTenBidVolume;
-        float   fTenAskVolume;
-        float   fTenBidAmnt;
-        float   fTenAskAmnt;
-        float   fTotalBidVolume;
-        float   fTotalAskVolume;
-        float   fTotalBidAmnt;
-        float   fTotalAskAmnt;
-        float   fWtAvgBidPrice;
-        float   fWtAvgAskPrice;
-        float   fLastClose;
-        float   fCurPrice;
-        float   fAvgTotalBidAmnt;
-        float   fAvgTotalAskAmnt;
-        float   fBidAmount20;
-        float   fAskAmount20;
-        float   fBidAmount50;
-        float   fAskAmount50;
-        float   fBidAmount100;
-        float   fAskAmount100;
-        float   afReserve[27];
-};
+#include "../app_ints/d31_item.h"
 
 #endif
