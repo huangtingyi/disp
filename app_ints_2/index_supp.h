@@ -1,5 +1,15 @@
-#ifndef __INDEX_STAT_H__
-#define __INDEX_STAT_H__
+#ifndef __INDEX_SUPP_H__
+#define __INDEX_SUPP_H__
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include <time.h>
+
+#include "bintree.h"
+#include "wwtiny.h"
 
 #define MAX_LEVEL_CNT		10
 #define MAX_JMP_LEVEL_CNT 	3
@@ -161,5 +171,42 @@ struct IndexStatStruct
 };
 
 #include "../app_ints/d31_item.h"
+
+#include "TDFAPIStruct.h"
+
+#define MY_DATE_CEIL_LONG 1000000000L
+#define MY_CLOSE_MARKET_TIME 150000000
+#define MY_OPEN_MARKET_TIME  93000000
+
+
+void TDF_TRANSACTION2TinyTransaction(struct TDF_TRANSACTION *pi,struct TinyTransactionStruct *po);
+void TDF_TRANSACTION2TinyOrderS(struct TDF_TRANSACTION *pi,struct TinyOrderStruct *po);
+void TDF_TRANSACTION2TinyOrderB(struct TDF_TRANSACTION *pi,struct TinyOrderStruct *po);
+void TDF_ORDER2TinyOrder(struct TDF_ORDER *pi,struct TinyOrderStruct *po);
+
+int AddTransaction2IndexStat(struct TDF_TRANSACTION *pi,int nT0,
+	struct IndexStatStruct *pIndexStat);
+
+struct IndexStatStruct *GetIndexStat(int iStockCode,char sFileName[],long lCurPos,
+	int nBgnActionDay,int nPreT0,int nT0);
+int data_search_bintree_order_2(void *pValue,void*pData);
+int data_search_bintree_stock_code_order(void *pValue,void*pData);
+void assign_insert_bintree_stock_code_order_e(void **ppData,void *pData);
+int GenD31StatAll();
+int WriteD31StatAll(FILE *fpD31,char sCodeStr[],int iWriteFlag);
+void MoveS1X2S0XAll(int nPreT0,int nT0);
+int MoveS1O2M_ORDERAll(int nT0);
+
+#ifndef MAX_STOCK_CODE
+#define MAX_STOCK_CODE	1000000
+#endif
+
+/***
+	TAIL_NO_STAT	到达文件末尾，未统计
+	WANT_STAT	满足nEndTime0条件，需要统计
+***/
+#define MY_WANT_STAT	1
+#define MY_TAIL_NO_STAT	2
+
 
 #endif
