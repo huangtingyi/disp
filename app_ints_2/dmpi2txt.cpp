@@ -80,7 +80,7 @@ int print_MY_TYPE_SSEL2_Quotation(char *buf,char sCodeList[],int iTimeFlag,
 		p->PacketTimeStamp,	//< 数据包头时间YYYYMMDDHHMMSSMMM
 		p->Time,		//< 数据生成时间, 最新订单时间（毫秒）;143025001 表示 14:30:25.001
 		p->Symbol,
-		iSubMilliSec((int)lTmpTime,(int)p->Time),
+		iDiffnTime((int)lTmpTime,(int)p->Time),
 		p->QuotationFlag,				//第一个续行
     		(int)my_yuan2percentFen(p->PreClosePrice),         ///< 昨收价,
     		(int)my_yuan2percentFen(p->OpenPrice),             ///< 开盘价,
@@ -233,7 +233,7 @@ int print_MY_TYPE_SSEL2_Transaction(char *buf,char sCodeList[],int iTimeFlag,
 		p->PacketTimeStamp,	//< 数据包头时间YYYYMMDDHHMMSSMMM
 		p->TradeTime,		//< 成交时间(毫秒), 14302506 表示14:30:25.06
 		p->Symbol,
-		iSubMilliSec((int)lTmpTime,(int)p->TradeTime),//第二行开始
+		iDiffnTime((int)lTmpTime,(int)p->TradeTime),//第二行开始
 		p->QuotationFlag,  			///< 1=上海南汇机房行情源；2=深圳福永机房行情源
 		(int)p->RecID,                  	///< 业务索引, 从 1 开始，按 TradeChannel连续
 		(int)p->TradeChannel,           	///< 成交通道,
@@ -295,7 +295,7 @@ int print_MY_TYPE_SSEL2_Auction(char *buf,char sCodeList[],int iTimeFlag,
 		p->PacketTimeStamp,	//< 数据包头时间YYYYMMDDHHMMSSMMM
 		p->Time,		//< 数据生成时间, 143025001 表示 14:30:25.001
 		p->Symbol,
-		iSubMilliSec((int)lTmpTime,(int)p->Time),
+		iDiffnTime((int)lTmpTime,(int)p->Time),
 		p->QuotationFlag,
 		(int)my_yuan2percentFen(p->OpenPrice),
 		(int)p->AuctionVolume,
@@ -351,7 +351,7 @@ int print_MY_TYPE_SZSEL2_Quotation(char *buf,char sCodeList[],int iTimeFlag,
 		99999999999999999,	//< 无数值
 		(int)(p->Time%MY_DATE_CEIL_LONG),//< 数据生成时间YYYYMMDDHHMMSSMMM
 		p->Symbol,
-		iSubMilliSec((int)lTmpTime,(int)(p->Time%MY_DATE_CEIL_LONG)),
+		iDiffnTime((int)lTmpTime,(int)(p->Time%MY_DATE_CEIL_LONG)),
 		p->QuotationFlag,				//第一个续行
     		(int)my_yuan2percentFen(p->PreClosePrice),
     		(int)my_yuan2percentFen(p->OpenPrice),
@@ -488,7 +488,7 @@ int print_MY_TYPE_SZSEL2_Transaction(char *buf,char sCodeList[],int iTimeFlag,
 		99999999999999999,	//< 数据包头时间YYYYMMDDHHMMSSMMM
 		(int)(p->TradeTime%MY_DATE_CEIL_LONG),//成交时间YYYYMMDDHHMMSSMMM
 		p->Symbol,
-		iSubMilliSec((int)lTmpTime,(int)(p->TradeTime%MY_DATE_CEIL_LONG)),//第二行开始
+		iDiffnTime((int)lTmpTime,(int)(p->TradeTime%MY_DATE_CEIL_LONG)),//第二行开始
 		p->QuotationFlag,  			///< 1=上海南汇机房行情源；2=深圳福永机房行情源
 		(int)p->SetID,                  	///< 证券集代号
 		(int)p->RecID,           		///< 消息记录号 从 1 开始计数，同一频道连续
@@ -542,7 +542,7 @@ int print_MY_TYPE_SZSEL2_Order(char *buf,char sCodeList[],int iTimeFlag,
 		99999999999999999,	//< 数据包头时间YYYYMMDDHHMMSSMMM
 		(int)(p->Time%MY_DATE_CEIL_LONG),//委托时间YYYYMMDDHHMMSSMMM
 		p->Symbol,
-		iSubMilliSec((int)lTmpTime,(int)(p->Time%MY_DATE_CEIL_LONG)),//第二行开始
+		iDiffnTime((int)lTmpTime,(int)(p->Time%MY_DATE_CEIL_LONG)),//第二行开始
 		p->QuotationFlag,  			///< 1=上海南汇机房行情源；2=深圳福永机房行情源
 		(int)p->SetID,                  	///< 证券集代号
 		(int)p->RecID,           		///< 消息记录号 从 1 开始计数，同一频道连续
@@ -592,7 +592,7 @@ int print_MY_TYPE_TDF_MKT(char *buf,char sCodeList[],int iTimeFlag,
 		*(long long *)buf,	//picktime
 		(int)p->nTime,		//委托时间YYYYMMDDHHMMSSMMM
 		p->szCode,
-		iSubMilliSec((int)lTmpTime,(int)p->nTime),//第一行继续
+		iDiffnTime((int)lTmpTime,(int)p->nTime),//第一行继续
 		(int)p->nStatus,	//状态
 		(int)p->nPreClose,	//前收盘
 		(int)p->nOpen,		//开盘价
@@ -696,7 +696,7 @@ int print_MY_TYPE_TDF_TRA(char *buf,char sCodeList[],int iTimeFlag,
 		*(long long *)buf,	//picktime
 		(int)p->nTime,//委托时间YYYYMMDDHHMMSSMMM
 		p->szCode,
-		iSubMilliSec((int)lTmpTime,(int)p->nTime),//第二行开始
+		iDiffnTime((int)lTmpTime,(int)p->nTime),//第二行开始
 		(int)p->nIndex,            //成交编号
 		(int)p->nPrice,            //成交价格
 		(int)p->nVolume,	        //成交数量
@@ -749,7 +749,7 @@ int print_MY_TYPE_TDF_ORD(char *buf,char sCodeList[],int iTimeFlag,
 		*(long long *)buf,	//picktime
 		(int)p->nTime,//委托时间YYYYMMDDHHMMSSMMM
 		p->szCode,
-		iSubMilliSec((int)lTmpTime,(int)p->nTime),//第二行开始
+		iDiffnTime((int)lTmpTime,(int)p->nTime),//第二行开始
 		(int)p->nOrder,	        	//委托号
 		(int)p->nPrice,         	//委托价格
 		(int)p->nVolume,		//委托数量
@@ -796,7 +796,7 @@ int print_MY_TYPE_TDF_QUE(char *buf,char sCodeList[],int iTimeFlag,
 		*(long long *)buf,	//picktime
 		(int)p->nTime,//委托时间YYYYMMDDHHMMSSMMM
 		p->szCode,
-		iSubMilliSec((int)lTmpTime,(int)p->nTime),//第二行开始
+		iDiffnTime((int)lTmpTime,(int)p->nTime),//第二行开始
 		(char)p->nSide,			//买卖方向('B':Bid 'A':Ask)
 		(int)p->nPrice,         	//委托价格
 		(int)p->nOrders,		//订单数量

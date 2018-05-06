@@ -66,7 +66,7 @@ int print_MY_TYPE_TDF_MKT(char *buf,char sCodeList[],int iTimeFlag,
 		*(long long *)buf,	//picktime
 		(int)p->nTime,		//委托时间YYYYMMDDHHMMSSMMM
 		p->szCode,
-		iSubMilliSec((int)lTmpTime,(int)p->nTime),//第一行继续
+		iDiffnTime((int)lTmpTime,(int)p->nTime),//第一行继续
 		(int)p->nStatus,	//状态
 		(int)p->nPreClose,	//前收盘
 		(int)p->nOpen,		//开盘价
@@ -170,7 +170,7 @@ int print_MY_TYPE_TDF_TRA(char *buf,char sCodeList[],int iTimeFlag,
 		*(long long *)buf,	//picktime
 		(int)p->nTime,//委托时间YYYYMMDDHHMMSSMMM
 		p->szCode,
-		iSubMilliSec((int)lTmpTime,(int)p->nTime),//第二行开始
+		iDiffnTime((int)lTmpTime,(int)p->nTime),//第二行开始
 		(int)p->nIndex,            //成交编号
 		(int)p->nPrice,            //成交价格
 		(int)p->nVolume,	        //成交数量
@@ -223,7 +223,7 @@ int print_MY_TYPE_TDF_ORD(char *buf,char sCodeList[],int iTimeFlag,
 		*(long long *)buf,	//picktime
 		(int)p->nTime,//委托时间YYYYMMDDHHMMSSMMM
 		p->szCode,
-		iSubMilliSec((int)lTmpTime,(int)p->nTime),//第二行开始
+		iDiffnTime((int)lTmpTime,(int)p->nTime),//第二行开始
 		(int)p->nOrder,	        	//委托号
 		(int)p->nPrice,         	//委托价格
 		(int)p->nVolume,		//委托数量
@@ -270,7 +270,7 @@ int print_MY_TYPE_TDF_QUE(char *buf,char sCodeList[],int iTimeFlag,
 		*(long long *)buf,	//picktime
 		(int)p->nTime,//委托时间YYYYMMDDHHMMSSMMM
 		p->szCode,
-		iSubMilliSec((int)lTmpTime,(int)p->nTime),//第二行开始
+		iDiffnTime((int)lTmpTime,(int)p->nTime),//第二行开始
 		(char)p->nSide,			//买卖方向('B':Bid 'A':Ask)
 		(int)p->nPrice,         	//委托价格
 		(int)p->nOrders,		//订单数量

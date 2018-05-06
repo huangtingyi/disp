@@ -1072,6 +1072,17 @@ int iSubMilliSec(int iTime,int iTime1)
 		(MY_GET_SEC(iTime1)+MY_GET_MIM(iTime1)*60+MY_GET_HOUR(iTime1)*3600)*1000);
 }
 
+//某个求两个时间的diff差值
+int iDiffnTime(int iTime,int iTime1)
+{
+	
+	int iMilliSec=(MY_GET_MILLI_SEC(iTime)+
+		(MY_GET_SEC(iTime)+MY_GET_MIM(iTime)*60+MY_GET_HOUR(iTime)*3600)*1000);
+	
+	return iMilliSec-(MY_GET_MILLI_SEC(iTime1)+
+		(MY_GET_SEC(iTime1)+MY_GET_MIM(iTime1)*60+MY_GET_HOUR(iTime1)*3600)*1000);
+}
+
 long nGetHostTime()
 {
 	char sHostTime[15],sMilliSec[4];

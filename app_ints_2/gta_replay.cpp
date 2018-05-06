@@ -271,7 +271,7 @@ int main(int argc, char *argv[])
 //根据, 指定回放开始时间位置, 算出做完本次回放需要多长时间，单位（毫秒）
 int GetReplayCostMSec(int nBgnTime)
 {
-	int iCostMSec=iSubMilliSec(MY_PM_MARKET_STOP_TIME,nBgnTime);
+	int iCostMSec=iDiffnTime(MY_PM_MARKET_STOP_TIME,nBgnTime);
 
 	//如果是午盘则直接返回
 	if(iCostMSec<=3600*2500) return iCostMSec;
@@ -285,7 +285,7 @@ int GetReplayCostMSec(int nBgnTime)
 //程序启动后，当前还剩余多少毫秒可以使用
 int GetReplayDayLeftMSec(int nStartTime)
 {
-	return iSubMilliSec(MY_DAY_END_TIME,nStartTime);
+	return iDiffnTime(MY_DAY_END_TIME,nStartTime);
 }
 //程序启动后，预计程序在什么时间结束回放
 int GetReplayEndTime(int nStartTime,int iCostMSec)
@@ -295,7 +295,7 @@ int GetReplayEndTime(int nStartTime,int iCostMSec)
 	//这里包含了一个特殊点，最迟结束时间，永远不会到达
 	if(nEndTime<=MY_DAY_END_TIME) return nEndTime;
 
-	return iSubMilliSec(nEndTime,MY_DAY_END_TIME);
+	return nEndTime-MY_DAY_END_TIME;
 }
 //根据计算得出的：当前对应的回放位置（距离：MY_PM_MARKET_STOP_TIME的毫秒数），
 //换算出ReplayTime的数值为
@@ -303,10 +303,10 @@ int GetReplayTimeByLeftMSec(int iEndLeftMSec)
 {
 	//如果时间点已经来到了下午，则直接算出时间
 	if(iEndLeftMSec<=3600*2500)
-		return iSubMilliSec(MY_PM_MARKET_STOP_TIME,iEndLeftMSec);
+		return iAddMilliSec(MY_PM_MARKET_STOP_TIME,-iEndLeftMSec);
 
 	//否则还是上午，则直接多扣一个半小时
-	return iSubMilliSec(MY_PM_MARKET_STOP_TIME,iEndLeftMSec+3600*1500);
+	return iAddMilliSec(MY_PM_MARKET_STOP_TIME,-(iEndLeftMSec+3600*1500));
 }
 //将程序运行当前时间，映射到回放位置上去
 int nGetReplayTimeByCur(int nCurTime,int nStartTime,int nEndTime,
@@ -316,7 +316,7 @@ int nGetReplayTimeByCur(int nCurTime,int nStartTime,int nEndTime,
 
 	//一整天够用来回放整份数据
 	if(iDayLeftMSec>=iCostMSec){
-		iEndLeftMSec=iSubMilliSec(nEndTime,nCurTime);
+		iEndLeftMSec=iDiffnTime(nEndTime,nCurTime);
 		return GetReplayTimeByLeftMSec(iEndLeftMSec);
 	}
 
@@ -326,12 +326,12 @@ int nGetReplayTimeByCur(int nCurTime,int nStartTime,int nEndTime,
 
 	//当前时间比会放开始时间还早了，则跨天了
 	if(nCurTime<nStartTime){
-		iEndLeftMSec=iSubMilliSec(nEndTime,nCurTime);
+		iEndLeftMSec=iDiffnTime(nEndTime,nCurTime);
 
 		return GetReplayTimeByLeftMSec(iEndLeftMSec);
 	}
 
-	iDay1EndLeftMSec=iSubMilliSec(MY_DAY_END_TIME,nCurTime);
+	iDay1EndLeftMSec=iDiffnTime(MY_DAY_END_TIME,nCurTime);
 
 	iEndLeftMSec=iDay1EndLeftMSec+(iCostMSec-iDayLeftMSec);
 

@@ -101,7 +101,10 @@ int HostTimeEff(char sEffDate[],char sExpDate[]);
 int iAddMilliSec(int iTime,int iMilliSec);
 int nGetHostCurTime();
 //某个求两个时间的diff差值
-int iSubMilliSec(int iTime,int iTime1);
+//int iSubMilliSec(int iTime,int iTime1);
+
+//某个求两个时间的diff差值
+int iDiffnTime(int iTime,int iTime1);
 
 long nGetHostTime();
 
