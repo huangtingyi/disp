@@ -25,7 +25,7 @@ struct IndexStatStruct *AISTAT[MAX_STOCK_CODE];
 void TDF_TRANSACTION2TinyTransaction(struct TDF_TRANSACTION *pi,struct TinyTransactionStruct *po)
 {
 	po->pNext=NULL;
-//	po->pAskOrder=po->pBidOrder=NULL;
+	po->pAskOrder=po->pBidOrder=NULL;
 	po->nActionDay=	pi->nActionDay;
 	po->nTime=	pi->nTime;
 	po->iStockCode=	atoi(pi->szCode);
@@ -39,8 +39,8 @@ void TDF_TRANSACTION2TinyTransaction(struct TDF_TRANSACTION *pi,struct TinyTrans
 	po->nAskOrderSeq=0;
 	po->nBidOrderSeq=0;
 
-//	po->nAskJmpSeq=0;
-//	po->nBidJmpSeq=0;
+	po->nAskJmpSeq=0;
+	po->nBidJmpSeq=0;
 }
 void TDF_TRANSACTION2TinyOrderS(struct TDF_TRANSACTION *pi,struct TinyOrderStruct *po)
 {
@@ -61,7 +61,7 @@ void TDF_TRANSACTION2TinyOrderS(struct TDF_TRANSACTION *pi,struct TinyOrderStruc
 	po->nOriOrdVolume=0;
 	po->lOriOrdAmnt=0;
 
-	po->nLastPrice=0;
+	po->nLastPrice=po->nPrice;
 	po->nAskJmpSeq=0;
 	po->nBidJmpSeq=0;
 }
@@ -84,7 +84,7 @@ void TDF_TRANSACTION2TinyOrderB(struct TDF_TRANSACTION *pi,struct TinyOrderStruc
 	po->nOriOrdVolume=0;
 	po->lOriOrdAmnt=0;
 
-	po->nLastPrice=0;
+	po->nLastPrice=po->nPrice;
 	po->nAskJmpSeq=0;
 	po->nBidJmpSeq=0;
 }
@@ -177,6 +177,9 @@ int AddTinyOrder2Tree(BINTREE **PP,int *piCnt,struct TinyOrderStruct *p)
 		(*piCnt)++;
 	}
 	else{
+		//来源于深圳的情况，将nLastPrice设置为初始价格
+		if(pTemp->nLastPrice==0)
+			pTemp->nLastPrice=p->nPrice;
 
 		pTemp->nVolume+=	p->nVolume;
 		//考虑到统计的笔数，其实是统计多少个订单所以这里不累计OrderNo
@@ -213,8 +216,10 @@ int AddTransaction2IndexStat(struct TDF_TRANSACTION *pi,int nT0,
 	TDF_TRANSACTION2TinyOrderS(pi,&os);
 	TDF_TRANSACTION2TinyOrderB(pi,&ob);
 
-	if(pi->nTime<nT0||
-		(nT0==MY_CLOSE_MARKET_TIME&&pi->nTime==MY_CLOSE_MARKET_TIME)){
+	if(MY_BELONG_TRANSACTION_T0(pi->nTime,nT0)){
+//	if(pi->nTime<nT0||
+//		(nT0==MY_CLOSE_MARKET_TIME&&pi->nTime==MY_CLOSE_MARKET_TIME)){
+	
 
 		//将链表头的指针带入
 		os.pNext=(struct TinyOrderStruct*)&(pIndexStat->S0O);
@@ -343,29 +348,51 @@ void BidOrder2D31Ex(struct TinyOrderStruct *p,struct TinyTransactionStruct *pt,
 		pD31->alBidAmount[i]+=	(long)pt->nVolume*pt->nPrice/100;
 	}
 }
-/***
-void InsertJmpOrder(struct TinyOrderStruct **pptHead,struct TinyOrderStruct *p)
+int InitTinyTransactionField(struct IndexStatStruct *p,struct TinyTransactionStruct *pTemp)
 {
-	p->pJmpOrder= *pptHead;
-	*pptHead=p;
+
+	struct TinyOrderStruct *pAskOrder,*pBidOrder;
+
+	//找到卖方订单金额
+	if(SearchBin(p->M_ORDER,(void*)&(pTemp->nAskOrder),
+		data_search_bintree_order_2,(void**)&pAskOrder)==NOTFOUND){
+		printf("hello 3 code=%d,askord=%d time=%d,flag=%c\n",
+			p->iStockCode,pTemp->nAskOrder,pTemp->nTime,(char)(pTemp->nBSFlag));
+		printf("hello 2\n");
+		return -1;
+	}
+	//找到买方订单金额
+	if(SearchBin(p->M_ORDER,(void*)&(pTemp->nBidOrder),
+		data_search_bintree_order_2,(void**)&pBidOrder)==NOTFOUND){
+		printf("hello 3 code=%d,bidord=%d time=%d,flag=%c\n",
+			p->iStockCode,pTemp->nBidOrder,pTemp->nTime,(char)(pTemp->nBSFlag));
+		return -1;
+	}
+
+	//这个逻辑已经移到加载逻辑中
+	pAskOrder->nOrderSeq++;
+	pBidOrder->nOrderSeq++;
+
+	pTemp->nAskOrderSeq=pAskOrder->nOrderSeq;
+	pTemp->nBidOrderSeq=pBidOrder->nOrderSeq;
+	pTemp->pAskOrder=pAskOrder;
+	pTemp->pBidOrder=pBidOrder;
+	
+	if(pTemp->nPrice<pAskOrder->nLastPrice)	pTemp->nAskJmpSeq++;
+
+	if(pTemp->nPrice>pBidOrder->nLastPrice&&
+		pBidOrder->nLastPrice!=0) pTemp->nBidJmpSeq++;
+
+	pAskOrder->nLastPrice=pBidOrder->nLastPrice=pTemp->nPrice;
+
+	return 0;
 }
-void InsertAskOrderTransaction(struct TinyTransactionStruct **pptHead,struct TinyTransactionStruct *p)
-{
-	p->pAskOrder= *pptHead;
-	*pptHead=p;
-}
-void InsertBidOrderTransaction(struct TinyTransactionStruct **pptHead,struct TinyTransactionStruct *p)
-{
-	p->pBidOrder= *pptHead;
-	*pptHead=p;
-}
-***/
+
 //b)根据S0T列表中，循环查找M_ORDER表中，生成 D31IndexItem数据；
 int GenD31Stat(struct IndexStatStruct *p)
 {
 	struct D31IndexItemStruct *pD31Zd=&(p->Zd),*pD31Zb=&(p->Zb);
 	struct D31IndexExtStruct *pD31Ex=&p->Ex;
-	BINTREE *M_ORDER=p->M_ORDER;
 
 	struct TinyOrderStruct *pAskOrder,*pBidOrder;
 	struct TinyTransactionStruct *ptHead,*pTemp;
@@ -378,30 +405,9 @@ int GenD31Stat(struct IndexStatStruct *p)
 		pTemp=ptHead;
 		ptHead=ptHead->pNext;
 
-		//找到卖方订单金额
-		if(SearchBin(M_ORDER,(void*)&(pTemp->nAskOrder),
-			data_search_bintree_order_2,(void**)&pAskOrder)==NOTFOUND){
-			printf("hello 3 code=%d,askord=%d time=%d,flag=%c\n",
-				p->iStockCode,pTemp->nAskOrder,pTemp->nTime,(char)(pTemp->nBSFlag));
-			printf("hello 2\n");
-			return -1;
-		}
-		//找到买方订单金额
-		if(SearchBin(M_ORDER,(void*)&(pTemp->nBidOrder),
-			data_search_bintree_order_2,(void**)&pBidOrder)==NOTFOUND){
-
-			printf("hello 3 code=%d,bidord=%d time=%d,flag=%c\n",
-				p->iStockCode,pTemp->nBidOrder,pTemp->nTime,(char)(pTemp->nBSFlag));
-			return -1;
-		}
-
-		//这个逻辑稍后要移到加载逻辑中
-		pAskOrder->nOrderSeq++;
-		pBidOrder->nOrderSeq++;
-
-		pTemp->nAskOrderSeq=pAskOrder->nOrderSeq;
-		pTemp->nBidOrderSeq=pBidOrder->nOrderSeq;
-
+		pAskOrder=pTemp->pAskOrder;
+		pBidOrder=pTemp->pBidOrder;
+		
 		if(pTemp->nAskOrder==1691843&&pTemp->nBidOrder==1732854){
 			printf("shenme luoji error.\n");
 		}
@@ -423,46 +429,22 @@ int GenD31Stat(struct IndexStatStruct *p)
 			AskOrder2D31Zb(pAskOrder,pTemp,pD31Zb);
 		else	BidOrder2D31Zb(pBidOrder,pTemp,pD31Zb);
 
-		//价格下跌 = (trans['成交价格'] < trans['成交价格'].shift(1)) &
-		//(trans['叫卖序号'] == trans['叫卖序号'].shift(1))
-		if(pTemp->nPrice<pAskOrder->nLastPrice){
-			pAskOrder->nAskJmpSeq++;
-//			pTemp->nAskJmpSeq=pAskOrder->nAskJmpSeq;
-		}
-		//价格上涨 = (trans['成交价格'] > trans['成交价格'].shift(1)) &
-		//(trans['叫买序号'] == trans['叫买序号'].shift(1))
-		if(pTemp->nPrice>pBidOrder->nLastPrice&&
-			pBidOrder->nLastPrice!=0){
-			pBidOrder->nBidJmpSeq++;
-//			pTemp->nBidJmpSeq=pBidOrder->nBidJmpSeq;
-		}
+		
+		//设置订单临时跳买、跳卖标识
+		//只有非零的才设置上去，避免设置为非零后又被后面的交易记录信息清零
+		if(pTemp->nAskJmpSeq>0)	pAskOrder->nAskJmpSeq=pTemp->nAskJmpSeq;
+		if(pTemp->nBidJmpSeq>0) pBidOrder->nBidJmpSeq=pTemp->nBidJmpSeq;
 
-		//设置最新价
-		pAskOrder->nLastPrice=pBidOrder->nLastPrice=pTemp->nPrice;
 	}
 
-	//再做一个循环，检查跳买和跳卖的标致，如果存在跳买跳卖则统计
+	//再做一个循环，检查跳买和跳卖的标识，如果存在跳买跳卖则统计
 	ptHead=(struct TinyTransactionStruct *)p->S0T.pHead;
 	while(ptHead!=NULL){
 		pTemp=ptHead;
 		ptHead=ptHead->pNext;
 
-		//找到卖方订单金额
-		if(SearchBin(M_ORDER,(void*)&(pTemp->nAskOrder),
-			data_search_bintree_order_2,(void**)&pAskOrder)==NOTFOUND){
-			printf("hello 3 code=%d,askord=%d time=%d,flag=%c\n",
-				p->iStockCode,pTemp->nAskOrder,pTemp->nTime,(char)(pTemp->nBSFlag));
-			printf("hello 2\n");
-			return -1;
-		}
-		//找到买方订单金额
-		if(SearchBin(M_ORDER,(void*)&(pTemp->nBidOrder),
-			data_search_bintree_order_2,(void**)&pBidOrder)==NOTFOUND){
-
-			printf("hello 3 code=%d,bidord=%d time=%d,flag=%c\n",
-				p->iStockCode,pTemp->nBidOrder,pTemp->nTime,(char)(pTemp->nBSFlag));
-			return -1;
-		}
+		pAskOrder=pTemp->pAskOrder;
+		pBidOrder=pTemp->pBidOrder;
 
 		//d31_new[跳卖i] = trans[(trans['委卖金额'] >= i * 10000) &
 		//(trans['跳卖次数']>0)].groupby(['time_str'])['成交金额'].sum().reindex(index = trade_time)/10000
@@ -470,7 +452,17 @@ int GenD31Stat(struct IndexStatStruct *p)
 		//d31_new[跳买i] = trans[(trans['委买金额'] >= i * 10000) &
 		//(trans['跳买次数']>0)].groupby(['time_str'])['成交金额'].sum().reindex(index = trade_time)/10000
 		if(pBidOrder->nBidJmpSeq>0) BidOrder2D31Ex(pBidOrder,pTemp,pD31Ex,p);
+			
 	}
+	
+	//做一个循环，将计算跳买，跳卖的中间字段清零
+	//避免跨分钟时的跳卖，跳买标志信息传递
+	ptHead=(struct TinyTransactionStruct *)p->S0T.pHead;
+	while(ptHead!=NULL){		
+		ptHead->pAskOrder->nAskJmpSeq=ptHead->pBidOrder->nBidJmpSeq=0;
+		ptHead=ptHead->pNext;
+	}
+
 
 	//取时间段内的最后一笔行情进行处理
 	/*****
@@ -735,12 +727,14 @@ struct IndexStatStruct *GetIndexStat(int iStockCode,char sFileName[],long lCurPo
 	return pTemp;
 }
 
-void MoveS1T2S0T(struct IndexStatStruct *p,int nPreT0,int nT0)
+int MoveS1T2S0T(struct IndexStatStruct *p,int nPreT0,int nT0)
 {
 	LISTHEAD *pS0T=&(p->S0T),*pS1T=&(p->S1T);
 	struct TinyTransactionStruct *ptHead,*pTemp;
 
-	Destroy2List(pS0T);
+	//如果是第一秒开始，则释放S0T
+
+	if((nT0%10000)/1000==1) Destroy2List(pS0T);
 
 	ptHead=(struct TinyTransactionStruct *)pS1T->pHead;
 
@@ -750,13 +744,28 @@ void MoveS1T2S0T(struct IndexStatStruct *p,int nPreT0,int nT0)
 		pTemp=ptHead;
 		ptHead=ptHead->pNext;
 
-		if(pTemp->nTime<nT0||
-			(pTemp->nTime==MY_CLOSE_MARKET_TIME&&nT0==MY_CLOSE_MARKET_TIME))
+		if(MY_BELONG_TRANSACTION_T0(pTemp->nTime,nT0)){
+			
+//		if(pTemp->nTime<nT0||
+//			(pTemp->nTime==MY_CLOSE_MARKET_TIME&&nT0==MY_CLOSE_MARKET_TIME)){
+/***
+			填写一下以下4个字段
+			int	nAskOrderSeq;	//卖方委托单成交序号，卖成笔数
+			int	nBidOrderSeq;	//买方委托单成交序号，买成笔数
+			struct TinyOrderStruct *pAskOrder; //叫卖订单指针
+			struct TinyOrderStruct *pBidOrder; //叫买订单指针
+
+***/
+			if(InitTinyTransactionField(p,pTemp)<0) return -1;
+
 			Append2List(pS0T,(LIST*)pTemp);
+		}
 		else	Append2List(pS1T,(LIST*)pTemp);
 	}
 	p->nT0=		nT0;
 	p->nPreT0=	nPreT0;
+	
+	return 0;
 
 }
 void MoveS1Q2S0Q(struct IndexStatStruct *p,int nPreT0,int nT0)
@@ -792,7 +801,8 @@ int MoveS1O2M_ORDER(struct IndexStatStruct *p,int nT0)
 		ptHead=ptHead->pNext;
 
 		//如果还是下一个时段的，则继续放到原链表中
-		if(pTemp->nTime>=nT0){
+		if(!MY_BELONG_TRANSACTION_T0(pTemp->nTime,nT0)){
+//		if(pTemp->nTime>=nT0){
 			Append2List(pS1O,(LIST*)pTemp);
 			continue;
 		}
@@ -856,23 +866,23 @@ int WriteD31StatAll(FILE *fpD31,char sCodeStr[],int iWriteFlag)
 	}
 	return 0;
 }
-void MoveS1X2S0XAll(int nPreT0,int nT0)
+
+//将所有预加载的T0之前的数据，放到统计缓存中
+int AddPreT0Data2Ready(int nPreT0,int nT0)
 {
 	struct IndexStatStruct *pIndexStat=INDEX_HEAD;
 
 	while(pIndexStat!=NULL){
-		MoveS1T2S0T(pIndexStat,nPreT0,nT0);
-		MoveS1Q2S0Q(pIndexStat,nPreT0,nT0);
-		pIndexStat=pIndexStat->pNext;
-	}
-}
 
-int MoveS1O2M_ORDERAll(int nT0)
-{
-	struct IndexStatStruct *pIndexStat=INDEX_HEAD;
-
-	while(pIndexStat!=NULL){
+		//这里必须先将订单数据加到查找树中，因为后一个函数需要查找引用		
 		if(MoveS1O2M_ORDER(pIndexStat,nT0)<0) return -1;
+
+		//将T1的交易数据，放到T0列表，并设置好InitTinyTransactionField各字段
+		if(MoveS1T2S0T(pIndexStat,nPreT0,nT0)<0) return -1;
+
+		MoveS1Q2S0Q(pIndexStat,nPreT0,nT0);
+
+
 		pIndexStat=pIndexStat->pNext;
 	}
 	return 0;

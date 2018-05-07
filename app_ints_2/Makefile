@@ -20,7 +20,7 @@ TARGET_F=../bin/gta2tdf
 CXX=g++
 
 #头文件
-INC= -I../Include -I../Common -I../public -I../IncludeTDF -I../app_ints 
+INC= -I../Include -I../Common -I../public -I../IncludeTDF -I../comm_supp -I../app_ints
 
 #库
 LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_setup -lboost_system -lprotobuf -lrt
@@ -28,22 +28,22 @@ LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_se
 
 
 #测试工程文件
-Example_SRC=$(wildcard ./main.cpp ../app_ints/CallBackBase.cpp ../app_ints/callsupp.cpp ../public/wwtiny.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../public/d31data.pb.cpp ../Common/*.cpp ../GTA2TDF/GTA2TDF.cpp )
+Example_SRC=$(wildcard ./main.cpp ../app_ints/CallBackBase.cpp ../app_ints/callsupp.cpp ../public/wwtiny.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../public/d31data.pb.cpp ../Common/*.cpp ../comm_supp/gta_supp.cpp )
 Example_OBJS=$(patsubst %.cpp, %.o, $(Example_SRC))
 
 ExampleB_SRC=$(wildcard ./dmpi2txt.cpp ../public/wwtiny.cpp )
 ExampleB_OBJS=$(patsubst %.cpp, %.o, $(ExampleB_SRC))
 
-ExampleC_SRC=$(wildcard ./gta_replay.cpp ../app_ints/CallBackBase.cpp ../app_ints/callsupp.cpp ../public/wwtiny.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../public/d31data.pb.cpp ../Common/*.cpp ../GTA2TDF/GTA2TDF.cpp )
+ExampleC_SRC=$(wildcard ./gta_replay.cpp ../app_ints/CallBackBase.cpp ../app_ints/callsupp.cpp ../public/wwtiny.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../public/d31data.pb.cpp ../Common/*.cpp ../comm_supp/gta_supp.cpp )
 ExampleC_OBJS=$(patsubst %.cpp, %.o, $(ExampleC_SRC))
 
-ExampleD_SRC=$(wildcard ./index_stat.cpp ./index_supp.cpp ./index_ordpri.cpp ../public/bintree.cpp ../public/wwtiny.cpp ../GTA2TDF/GTA2TDF.cpp )
+ExampleD_SRC=$(wildcard ./index_stat.cpp ./index_supp.cpp ./index_ordpri.cpp ../public/bintree.cpp ../public/wwtiny.cpp ../comm_supp/gta_supp.cpp )
 ExampleD_OBJS=$(patsubst %.cpp, %.o, $(ExampleD_SRC))
 
 ExampleE_SRC=$(wildcard ./dmpo2txt.cpp ../public/wwtiny.cpp ../public/mktdata.pb.cpp )
 ExampleE_OBJS=$(patsubst %.cpp, %.o, $(ExampleE_SRC))
 
-ExampleF_SRC=$(wildcard ./gta2tdf.cpp ../GTA2TDF/GTA2TDF.cpp ../public/wwtiny.cpp )
+ExampleF_SRC=$(wildcard ./gta2tdf.cpp ../comm_supp/gta_supp.cpp ../public/wwtiny.cpp )
 ExampleF_OBJS=$(patsubst %.cpp, %.o, $(ExampleF_SRC))
 
 

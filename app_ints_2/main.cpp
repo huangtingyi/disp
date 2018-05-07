@@ -10,16 +10,18 @@
 #include <sys/inotify.h>
 #include <unistd.h>
 #include <boost/property_tree/json_parser.hpp>
-#include "../Common/IoService.h"
-#include "../Common/TinyThread.h"
+#include "IoService.h"
+#include "TinyThread.h"
 
-#include "../VecStockCode/VectorStockCodeSH.h"
-#include "../VecStockCode/VectorStockCodeSZ.h"
+//#include "../VecStockCode/VectorStockCodeSH.h"
+//#include "../VecStockCode/VectorStockCodeSZ.h"
 
-#include "../GTA2TDF/GTA2TDF.h"
+#include "callsupp.h"
+
+#include "gta_supp.h"
 
 
-#include "../Common/public.h"
+#include "public.h"
 
 int iDebugFlag=0,iWriteFlag=0,iDelayMilSec=100,iMultiTimes=1;
 char sCfgJsonName[1024],sDispName[1024],sPrivilegeName[1024],sWorkRoot[1024];
@@ -153,8 +155,13 @@ int main(int argc, char *argv[])
 		}
 
 		StockSymbol* pStock = StockList1;
+
 		const int sz = StockList1.Size();
-		VectorStockCodeSH vSH;
+		char sShStr[40960],sSzStr[40960];
+		
+		GetStockStrAll(pStock,sz,sShStr,sSzStr);
+
+/*		VectorStockCodeSH vSH;
 		VectorStockCodeSZ vSZ;
 
 		for (int i = 0; i < sz; ++i) {
@@ -162,7 +169,8 @@ int main(int argc, char *argv[])
 				vSZ.push(pStock[i].Symbol);
 			}
 		}
-		printf("\n");
+*/
+		printf("shlist=%s\nszlist=%s\n",sShStr,sSzStr);
 
 		CDataBuffer<MsgType> DataTypeList;
 		// 获取权限列表
@@ -184,8 +192,8 @@ int main(int argc, char *argv[])
 
 		// 按代码订阅深交所实时行情数据
 		//详见《国泰安实时行情系统V2.X 用户手册》4.1.1.8 订阅实时数据Subscribe 章节
-		vSH.strForSub(strCodesSH);
-		vSZ.strForSub(strCodesSZ);
+//		vSH.strForSub(strCodesSH);
+//		vSZ.strForSub(strCodesSZ);
 
 		//启动一个线程查询数据，并将数据加到工作线程中
 		pCallBack=	&CallbackBase;

@@ -14,13 +14,13 @@ TARGET_A=../bin/gta_ints
 CXX=g++
 
 #头文件
-INC= -I../Include -I../Common -I../public -I../IncludeTDF
+INC= -I../Include -I../Common -I../public -I../IncludeTDF -I../comm_supp
 
 #库
 LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_setup -lboost_system -lprotobuf -lrt
 
 #测试工程文件
-Example_SRC=$(wildcard ./*.cpp ../public/wwtiny.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../public/d31data.pb.cpp ../Common/*.cpp ../GTA2TDF/GTA2TDF.cpp)
+Example_SRC=$(wildcard ./*.cpp ../public/wwtiny.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../public/d31data.pb.cpp ../Common/*.cpp ../comm_supp/gta_supp.cpp)
 Example_OBJS=$(patsubst %.cpp, %.o, $(Example_SRC))
 
 #所有目标文件

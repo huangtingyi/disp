@@ -14,7 +14,7 @@
 
 #include "wwtiny.h"
 
-#include "../GTA2TDF/GTA2TDF.h"
+#include "gta_supp.h"
 
 
 #include "public.h"
@@ -863,7 +863,7 @@ void *MainReplayRunD31(void *)
 
 	struct D31ItemStruct *p=(struct D31ItemStruct*)(sBuffer+sizeof(long long));
 
-	sprintf(sInFileName,"%s/d31_gt_%s.dat",sSourcePath,sReplayDate);
+	sprintf(sInFileName,"%s/d31_g3_%s.dat",sSourcePath,sReplayDate);
 
 	if((fpIn=fopen(sInFileName,"r"))==NULL){
 		printf("error open file %s to read.\n",sInFileName);

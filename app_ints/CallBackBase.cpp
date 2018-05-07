@@ -9,7 +9,8 @@
 #include <boost/property_tree/json_parser.hpp>
 
 #include "public.h"
-#include "../GTA2TDF/GTA2TDF.h"
+#include "gta_supp.h"
+
 #include "mktdata.pb.h"  
 #include "MessageQueue.h"
 

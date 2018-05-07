@@ -62,6 +62,10 @@ void D31_ITEM2D31Item(D31Item &o, const struct D31ItemStruct &d);
 
 void SendMsg2Cli(int iStockCode,char cType,string& str);
 
+#include "QTSStruct.h"
+
+void GetStockStrAll(StockSymbol* pStock,int sz,char sShStr[],char sSzStr[]);
+
 
 extern struct DispRuleStruct R;
 extern char sRefreshDispName[1024];

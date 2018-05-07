@@ -609,3 +609,42 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 		pAll=pAll->pNext;
 	}
 }
+
+bool ValidShStockCode(char sStockCode[])
+{
+	if (sStockCode[8] == 'S'&& 
+		((sStockCode[0] == '6' && sStockCode[1] == '0')||
+		(sStockCode[0] == '1' && sStockCode[1] == '1'))) return true;
+	return false;
+}
+
+bool ValidSzStockCode(char sStockCode[])
+{
+	if (sStockCode[8] == 'Z'&& 
+		((sStockCode[0] == '3' && sStockCode[1] == '0')||
+		(sStockCode[0] == '0' && sStockCode[1] == '0')||
+		(sStockCode[0] == '1' && sStockCode[1] == '2'))) return true;
+	return false;
+}
+
+void GetStockStrAll(StockSymbol* pStock,int sz,char sShStr[],char sSzStr[])
+{
+	char sTemp[7];
+	int i,shPos=0,szPos=0;
+	
+	for (i = 0; i < sz; ++i) {
+	
+		strncpy(sTemp,pStock[i].Symbol,6);sTemp[6]=0;
+		
+		if(ValidShStockCode(pStock[i].Symbol)){
+			shPos+=sprintf(sShStr+shPos,"%6s,",sTemp);
+		}
+		else if(ValidSzStockCode(pStock[i].Symbol)){
+			szPos+=sprintf(sSzStr+szPos,"%6s,",sTemp);
+		}
+	}
+	
+	if(shPos>0) sShStr[shPos-1]=0;
+	
+	if(szPos>0) sSzStr[szPos-1]=0;
+}

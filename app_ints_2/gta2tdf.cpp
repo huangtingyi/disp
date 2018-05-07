@@ -11,7 +11,7 @@ using namespace std;
 
 #include "wwtiny.h"
 
-#include "../GTA2TDF/GTA2TDF.h"
+#include "gta_supp.h"
 
 typedef struct _filename_set_
 {

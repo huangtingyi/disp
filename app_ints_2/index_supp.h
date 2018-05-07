@@ -17,9 +17,6 @@
 //逐笔和逐单统计信息
 struct D31IndexItemStruct
 {
-//	struct D31IndexItemStruct *pNext;
-//	int	nActionDay;	//委托日期(YYYYMMDD)
-//	int	nTime;		//委托时间(HHMMSSmmm)
 	int8b	alBidAmount[MAX_LEVEL_CNT];	//主买额度，单位（分）
 	int	aiBidVolume[MAX_LEVEL_CNT];	//主买量，单位（手）
 	int	aiBidOrderNum[MAX_LEVEL_CNT];	//主买笔数，单位（笔）
@@ -65,16 +62,15 @@ struct TinyTransactionStruct
 	
 	int	nAskOrderSeq;	//卖方委托单成交序号，卖成笔数
 	int	nBidOrderSeq;	//买方委托单成交序号，买成笔数
-//	int	nAskJmpSeq;	//跳卖序列
-//	int	nBidJmpSeq;	//跳买序列
+	int	nAskJmpSeq;	//跳卖标识
+	int	nBidJmpSeq;	//跳买标识
 
-//	struct TinyTransactionStruct *pAskOrder; //叫卖序号相同的交易列表
-//	struct TinyTransactionStruct *pBidOrder; //叫买序号相同的交易列表
+	struct TinyOrderStruct *pAskOrder; //叫卖订单指针
+	struct TinyOrderStruct *pBidOrder; //叫买订单指针
 };
 struct TinyOrderStruct
 {
 	struct TinyOrderStruct *pNext;
-//	struct TinyOrderStruct *pTmpNext;
 	int	nActionDay;	//委托日期(YYYYMMDD)
 	int	nTime;		//委托时间(HHMMSSmmm)
 	int	iStockCode;	//证券代码
@@ -89,15 +85,12 @@ struct TinyOrderStruct
 	long	lOrderAmnt;	//成交金额
 	
 	int	nLastPrice;	//最新价
-	int	nAskJmpSeq;	//跳卖序列
-	int	nBidJmpSeq;	//跳买序列
+	int	nAskJmpSeq;	//本订单当前有跳卖标志
+	int	nBidJmpSeq;	//本订单当前有跳买标志
 
 	int	nOriOrdPrice;	//原始委托价格
 	int	nOriOrdVolume;	//原始委托量
-	long	lOriOrdAmnt;	//原始委托金额
-	
-//	struct TinyOrderStruct *pJmpOrder;
-	
+	long	lOriOrdAmnt;	//原始委托金额	
 };
 struct TinyQuotationStruct
 {
@@ -164,8 +157,12 @@ struct IndexStatStruct
 	BINTREE *M_ORDER;		//合并订单数据，按ORDER_ID索引
 	LISTHEAD S0O;	//存放(~,T0]所有的M_ORDER中的订单列表
 	LISTHEAD S1O;	//存放[T0,~)之后的ORDER数据}
+	
+//	LISTHEAD SCT;	//存放[起始分钟时刻,T0),{当T0==15:00:00 时，为 [14:59,15:00]}的交易数据
 	LISTHEAD S0T;	//存放[T0-1,T0),{当T0==15:00:00 时，为 [14:59,15:00]}的交易数据
+			//存放[起始分钟时刻,T0),{当T0==15:00:00 时，为 [14:59,15:00]}的交易数据
 	LISTHEAD S1T;	//存放[T0,之后的交易数据}
+
 	LISTHEAD S0Q;	//存放[T0-1,T0),{当T0==15:00:00 时，为 [14:59,15:00]}的行情数据
 	LISTHEAD S1Q;	//存放[T0,之后的行情数据}
 };
@@ -194,8 +191,16 @@ int data_search_bintree_stock_code_order(void *pValue,void*pData);
 void assign_insert_bintree_stock_code_order_e(void **ppData,void *pData);
 int GenD31StatAll();
 int WriteD31StatAll(FILE *fpD31,char sCodeStr[],int iWriteFlag);
-void MoveS1X2S0XAll(int nPreT0,int nT0);
-int MoveS1O2M_ORDERAll(int nT0);
+//void MoveS1X2S0XAll(int nPreT0,int nT0);
+//int MoveS1O2M_ORDERAll(int nT0);
+
+//将所有预加载的T0之前的数据，放到统计缓存中
+int AddPreT0Data2Ready(int nPreT0,int nT0);
+
+int InitTinyTransactionField(struct IndexStatStruct *p,struct TinyTransactionStruct *pTemp);
+
+#define MY_BELONG_TRANSACTION_T0(t,t0) (t<t0||(t==t0&&t0==MY_CLOSE_MARKET_TIME))
+
 
 #ifndef MAX_STOCK_CODE
 #define MAX_STOCK_CODE	1000000

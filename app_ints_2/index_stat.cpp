@@ -257,12 +257,23 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 */
 		//从lCurPos,读到 nT0, 对于大于 nPreT0的部分，加入到
 		//S0T，大于nT0的数据加到pS1Head,遇到，遇到大于nEndTime0的数据停止;
-		if(t.nTime<nPreT0) continue;
+//		if(t.nTime<nPreT0) continue;
 
 		//实测表明,取数为 nPreT0<=x<nT0 按这个去取区间
 		//如果,t.nTime为收盘时间也归 15:00:00这个区间
-		if(t.nTime<nT0||(t.nTime==MY_CLOSE_MARKET_TIME&&nT0==MY_CLOSE_MARKET_TIME))
+		if(MY_BELONG_TRANSACTION_T0(t.nTime,nT0)){
+//		if(t.nTime<nT0||(t.nTime==MY_CLOSE_MARKET_TIME&&nT0==MY_CLOSE_MARKET_TIME)){
+/***
+			填写一下以下4个字段
+			int	nAskOrderSeq;	//卖方委托单成交序号，卖成笔数
+			int	nBidOrderSeq;	//买方委托单成交序号，买成笔数
+			struct TinyOrderStruct *pAskOrder; //叫卖订单指针
+			struct TinyOrderStruct *pBidOrder; //叫买订单指针
+
+***/
+			if(InitTinyTransactionField(pIndexStat,&tt)<0) return -1;
 			pSXT=&(pIndexStat->S0T);
+		}
 		else
 			pSXT=&(pIndexStat->S1T);
 
@@ -273,6 +284,7 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 			return -1;
 		}
 		memcpy((void*)pt,(void*)&tt,sizeof(struct TinyTransactionStruct));
+		
 
 		Append2List(pSXT,(LIST*)pt);
 
@@ -649,8 +661,9 @@ int main(int argc, char *argv[])
 			int nCurTime=nGetHostCurTime();
 						
 			//如果时间是午盘时间，休眠
-			if(nT0==130100000&&(
+			if(nT0==130001000&&(
 				nCurTime>=113000000&&nCurTime<125700000)){
+				//休眠三分钟
 				usleep(180*1000000);
 				continue;
 			}
@@ -658,6 +671,11 @@ int main(int argc, char *argv[])
 			usleep(iIdleWaitMilli*1000);
 			continue;
 		}
+
+		int nCur=nGetHostCurTime();
+		
+		printf("hello world tzr=%d,tzp=%ld,thr=%d,thp=%ld,\tcur=%d,ms=%d.\n",
+			iTzRes,lTzCurPos,iThRes,lThCurPos,nCur/1000,nCur%1000);
 
 		//做一个循环将D31的数据统计出来
 		if(GenD31StatAll()<0) return -1;
@@ -672,20 +690,23 @@ int main(int argc, char *argv[])
 		//如果收盘了，就退出吧
 		if(nT0>=150000000) break;
 
-		//中午休市时，直接跳过午间休市
+		//中午休市时，直接跳过午间休市，到下午13点00分01秒
 		if(nT0>=113000000&&nT0<125959000)
-			nT0=130100000;
-		else	//正常时段1分钟扫描一次
-			nT0=iAddMilliSec(nT0,1000*60);
+			nT0=130001000;
+		else	//正常时段1秒扫描一次
+			nT0=iAddMilliSec(nT0,1000);
 
 		//将下一个时间端的ORDER合并到当前树和链表中，
 		//如果订单时间超过nT0则将订单保留在原链表中
-		if(MoveS1O2M_ORDERAll(nT0)<0) return -1;
+//		if(MoveS1O2M_ORDERAll(nT0)<0) return -1;
 
 		//将下一个时间段的Transaction合并到当前链表中
 		//如果Transaction时间大于nT0则，继续保留在原链表里
 		//将下一个时间段的Quotation合并到当前链表中
-		MoveS1X2S0XAll(nPreT0,nT0);
+//		MoveS1X2S0XAll(nPreT0,nT0);
+
+		if(AddPreT0Data2Ready(nPreT0,nT0)<0) return -1;
+
 
 		//将肯定关闭的ORDER清出内存
 		//设置为保留三分钟,只有非忙时的情况再处理

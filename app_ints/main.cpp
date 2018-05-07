@@ -21,7 +21,7 @@
 #include "../VecStockCode/VectorStockCodeSH.h"
 #include "../VecStockCode/VectorStockCodeSZ.h"
 
-#include "../GTA2TDF/GTA2TDF.h"
+#include "gta_supp.h"
 
 int iDebugFlag=0,iWriteFlag=0;
 char sCfgJsonName[1024],sDispName[1024],sPrivilegeName[1024],sWorkRoot[1024];
