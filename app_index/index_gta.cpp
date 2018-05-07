@@ -10,7 +10,7 @@
 
 #include "QTSStruct.h"
 #include "index_supp.h"
-#include "../GTA2TDF/GTA2TDF.h"
+#include "gta_supp.h"
 
 
 void  (*GTA2TDF_Q2T)(void *p, TDF_TRANSACTION *pt);

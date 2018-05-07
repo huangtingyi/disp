@@ -167,7 +167,7 @@ struct IndexStatStruct
 	LISTHEAD S1Q;	//存放[T0,之后的行情数据}
 };
 
-#include "../app_ints/d31_item.h"
+#include "d31_item.h"
 
 #include "TDFAPIStruct.h"
 

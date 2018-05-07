@@ -18,8 +18,10 @@
 #include <unistd.h>
 #define  SLEEP(t)  sleep(t)
 #endif
-#include "../VecStockCode/VectorStockCodeSH.h"
-#include "../VecStockCode/VectorStockCodeSZ.h"
+//#include "../VecStockCode/VectorStockCodeSH.h"
+//#include "../VecStockCode/VectorStockCodeSZ.h"
+
+#include "callsupp.h"
 
 #include "gta_supp.h"
 
@@ -151,7 +153,12 @@ int main(int argc, char *argv[])
 
 		StockSymbol* pStock = StockList1;
 		int sz = StockList1.Size();
-		VectorStockCodeSH vSH;
+		char sShStr[40960],sSzStr[40960];
+		
+		GetStockStrAll(pStock,sz,sShStr,sSzStr);
+
+
+/*		VectorStockCodeSH vSH;
 		VectorStockCodeSZ vSZ;
 
 		for (int i = 0; i < sz; ++i) {
@@ -160,7 +167,8 @@ int main(int argc, char *argv[])
 			}
 		}
 		printf("\n");
-
+		
+*/
 		CDataBuffer<MsgType> DataTypeList;
 		// 获取权限列表
 		//详见《国泰安实时行情系统V2.X 用户手册》4.1.1.7 获取权限列表GetDataTypeList 章节
@@ -183,15 +191,16 @@ int main(int argc, char *argv[])
 
 		// 按代码订阅深交所实时行情数据
 		//详见《国泰安实时行情系统V2.X 用户手册》4.1.1.8 订阅实时数据Subscribe 章节
-		string strCodesSH,strCodesSZ;
-		vSH.strForSub(strCodesSH);
-		vSZ.strForSub(strCodesSZ);
+//		string strCodesSH,strCodesSZ;
+//		vSH.strForSub(strCodesSH);
+//		vSZ.strForSub(strCodesSZ);
 		
 		//初始化涨停跌停数组
 		InitLimitArray();
 		//获取静态上海数据,获取涨停跌停数值
 		CDataBuffer<SSEL2_Static> Snap_Quotation;
-		ret = pApiBase->QuerySnap_SSEL2_Static((char*)(strCodesSH.c_str()), Snap_Quotation);
+		//ret = pApiBase->QuerySnap_SSEL2_Static((char*)(strCodesSH.c_str()), Snap_Quotation);
+		ret = pApiBase->QuerySnap_SSEL2_Static(sShStr, Snap_Quotation);
 		if (Ret_Success != ret) {
 			return false;
 		}
@@ -209,39 +218,45 @@ int main(int argc, char *argv[])
 		}
 
 		//上海L2集合竞价
-		ret = pApiBase->Subscribe(Msg_SSEL2_Auction, (char*)(strCodesSH.c_str()));
+		//ret = pApiBase->Subscribe(Msg_SSEL2_Auction, (char*)(strCodesSH.c_str()));
+		ret = pApiBase->Subscribe(Msg_SSEL2_Auction, sShStr);
 		if (Ret_Success != ret) {
 			printf("Subscribe Msg_SSEL2_Auction code=%d\n",ret);
 			break;
 		}
 
 		//上海L2实时行情
-		ret = pApiBase->Subscribe(Msg_SSEL2_Quotation, (char*)(strCodesSH.c_str()));
+		//ret = pApiBase->Subscribe(Msg_SSEL2_Quotation, (char*)(strCodesSH.c_str()));
+		ret = pApiBase->Subscribe(Msg_SSEL2_Quotation, sShStr);
 		if (Ret_Success != ret) {
 			printf("Subscribe Msg_SSEL2_Quotation code=%d\n",ret);
 			break;
 		}
 		//上海L2实时交易
-		ret = pApiBase->Subscribe(Msg_SSEL2_Transaction, (char*)(strCodesSH.c_str()));
+		//ret = pApiBase->Subscribe(Msg_SSEL2_Transaction, (char*)(strCodesSH.c_str()));
+		ret = pApiBase->Subscribe(Msg_SSEL2_Transaction, sShStr);
 		if (Ret_Success != ret) {
 			printf("Subscribe Msg_SSEL2_Transaction code=%d\n",ret);
 			break;
 		}
 
 		//深圳L2实时行情
-		ret = pApiBase->Subscribe(Msg_SZSEL2_Quotation, (char*)(strCodesSZ.c_str()));
+		//ret = pApiBase->Subscribe(Msg_SZSEL2_Quotation, (char*)(strCodesSZ.c_str()));
+		ret = pApiBase->Subscribe(Msg_SZSEL2_Quotation, sSzStr);
 		if (Ret_Success != ret) {
 			printf("Subscribe Msg_SZSEL2_Quotation code=%d\n",ret);
 			break;
 		}
 		//深圳L2实时交易
-		ret = pApiBase->Subscribe(Msg_SZSEL2_Transaction, (char*)(strCodesSZ.c_str()));
+		//ret = pApiBase->Subscribe(Msg_SZSEL2_Transaction, (char*)(strCodesSZ.c_str()));
+		ret = pApiBase->Subscribe(Msg_SZSEL2_Transaction, sSzStr);
 		if (Ret_Success != ret) {
 			printf("Subscribe Msg_SZSEL2_Transaction code=%d\n",ret);
 			break;
 		}
 		//深圳L2逐笔委托
-		ret = pApiBase->Subscribe(Msg_SZSEL2_Order, (char*)(strCodesSZ.c_str()));
+		//ret = pApiBase->Subscribe(Msg_SZSEL2_Order, (char*)(strCodesSZ.c_str()));
+		ret = pApiBase->Subscribe(Msg_SZSEL2_Order, sSzStr);
 		if (Ret_Success != ret) {
 			printf("Subscribe Msg_SZSEL2_Order code=%d\n",ret);
 			break;

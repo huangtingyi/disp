@@ -10,7 +10,7 @@
 #include "QTSStruct.h"
 #include "QTSDataFieldDefine.h"
 
-#include "../GTA2TDF/GTA2TDF.h"
+#include "gta_supp.h"
 
 #define MY_TYPE_SSEL2_Quotation		1
 #define MY_TYPE_SSEL2_Transaction	2

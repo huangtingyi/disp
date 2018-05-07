@@ -57,15 +57,16 @@ installdir()
 		case $dir in
 		bin)
 			cp bin/dat2cli		../bin
-			cp bin/gta_ints         ../bin
-			cp bin/gta_ints_2       ../bin
-			cp bin/gta_replay       ../bin
-			cp bin/gta_stat         ../bin
-			cp bin/index_stat       ../bin
-			cp bin/gta_test         ../bin
-			cp bin/agentcli		../bin
-			cp bin/tdf_ints		../bin
+			cp bin/ints_gta         ../bin
+			cp bin/ints_gta_t       ../bin
+			cp bin/replay_gta       ../bin
+			cp bin/index_gta        ../bin
+			cp bin/dmpi2txt         ../bin
+			cp bin/dmpo2txt         ../bin
 			cp bin/gta2tdf		../bin
+			cp bin/ints_tdf		../bin
+			cp bin/ints_tdf_t	../bin
+			cp bin/agentcli		../bin
 			;;
 		shell)
 			cp shell/chkipsend.sh	../bin
@@ -111,9 +112,8 @@ main()
 		;;
 	*)
 		makedir app_dat2cli
-		makedir app_ints
-		makedir app_ints_2 
-		makedir app_test
+		makedir app_gta
+		makedir app_index
 		makedir	test
 		makedir app_agentcli
 		makedir app_tdf
