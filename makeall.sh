@@ -51,6 +51,7 @@ installdir()
 	case $makeflag in 
 	install*)
 		[ -d ../bin ] || mkdir ../bin
+		[ -d ../conf ] || mkdir ../conf
 		[ -d ../bin/log ] || mkdir ../bin/log
 		echo "install $dir ..."
 		sleep 1
@@ -86,12 +87,12 @@ installdir()
 			cp shell/startdf.sh	../bin
 			;;
 		conf)   
-			cp conf/cfg.json	../bin
-			cp conf/disp.json       ../bin
-			cp conf/gta_ints.json   ../bin
-			cp conf/user_privilege.json ../bin
-			cp conf/config.ini   	../bin
-			cp conf/tdf_ints.json   ../bin
+			cp conf/cfg.json	../conf
+			cp conf/disp.json       ../conf
+			cp conf/ints_tdf.json   ../conf
+			cp conf/user_privilege.json ../conf
+			cp conf/config.ini   	../conf
+			cp conf/ints_tdf.json   ../conf
 			;;
 		*)
 			;;

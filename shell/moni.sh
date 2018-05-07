@@ -47,10 +47,11 @@ do
 
 	echo -e " `date '+%Y/%m/%d %k:%M:%S'`	RX=$RX \t TX=$TX"
 
-	sudo netstat -nap | egrep "gta_ints|dat2cli|Address"
+	sudo netstat -nap | egrep "ints_gta|ints_tdf|dat2cli|Address"
 	
 	##增加进程占用的cpu监控
-	top -b -n1 -H `$pidof_bin gta_ints dat2cli | sed 's/[0-9]*/-p&/g'` | egrep "gta_ints|dat2cli|sshd|COMMAND" | head -12
+	pid_str="`$pidof_bin ints_gta ints_tdf replay_gta dat2cli | sed 's/[0-9]*/-p&/g'`"
+	top -b -n1 -H "$pid_str" | egrep "ints_gta|ints_tdf|replay_gta|dat2cli|sshd|COMMAND" | head -12
 	##增加消息队列监控
 	ipcs -q
 done

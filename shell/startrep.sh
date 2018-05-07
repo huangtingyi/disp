@@ -66,16 +66,16 @@ writeusr=${replaywriteusr:-0}
 replaydelay=${replaydelay:-200}
 replaymulti=${replaymulti:-1}
 
-disp_file="$HOME/bin/disp.json"
-user_file="$HOME/bin/user_privilege.json"
-cfg_file="$HOME/bin/cfg.json"
+disp_file="$HOME/conf/disp.json"
+user_file="$HOME/conf/user_privilege.json"
+cfg_file="$HOME/conf/cfg.json"
 
-gta_replay_bin="$HOME/bin/gta_replay"
+replay_gta_bin="$HOME/bin/replay_gta"
 dat2cli_bin="$HOME/bin/dat2cli"
 moni_bin="$HOME/bin/moni.sh"
 pidof_bin="/usr/sbin/pidof"
 
-gta_replay_log="$HOME/bin/log/gta_replay_`date '+%Y%m%d'`.log"
+replay_gta_log="$HOME/bin/log/replay_gta_`date '+%Y%m%d'`.log"
 dat2cli_log="$HOME/bin/log/dat2cli_`date '+%Y%m%d'`.log"
 moni_log="$HOME/bin/log/moni_`date '+%Y%m%d'`.log"
 
@@ -83,13 +83,13 @@ moni_log="$HOME/bin/log/moni_`date '+%Y%m%d'`.log"
 [ ! -f $disp_file ] && echo "$disp_file is not exist" && exit 1;
 [ ! -f $user_file ] && echo "$user_file is not exist" && exit 1;
 
-[ ! -f $gta_replay_bin ] && echo "$gta_replay_bin is not exist" && exit 1;
+[ ! -f $replay_gta_bin ] && echo "$replay_gta_bin is not exist" && exit 1;
 [ ! -f $dat2cli_bin ] && echo "$dat2cli_bin is not exist" && exit 1;
 [ ! -f $moni_bin ] && echo "$moni_bin is not exist" && exit 1;
 [ ! -f $pidof_bin ] && echo "$pidof_bin is not exist" && exit 1;
 
 
-$pidof_bin -x gta_replay_bin && echo "gta_replay is running" && exit 2;
+$pidof_bin -x replay_gta_bin && echo "replay_gta is running" && exit 2;
 $pidof_bin -x dat2cli && echo "dat2cli is running" && exit 2;
 $pidof_bin -x moni.sh && echo "moni.sh is running" && exit 2;
 
@@ -121,18 +121,18 @@ EOF
 cd $HOME/bin
 
 
-##./gta_replay -d20180412 -r/home/hty/bin/disp.json -w0 -t200 -s/data/20180412
+##./replay_gta -d20180412 -r/home/hty/bin/disp.json -w0 -t200 -s/data/20180412
 
-nohup $gta_replay_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti 1>$gta_replay_log 2>&1 &
+nohup $replay_gta_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti 1>$replay_gta_log 2>&1 &
 sleep 1
-$pidof_bin -x gta_replay
+$pidof_bin -x replay_gta
 if [ $? -ne 0 ]; then
-	echo "`date '+%Y/%m/%d %k:%M:%S'` $gta_replay_bin is startup FAIL..";
-	echo "$gta_replay_bin -s$replaypath -d$replaydate -b$replaytime -r $disp_file -o $workroot -w$writeflag -t$replaydelay -m$replaymulti"
+	echo "`date '+%Y/%m/%d %k:%M:%S'` $replay_gta_bin is startup FAIL..";
+	echo "$replay_gta_bin -s$replaypath -d$replaydate -b$replaytime -r $disp_file -o $workroot -w$writeflag -t$replaydelay -m$replaymulti"
 	exit 3;
 fi
 
-echo "`date '+%Y/%m/%d %k:%M:%S'` gta_replay is startREPLAY SUCESS.."
+echo "`date '+%Y/%m/%d %k:%M:%S'` replay_gta is startREPLAY SUCESS.."
 
 nohup $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
 sleep 1
