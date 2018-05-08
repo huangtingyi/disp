@@ -22,7 +22,7 @@ MESSAGE(PROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR})
 #source directory
 AUX_SOURCE_DIRECTORY(.   MAIN_SRCS)
 
-SET(DIR_SRCS ${MAIN_SRCS} ../public/MessageQueue.cpp ../public/CSemaphore.cpp ../public/mktdata.pb.cpp ../public/getToday.cpp)
+SET(DIR_SRCS ${MAIN_SRCS} ../public/MessageQueue.cpp ../public/CSemaphore.cpp ../public/mktdata.pb.cpp ../public/wwtiny.cpp)
 
 MESSAGE(DIR_SRCS=${DIR_SRCS})
 

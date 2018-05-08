@@ -1,9 +1,17 @@
 #include <atomic>
 #include "Client.h"
 #include "marketInterface.h"
+#include "wwtiny.h"
 
 
-
+int getTodayYyyymmdd()
+{
+	char sHostTime[15];
+	
+	GetHostTime(sHostTime);sHostTime[8]=0;
+	
+	return atoi(sHostTime);
+}
 Client::Client() :
 		yyyymmddReplay(getTodayYyyymmdd()), m_tcpClient(nullptr)
 {
@@ -96,7 +104,8 @@ void Client::recv(string &msg)
 	}
 }
 
-void Client::subscribeReq(bool marketdata, bool transaction, bool orderqueue, bool order, bool replay, uint32_t timeBegin, uint32_t timeEnd, uint32_t date)
+void Client::subscribeReq(bool marketdata, bool transaction, bool orderqueue, bool order,
+	 bool replay, uint32_t timeBegin, uint32_t timeEnd, uint32_t date)
 {
 	SubscribeRequest req;
 	if (marketdata)

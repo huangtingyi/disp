@@ -26,6 +26,8 @@
 #include "domain2ipPort.h"
 #include "CSemaphore.h"
 
+#include "wwtiny.h"
+
 using namespace std;
 using namespace boost::property_tree;
 using namespace boost;
@@ -48,16 +50,18 @@ vector<MessageQueue*> g_vMqList;//发送队列列表
 
 void GetSysDate(char sSysDate[])
 {
-	struct tm *tim;
+/*	struct tm *tim;
 	time_t ltim;
 	time(&ltim);
 	tim = localtime(&ltim);
 	sprintf(sSysDate,"%04d%02d%02d%02d%02d%02d",tim->tm_year+1900,tim->tm_mon+1,tim->tm_mday,
 	        tim->tm_hour,tim->tm_min,tim->tm_sec);
+*/
+	GetHostTime(sSysDate);
 }
 
 //进程初始化工作
-bool init(const char *cfgfile)
+bool init(const char *cfgfile,char sDispFile[])
 {
 	//logInit("asio_client");
 	boost::property_tree::ptree tree;
@@ -73,6 +77,9 @@ bool init(const char *cfgfile)
 	g_iSemLockKey = tree.get<int>("SemLockKey");
 	g_iSysMqMaxLen = tree.get<int>("SysMqMaxLen");
 	g_iSysMqMaxNum = tree.get<int>("SysMqMaxNum");
+	
+	if(strlen(sDispFile)>0)
+		g_sMoniDispFilePath=string(sDispFile);
 
 	if (g_strServer.ip[0] <= '0' || g_strServer.ip[0] > '9')
 	{
@@ -82,14 +89,14 @@ bool init(const char *cfgfile)
 	}
 	if (!g_poDataLock)
 	{
-		char sSemName[MAX_PATH] = { 0 };
+		char sSemName[MAX_PATH];
 		sprintf(sSemName, "%d", g_iSemLockKey);
 		g_poDataLock = new CSemaphore();
 		g_poDataLock->getSem(sSemName, 1, 1);
 	}
 	loaddispjson();
 
-	getTodayInit();
+//	getTodayInit();
 	cout << __FUNCTION__ << " complete" << endl;
 	return true;
 }
@@ -117,7 +124,7 @@ void sendMsg2Client(string &msg)
 #ifdef DEBUG_ONE
 	if(lTotal % 30000 == 0)
 	{
-		char sSysDate[15] = {0};
+		char sSysDate[15];
 		GetSysDate(sSysDate);
 		cout<<"["<<sSysDate<<"] Recv Msg Num:["<<lTotal<<"]"<<endl;
 		cout<<setw(10)<<"MqID"<<setw(16)<<"Recv Num"<<endl;
@@ -135,7 +142,7 @@ void sendMsg2Client(string &msg)
 int WatchFileCloseWriteAndLock(const char* sFileName)
 {
 	int fd, len, i;
-	char buf[BUFSIZ]={0};
+	char buf[BUFSIZ];
 	struct inotify_event *event;
 
 	if ((fd = inotify_init()) < 0)
@@ -223,25 +230,33 @@ void SetProcessSignal()
 
 int main(int argc, char *argv[])
 {
-	char m_sCfgJsonPath[MAX_PATH] = { 0 };//本地配置文件路径
+	char m_sCfgJsonPath[MAX_PATH],m_sDispJsonPath[MAX_PATH];//本地配置文件路径
+	
+	strcpy(m_sCfgJsonPath,"");
+	strcpy(m_sDispJsonPath,"");
+
 	SetProcessSignal();
-	for (int c; (c = getopt(argc, argv, "p:?:")) != EOF;)
+	for (int c; (c = getopt(argc, argv, "p:r:?:")) != EOF;)
 	{
 		switch (c)
 		{
 		case 'p':
 			strcpy(m_sCfgJsonPath, optarg);
 			break;
+		case 'r':
+			strcpy(m_sDispJsonPath, optarg);
+			break;
 		case '?':
 		default:
 			printf("Usage: %s \n", argv[0]);
 			printf("   [-p cfg-path ]\n");
+			printf("   [-r disp-json-path ]\n");
 			exit(1);
 			break;
 		}
 	}
 
-	init(m_sCfgJsonPath);
+	init(m_sCfgJsonPath,m_sDispJsonPath);
 
 	char errmsg[256];
 	bool connected = m_connect(errmsg);

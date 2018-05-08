@@ -10,7 +10,7 @@
 #include "TcpClient.h"
 #include <google/protobuf/message.h>
 #include "marketInterface.h"
-#include "getToday.h"
+//#include "getToday.h"
 #include "mktdata.pb.h"
 
 using namespace std;
@@ -46,7 +46,9 @@ public:
 	;
 	void login();
 	void recv(string &msg);
-	void subscribeReq(bool marketdata, bool transaction, bool orderqueue, bool order, bool replay = false, uint32_t date = false, uint32_t begin = false, uint32_t end = false);
+	void subscribeReq(bool marketdata, bool transaction, bool orderqueue,
+		bool order,bool replay = false, uint32_t date = false, 
+		uint32_t begin = false, uint32_t end = false);
 	void handle_error(const string &errmsg);
 	inline void stop()
 	{
