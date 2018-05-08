@@ -4,12 +4,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/inotify.h>
-
-#include <boost/property_tree/json_parser.hpp>
+//#include <sys/inotify.h>
+//#include <boost/property_tree/json_parser.hpp>
 
 #include "public.h"
+#include "tdf_supp.h"
 #include "gta_supp.h"
+
 
 #include "mktdata.pb.h"  
 #include "MessageQueue.h"
@@ -538,3 +539,24 @@ void CallBackBase::Deal_Message_D31Item(SubData *subdata)
 	}
 }
 
+void GetStockStrAll(StockSymbol* pStock,int sz,char sShStr[],char sSzStr[])
+{
+	char sTemp[7];
+	int i,shPos=0,szPos=0;
+	
+	for (i = 0; i < sz; ++i) {
+	
+		strncpy(sTemp,pStock[i].Symbol,6);sTemp[6]=0;
+		
+		if(ValidShStockCode(pStock[i].Symbol)){
+			shPos+=sprintf(sShStr+shPos,"%6s,",sTemp);
+		}
+		else if(ValidSzStockCode(pStock[i].Symbol)){
+			szPos+=sprintf(sSzStr+szPos,"%6s,",sTemp);
+		}
+	}
+	
+	if(shPos>0) sShStr[shPos-1]=0;
+	
+	if(szPos>0) sSzStr[szPos-1]=0;
+}

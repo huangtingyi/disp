@@ -97,4 +97,6 @@ private:
 };
 
 
+void GetStockStrAll(StockSymbol* pStock,int sz,char sShStr[],char sSzStr[]);
+
 #endif  //_CALLBACK_BASE_H

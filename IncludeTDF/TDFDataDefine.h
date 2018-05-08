@@ -1410,10 +1410,10 @@ public:
 	char* GetStringField(int index)
 	{
 		if(!pDef || !pMsg)
-			return "";
+			return (char*)"";
 		if(index < pDef->nFieldNumber && ID_TDTYPE_TEXT == pDef->fieldInfo[index].nType)
 			return pMsg+ pDef->fieldInfo[index].nOffset;
-		return "";
+		return (char*)"";
 	}
 private:
 	_NonMD_Msg_Def* pDef;

@@ -18,7 +18,7 @@ void (*GTA_Quotation2TinyQuotation)(void *p, struct TinyQuotationStruct *po);
 
 void GTA2TDF_QH2T(void *p, TDF_TRANSACTION *pt)
 {
-	const SSEL2_Transaction *pi=(const SSEL2_Transaction *)p;
+	SSEL2_Transaction *pi=(SSEL2_Transaction *)p;
 
 	//char    szCode[32];                 //ԭʼCode
 	strcpy(pt->szCode, pi->Symbol);

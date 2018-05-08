@@ -108,5 +108,12 @@ int iDiffnTime(int iTime,int iTime1);
 
 long nGetHostTime();
 
+#include "stdint.h"
+
+inline int64_t yuan2percentFen(const double yuan)
+{
+	return int64_t((yuan + 0.00005) * 10000);
+}
+
 
 #endif

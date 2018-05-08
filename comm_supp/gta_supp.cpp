@@ -1,6 +1,7 @@
 #include <cstring>
 #include <cstdint>
 
+#include "wwtiny.h"
 #include "gta_supp.h"
 
 struct LimitUpDownStruct LIMIT[MAX_STOCK_CODE];
@@ -11,12 +12,6 @@ void InitLimitArray()
 		LIMIT[i].WarrantDownLimit=0.0;
 		LIMIT[i].WarrantUpLimit=0.0;
 	}
-}
-
-
-int64_t yuan2percentFen(const double yuan) 
-{
-	return int64_t((yuan + 0.00005) * 10000);
 }
 
 char GTA2TDF_MARKET_STATUS(const char *TradeStatus, const char *SecurityPhaseTag) {

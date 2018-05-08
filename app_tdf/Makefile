@@ -25,7 +25,7 @@ LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_se
 Example_SRC=$(wildcard ./ints_tdf_t.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp)
 Example_OBJS=$(patsubst %.cpp, %.o, $(Example_SRC))
 
-Example_SRC_B=$(wildcard ./ints_tdf.cpp ../comm_supp/callsupp.cpp ../public/wwtiny.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp)
+Example_SRC_B=$(wildcard ./ints_tdf.cpp ./CallBackBase.cpp ../comm_supp/callsupp.cpp ../public/wwtiny.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../public/d31data.pb.cpp ../Common/*.cpp ../comm_supp/tdf_supp.cpp)
 Example_OBJS_B=$(patsubst %.cpp, %.o, $(Example_SRC_B))
 
 

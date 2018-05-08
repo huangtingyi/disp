@@ -16,8 +16,16 @@ makedir()
 		cd $dir
 		case $dir in
 		app_dat2cli|app_agentcli)
-			rm -rf MakeFiles CMakeCache.txt CMakeFiles
+			rm -fr MakeFiles CMakeCache.txt CMakeFiles
+			echo "rm -fr MakeFiles CMakeCache.txt CMakeFiles"
 			cd ..
+			if [ $dir = "app_dat2cli" ]; then
+				rm -fr bin/dat2cli
+				echo "rm -rf bin/dat2cli"
+			else
+				rm -fr bin/agentcli
+				echo "rm -fr bin/agentcli"
+			fi
 		;;
 		*)
 			make clean;

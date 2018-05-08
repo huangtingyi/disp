@@ -236,7 +236,6 @@ int MessageQueue::receive(char *buf, long lMtype)
 	 接收消息的时候，忽略信号引起的中断
 	 */
 	int ret;
-	int len;
 
 #ifdef SYSTEM_V
 	memset ((char *)m_pBuff, 0, m_iBufLen+sizeof(long));

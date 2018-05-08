@@ -18,8 +18,6 @@
 #include <unistd.h>
 #define  SLEEP(t)  sleep(t)
 #endif
-//#include "../VecStockCode/VectorStockCodeSH.h"
-//#include "../VecStockCode/VectorStockCodeSZ.h"
 
 #include "callsupp.h"
 

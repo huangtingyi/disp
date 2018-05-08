@@ -1091,3 +1091,4 @@ long nGetHostTime()
 
 	return atol(sHostTime)*1000+atol(sMilliSec);
 }
+
