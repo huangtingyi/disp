@@ -39,9 +39,9 @@ TARGETS=$(TARGET_A) $(TARGET_B) $(TARGET_C)
 
 .PHONY: debug release clean 
 
-release: $(TARGET_A)
+release: $(TARGETS)
 
-debug: $(TARGET_A)
+debug: $(TARGETS)
 #连接动态库
 $(TARGET_A): $(Example_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) -L$(TARGETPATH) -lGTAQTSApi
