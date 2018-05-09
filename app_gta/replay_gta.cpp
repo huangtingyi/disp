@@ -15,7 +15,7 @@
 #include "wwtiny.h"
 
 #include "gta_supp.h"
-
+#include "d31_item.h"
 
 #include "public.h"
 
