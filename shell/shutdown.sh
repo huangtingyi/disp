@@ -5,7 +5,7 @@ echo "`date '+%Y/%m/%d %k:%M:%S'` system shutdown  BEGIN..."
 pidof_bin="/usr/sbin/pidof"
 [ ! -f $pidof_bin ] && echo "$pidof_bin is not exist" && exit 1;
 
-pids=`$pidof_bin -x dat2cli ints_gta replay_gta ints_gta moni.sh`
+pids=`$pidof_bin -x dat2cli ints_gta replay_gta ints_gta ints_tdf moni.sh`
 
 if [ -z "$pids" ]; then
 	echo "`date '+%Y/%m/%d %k:%M:%S'` system is not start..,exit";
