@@ -53,7 +53,7 @@ fi
 
 echo "`date '+%Y/%m/%d %k:%M:%S'` system startupREPLAY  BEGIN..."
 
-conf_file="$HOME/bin/config.ini"
+conf_file="$HOME/conf/config.ini"
 [ ! -f $conf_file ] && echo "$conf_file is not exist" && exit 1;
 
 . $conf_file
