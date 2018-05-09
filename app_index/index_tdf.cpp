@@ -10,167 +10,36 @@
 
 #include "QTSStruct.h"
 #include "index_supp.h"
-#include "gta_supp.h"
 
-
-void  (*GTA2TDF_Q2T)(void *p, TDF_TRANSACTION *pt);
-void (*GTA_Quotation2TinyQuotation)(void *p, struct TinyQuotationStruct *po);
-
-void GTA2TDF_QH2T(void *p, TDF_TRANSACTION *pt)
+void TDF_MARKET_DATA2TinyQuotation(TDF_MARKET_DATA *pi,struct TinyQuotationStruct *po)
 {
-	SSEL2_Transaction *pi=(SSEL2_Transaction *)p;
+	po->iStockCode=	atoi(pi->szCode);
 
-	//char    szCode[32];                 //原始Code
-	strcpy(pt->szCode, pi->Symbol);
-	//char    szWindCode[32];             //600001.SH
-	strcpy(pt->szWindCode, pi->Symbol);
-	pt->szWindCode[6] = '.';
-	pt->szWindCode[7] = 'S';
-	pt->szWindCode[8] = 'H';
-	//int     nActionDay;                 //自然日
-	pt->nActionDay = int(pi->PacketTimeStamp / 1000000000);
-	//int 	nTime;		                //成交时间(HHMMSSmmm)
-	pt->nTime = pi->TradeTime;
-	//int 	nIndex;		                //成交编号
-	pt->nIndex = pi->RecID;
-	//__int64		nPrice;		            //成交价格
-	pt->nPrice = yuan2percentFen(pi->TradePrice);
-	//int 	nVolume;	                //成交数量
-	pt->nVolume = pi->TradeVolume;
-	//__int64		nTurnover;	            //成交金额
-	pt->nTurnover = yuan2percentFen(pi->TradeAmount);
-	//int     nBSFlag;                    //买卖方向(买：'B', 卖：'S', 不明：' ')
-	switch (pi->BuySellFlag) {
-		case 'B':
-		case 'b':
-			pt->nBSFlag = 'B';
-			break;
-		case 'S':
-		case 's':
-			pt->nBSFlag = 'S';
-			break;
-		default:
-			if (pi->BuyRecID > pi->SellRecID)
-				pt->nBSFlag = 'B';
-			else
-				pt->nBSFlag = 'S';
-	}
-	//char    chOrderKind;                //成交类别
-	pt->chOrderKind = 0;
-	//char    chFunctionCode;             //成交代码
-	pt->chFunctionCode = 0;
-	//int	    nAskOrder;	                //叫卖方委托序号
-	pt->nAskOrder = int(pi->SellRecID);
-	//int	    nBidOrder;	                //叫买方委托序号
-	pt->nBidOrder = int(pi->BuyRecID);
-}
-void  GTA2TDF_QZ2T(void *p, TDF_TRANSACTION *pt)
-{
-	SZSEL2_Transaction *pi=(SZSEL2_Transaction *)p;
+        po->nActionDay= pi->nActionDay;
+        po->nTime= 	pi->nTime;
 
-	//char    szWindCode[32];             //600001.SH
-	strcpy(pt->szWindCode, pi->Symbol);
-	pt->szWindCode[6] = '.';
-	pt->szWindCode[7] = 'S';
-	pt->szWindCode[8] = 'Z';
-	pt->szWindCode[9] = '\0';
-	//char    szCode[32];                 //原始Code
-	strcpy(pt->szCode, pi->Symbol);
-	//int     nActionDay;                 //自然日
-	pt->nActionDay = int(pi->TradeTime / 1000000000);
-	//int 	nTime;		                //成交时间(HHMMSSmmm)
-	pt->nTime = pi->TradeTime % 1000000000;
-	//int 	nIndex;		                //成交编号
-	pt->nIndex = int(pi->RecID);
-	//__int64		nPrice;		            //成交价格
-	pt->nPrice = yuan2percentFen(pi->TradePrice);
-	//int 	nVolume;	                //成交数量
-	pt->nVolume = int(pi->TradeVolume + 0.5);
-	//__int64		nTurnover;	            //成交金额
-	pt->nTurnover = pt->nPrice * pt->nVolume;
-	//char    chOrderKind;                //成交类别
-	pt->chOrderKind = '0';
-	//char    chFunctionCode;             //成交代码
-	switch (pi->TradeType) {
-		case '4':
-			pt->chFunctionCode = 'C';
-			pt->nBSFlag = ' ';
-			break;
-		default:
-			pt->chFunctionCode = '0';
-			//int     nBSFlag;                    //买卖方向(买：'B', 卖：'S', 不明：' ')
-			if (pi->BuyOrderID > pi->SellOrderID)
-				pt->nBSFlag = 'B';
-			else
-				pt->nBSFlag = 'S';
-	}
-	//int	    nAskOrder;	                //叫卖方委托序号
-	pt->nAskOrder = int(pi->SellOrderID);
-	//int	    nBidOrder;	                //叫买方委托序号
-	pt->nBidOrder = int(pi->BuyOrderID);
-}
-void SSEL2_Quotation2TinyQuotation(void *p, struct TinyQuotationStruct *po)
-{
+        po->nPreClose= 	pi->nPreClose;
+        po->nOpen= 	pi->nOpen;
+        po->nHigh= 	pi->nHigh;
+        po->nLow= 	pi->nLow;
+        po->nMatch= 	pi->nMatch;
 
-	SSEL2_Quotation *pi=(SSEL2_Quotation*)p;
+        for (unsigned i = 0; i < LEVEL_TEN; ++i) {
+                po->nAskVol[i]= 	pi->nAskVol[i];
+                po->nAskPrice[i]= 	pi->nAskPrice[i];
+        }
+        for (unsigned i = 0; i < LEVEL_TEN; ++i) {
+                po->nBidVol[i]= 	pi->nBidVol[i];
+                po->nBidPrice[i]= 	pi->nBidPrice[i];
+        }
 
-	po->iStockCode=	atoi(pi->Symbol);
-	po->nActionDay = int(pi->PacketTimeStamp / 1000000000);
-	po->nTime = 	pi->Time;
-	po->nPreClose = (int)yuan2percentFen(pi->PreClosePrice);
-	po->nOpen = 	(int)yuan2percentFen(pi->OpenPrice);
-	po->nHigh = 	(int)yuan2percentFen(pi->HighPrice);
-	po->nLow = 	(int)yuan2percentFen(pi->LowPrice);
-	po->nMatch = 	(int)yuan2percentFen(pi->LastPrice);
-	for (unsigned i = 0; i < 10; ++i) {
-		po->nAskVol[i] = (int)pi->SellLevel[i].Volume;
-		po->nAskPrice[i] = (int)yuan2percentFen(pi->SellLevel[i].Price);
-	}
-	for (unsigned i = 0; i < 10; ++i) {
-		po->nBidVol[i] = (int)pi->BuyLevel[i].Volume;
-		po->nBidPrice[i] = (int)yuan2percentFen(pi->BuyLevel[i].Price);
-	}
-
-	po->nNumTrades = int(pi->TotalNo);
-	po->iVolume = 		(int8b)pi->TotalVolume;
-	po->iTurnover = 	(int8b)(pi->TotalAmount);
-	po->nTotalBidVol = 	(int8b)pi->TotalBuyOrderVolume;
-	po->nTotalAskVol = 	(int8b)pi->TotalSellOrderVolume;
-	po->nWtAvgBidPrice = 	(int)yuan2percentFen(pi->WtAvgBuyPrice);
-	po->nWtAvgAskPrice = 	(int)yuan2percentFen(pi->WtAvgSellPrice);
-}
-void SZSEL2_Quotation2TinyQuotation(void *p, struct TinyQuotationStruct *po)
-{
-
-	SZSEL2_Quotation *pi=(SZSEL2_Quotation*)p;
-
-	po->iStockCode=	atoi(pi->Symbol);
-
-	po->nActionDay = int(pi->Time / 1000000000);
-	po->nTime = pi->Time % 1000000000;
-
-	po->nPreClose = (int)yuan2percentFen(pi->PreClosePrice);
-	po->nOpen = 	(int)yuan2percentFen(pi->OpenPrice);
-	po->nHigh = 	(int)yuan2percentFen(pi->HighPrice);
-	po->nLow = 	(int)yuan2percentFen(pi->LowPrice);
-	po->nMatch = 	(int)yuan2percentFen(pi->LastPrice);
-
-	for (unsigned i = 0; i < LEVEL_TEN; ++i) {
-		po->nAskVol[i] = 	(int)(pi->SellLevel[i].Volume);
-		po->nAskPrice[i] = 	(int)yuan2percentFen(pi->SellLevel[i].Price);
-	}
-	for (unsigned i = 0; i < LEVEL_TEN; ++i) {
-		po->nBidVol[i] = 	(int)(pi->BuyLevel[i].Volume);
-		po->nBidPrice[i] = 	(int)yuan2percentFen(pi->BuyLevel[i].Price);
-	}
-
-	po->nNumTrades =int(pi->TotalNo);
-	po->iVolume = 	(int8b)(pi->TotalVolume + 0.5);
-	po->iTurnover = (int8b)(pi->TotalAmount);
-	po->nTotalBidVol = (int8b)(pi->TotalBuyOrderVolume + 0.5);
-	po->nTotalAskVol = (int8b)(pi->TotalSellOrderVolume + 0.5);
-	po->nWtAvgBidPrice =(int)yuan2percentFen(pi->WtAvgBuyPrice);
-	po->nWtAvgAskPrice =(int)yuan2percentFen(pi->WtAvgSellPrice);
+        po->nNumTrades= 	pi->nNumTrades;
+        po->iVolume= 		pi->iVolume;
+        po->iTurnover= 		pi->iTurnover;
+        po->nTotalBidVol= 	pi->nTotalBidVol;
+        po->nTotalAskVol= 	pi->nTotalAskVol;
+        po->nWtAvgBidPrice= 	pi->nWeightedAvgBidPrice;
+        po->nWtAvgAskPrice=	pi->nWeightedAvgAskPrice;
 }
 
 
@@ -189,8 +58,7 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 	int iRet;
 	char sBuffer[2048];
 //	long long *pll=(long long*)sBuffer;
-	void *p=(void*)(sBuffer+sizeof(long long));
-	TDF_TRANSACTION t;
+	TDF_TRANSACTION *p=(TDF_TRANSACTION*)(sBuffer+sizeof(long long));
 	struct TinyTransactionStruct tt,*pt;
 
 	LISTHEAD *pSXT;
@@ -216,33 +84,30 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 
 		lCurPos+=lItemLen;
 
-		//将格式转换为TRANSACTION
-		GTA2TDF_Q2T(p,&t);
-
-		if(t.nActionDay!=nBgnActionDay){
+		if(p->nActionDay!=nBgnActionDay){
 			printf("error date file=%s,pos=%ld,actionday=%d,calcdate=%d\n",
-				sFileName,lCurPos,t.nActionDay,nBgnActionDay);
+				sFileName,lCurPos,p->nActionDay,nBgnActionDay);
 			return -1;
 		}
 
-		if((pIndexStat=GetIndexStat(atoi(t.szCode),sFileName,
+		if((pIndexStat=GetIndexStat(atoi(p->szCode),sFileName,
 			lCurPos,nBgnActionDay,nPreT0,nT0))==NULL) return -1;
 
 		//过滤掉撤单信息
-		if(t.chFunctionCode=='C') continue;
+		if(p->chFunctionCode=='C') continue;
 
 /*		if(iStockCode==2320){
 			printf("hello my stock trans.\n");
 		}
 */
 		//将Transaction数据生成Order数据，添加到Merge结构中
-		if(AddTransaction2IndexStat(&t,nT0,pIndexStat)<0){
+		if(AddTransaction2IndexStat(p,nT0,pIndexStat)<0){
 			printf("error add transaction to index stat file=%s,pos=%ld\n",
 			sFileName,lCurPos);
 			return -1;
 		}
 
-		TDF_TRANSACTION2TinyTransaction(&t,&tt);
+		TDF_TRANSACTION2TinyTransaction(p,&tt);
 /*
 		if(tt.nTime==93459180&&tt.nAskOrder==255798){
 			printf("find U little cat.\n");
@@ -261,7 +126,7 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 
 		//实测表明,取数为 nPreT0<=x<nT0 按这个去取区间
 		//如果,t.nTime为收盘时间也归 15:00:00这个区间
-		if(MY_BELONG_TRANSACTION_T0(t.nTime,nT0)){
+		if(MY_BELONG_TRANSACTION_T0(p->nTime,nT0)){
 //		if(t.nTime<nT0||(t.nTime==MY_CLOSE_MARKET_TIME&&nT0==MY_CLOSE_MARKET_TIME)){
 /***
 			填写一下以下4个字段
@@ -289,7 +154,7 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 		Append2List(pSXT,(LIST*)pt);
 
 		//遇到大于nEndTime0的数据停止
-		if(t.nTime>nEndTime0){
+		if(p->nTime>nEndTime0){
 			iRet=MY_WANT_STAT;
 			break;
 		}
@@ -306,7 +171,7 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 	0 到达文件末尾，或大于nEndTime0,放回
 	-1	处理错误
 */
-int MountQutation2IndexStatArray(char sFileName[],int nBgnActionDay,
+int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
 	int nPreT0,int nT0,int nEndTime0,long lItemLen,long *plCurPos)
 {
 	int iRet;
@@ -314,7 +179,7 @@ int MountQutation2IndexStatArray(char sFileName[],int nBgnActionDay,
 	long lCurPos=*plCurPos;
 	char sBuffer[2048];
 //	long long *pll=(long long*)sBuffer;
-	void *p=(SZSEL2_Order*)(sBuffer+sizeof(long long));
+	TDF_MARKET_DATA *p=(TDF_MARKET_DATA*)(sBuffer+sizeof(long long));
 	struct TinyQuotationStruct q,*pt;
 	struct IndexStatStruct *pIndexStat;
 
@@ -337,7 +202,7 @@ int MountQutation2IndexStatArray(char sFileName[],int nBgnActionDay,
 
 		lCurPos+=lItemLen;
 
-		GTA_Quotation2TinyQuotation(p,&q);
+		TDF_MARKET_DATA2TinyQuotation(p,&q);
 
 		if((pIndexStat=GetIndexStat(q.iStockCode,sFileName,
 			lCurPos,nBgnActionDay,nPreT0,nT0))==NULL) return -1;
@@ -393,8 +258,7 @@ int MountOrdData2IndexStatArray(char sFileName[],int nBgnActionDay,
 	long lCurPos=*plCurPos;
 	char sBuffer[2048];
 //	long long *pll=(long long*)sBuffer;
-	SZSEL2_Order *p=(SZSEL2_Order*)(sBuffer+sizeof(long long));
-	TDF_ORDER od;
+	TDF_ORDER *p=(TDF_ORDER*)(sBuffer+sizeof(long long));
 	struct TinyOrderStruct o,*pOrder,*pTemp;
 	struct IndexStatStruct *pIndexStat;
 
@@ -414,31 +278,29 @@ int MountOrdData2IndexStatArray(char sFileName[],int nBgnActionDay,
 		}
 		lCurPos+=lItemLen;
 
-		GTA2TDF_SZSEL2_O(p[0],od);
+		TDF_ORDER2TinyOrder(p,&o);
 
-		if((pIndexStat=GetIndexStat(atoi(od.szCode),sFileName,
+		if((pIndexStat=GetIndexStat(o.iStockCode,sFileName,
 			lCurPos,nBgnActionDay,nPreT0,nT0))==NULL) return -1;
 
 //		if(iStockCode==2320){
 //			printf("hello my stock order.\n");
 //		}
-		if(SearchBin(pIndexStat->M_ORDER,(void*)&od.nOrder,
+		if(SearchBin(pIndexStat->M_ORDER,(void*)&p->nOrder,
 			data_search_bintree_order_2,(void**)&pOrder)==FOUND){
 
 			pOrder->iCloseFlag=	1;
-			pOrder->nOriOrdPrice=	od.nPrice;
-			pOrder->nOriOrdVolume=	od.nVolume;
-			pOrder->lOriOrdAmnt=	(long)od.nPrice*od.nVolume/100;
+			pOrder->nOriOrdPrice=	p->nPrice;
+			pOrder->nOriOrdVolume=	p->nVolume;
+			pOrder->lOriOrdAmnt=	(long)p->nPrice*p->nVolume/100;
 
 			//遇到大于nEndTime0的数据停止
-			if(od.nTime>=nEndTime0){
+			if(p->nTime>=nEndTime0){
 				iRet=MY_WANT_STAT;
 				break;    
 			}
 			continue;
 		}
-
-		TDF_ORDER2TinyOrder(&od,&o);
 
 		//将链表头的指针带入
 		//o.pNext=&(pIndexStat->PreS0M);
@@ -458,7 +320,7 @@ int MountOrdData2IndexStatArray(char sFileName[],int nBgnActionDay,
 			return -1;
 		}
 		//遇到大于nEndTime0的数据停止
-		if(od.nTime>=nEndTime0){
+		if(p->nTime>=nEndTime0){
 			iRet=MY_WANT_STAT;
 			break;
 		}
@@ -488,19 +350,15 @@ int main(int argc, char *argv[])
 	int iIdleWaitMilli=10,iWriteFlag=1;//,iContinueFlag=false;
 	int iShBusyDelay=12000,iShDelay=3000,iSzBusyDelay=12000,iSzDelay=2000;
 	int nBgnActionDay,nBgnTime,nPreT0,nT0,nEndTime0;
-	int iThRes,iTzRes,iQhRes,iQzRes,iOzRes;
+	int iMktRes,iTraRes,iOrdRes;
 
 	char sCurTime[15],sCalcDate[15],sCalcBgn[15];
 	char sDelayStr[256],sCodeStr[512],sD31Name[512],sSourcePath[512],sWorkRoot[512];
-	char sGtaQhName[512],sGtaQzName[512],sGtaThName[512],sGtaTzName[512],sGtaOzName[512];
+	char sMktName[512],sTraName[512],sOrdName[512];
 
 	time_t tBeginTime,tEndTime,tDelTime;
 	//当前文件处理位置
-	long lThCurPos=0,lTzCurPos=0,lOzCurPos=0,lQhCurPos=0,lQzCurPos=0;
-
-//	struct D31ItemStruct XX,*p=&XX;
-
-//	printf("sizof =%ld.\n",sizeof(struct D31ItemStruct));
+	long lMktCurPos=0,lTraCurPos=0,lOrdCurPos=0;
 
 	GetHostTime(sCurTime);
 
@@ -519,7 +377,6 @@ int main(int argc, char *argv[])
 		switch (c){
 		case 'd':strncpy(sCalcDate, optarg,8);sCalcDate[8]=0;	break;
 		case 'b':strncpy(sCalcBgn, optarg,6);sCalcBgn[6]=0;	break;
-//		case 'm':iMaxWaitSec=atoi(optarg);	break;
 		case 's':strcpy(sSourcePath, optarg);	break;
 		case 'o':strcpy(sWorkRoot, optarg);	break;
 		case 'e':strcpy(sDelayStr,optarg);	break;
@@ -569,14 +426,12 @@ int main(int argc, char *argv[])
 		iSzDelay=	atoi(p2);
 	}
 
-	//生成六个文件名
-	sprintf(sGtaThName,"%s/gta_th_%s.dat",sSourcePath,sCalcDate);
-	sprintf(sGtaTzName,"%s/gta_tz_%s.dat",sSourcePath,sCalcDate);
-	sprintf(sGtaOzName,"%s/gta_oz_%s.dat",sSourcePath,sCalcDate);
-	sprintf(sGtaQhName,"%s/gta_qh_%s.dat",sSourcePath,sCalcDate);
-	sprintf(sGtaQzName,"%s/gta_qz_%s.dat",sSourcePath,sCalcDate);
+	//生成四个文件名
+	sprintf(sMktName,"%s/tdf_mk_%s.dat",sSourcePath,sCalcDate);
+	sprintf(sTraName,"%s/tdf_tr_%s.dat",sSourcePath,sCalcDate);
+	sprintf(sOrdName,"%s/tdf_or_%s.dat",sSourcePath,sCalcDate);
 
-	sprintf(sD31Name,"%s/d31_g%d_%s.txt",sWorkRoot,iWriteFlag,sCalcDate);
+	sprintf(sD31Name,"%s/d31_t%d_%s.txt",sWorkRoot,iWriteFlag,sCalcDate);
 
         if((fpD31=fopen(sD31Name,"w"))==NULL){
                 printf("error open file %s to write.\n",sD31Name);
@@ -603,60 +458,35 @@ int main(int argc, char *argv[])
 		}
 		else	nEndTime0=iAddMilliSec(nT0,iSzDelay+20000);
 
-//		if(iContinueFlag==true&&iOzRes==MY_WANT_STAT) goto next_step_tz;
 			
 		//加载深圳订单数据
-		iOzRes=MountOrdData2IndexStatArray(sGtaOzName,nBgnActionDay,nPreT0,nT0, 
-			nEndTime0,sizeof(long long)+sizeof(SZSEL2_Order),&lOzCurPos);
-		if(iOzRes<0) return -1;
+		iOrdRes=MountOrdData2IndexStatArray(sOrdName,nBgnActionDay,nPreT0,nT0, 
+			nEndTime0,sizeof(long long)+sizeof(TDF_ORDER),&lOrdCurPos);
+		if(iOrdRes<0) return -1;
 
-//next_step_tz:
 		if(IsBusyTime(nT0))
 			nEndTime0=iAddMilliSec(nT0,iSzBusyDelay);
 		else	nEndTime0=iAddMilliSec(nT0,iSzDelay);
-
-//		if(iContinueFlag==true&&iTzRes==MY_WANT_STAT) goto next_step_qz;
 			
-		//加载深圳交易数据
-		GTA2TDF_Q2T=GTA2TDF_QZ2T;
-		iTzRes=MountTrsData2IndexStatArray(sGtaTzName,nBgnActionDay,nPreT0,nT0,
-			nEndTime0,sizeof(long long)+sizeof(SZSEL2_Transaction),&lTzCurPos);
-		if(iTzRes<0) return -1;
+		//加载深圳、和上海的交易数据
+		iTraRes=MountTrsData2IndexStatArray(sTraName,nBgnActionDay,nPreT0,nT0,
+			nEndTime0,sizeof(long long)+sizeof(TDF_TRANSACTION),&lTraCurPos);
+		if(iTraRes<0) return -1;
                           
-//next_step_qz:
-//		if(iContinueFlag==true&&iQzRes==MY_WANT_STAT) goto next_step_th;
-		//加载深圳行情数据
-		GTA_Quotation2TinyQuotation=SZSEL2_Quotation2TinyQuotation;
-		iQzRes=MountQutation2IndexStatArray(sGtaQzName,nBgnActionDay,nPreT0,nT0,
-			nEndTime0,sizeof(long long)+sizeof(SZSEL2_Quotation),&lQzCurPos);
-		if(iQzRes<0) return -1;
-
-//next_step_th:
 		
 		if(IsBusyTime(nT0))
 			nEndTime0=iAddMilliSec(nT0,iShBusyDelay);
 		else	nEndTime0=iAddMilliSec(nT0,iShDelay);
 
-//		if(iContinueFlag==true&&iThRes==MY_WANT_STAT) goto next_step_qh;
 
-		//加载上海交易数据
-		GTA2TDF_Q2T=GTA2TDF_QH2T;
-		iThRes=MountTrsData2IndexStatArray(sGtaThName,nBgnActionDay,nPreT0,nT0,
-			nEndTime0,sizeof(long long)+sizeof(SSEL2_Transaction),&lThCurPos);
-		if(iThRes<0) return -1;
-
-//next_step_qh:
-//		if(iContinueFlag==true&&iThRes==MY_WANT_STAT) goto next_step_all;
-		//加载上海行情数据
-		GTA_Quotation2TinyQuotation=SSEL2_Quotation2TinyQuotation;
-		iQhRes=MountQutation2IndexStatArray(sGtaQhName,nBgnActionDay,nPreT0,nT0,
-			nEndTime0,sizeof(long long)+sizeof(SSEL2_Quotation),&lQhCurPos);
-		if(iQhRes<0) return -1;
+		iMktRes=MountQuotation2IndexStatArray(sMktName,nBgnActionDay,nPreT0,nT0,
+			nEndTime0,sizeof(long long)+sizeof(TDF_MARKET_DATA),&lMktCurPos);
+		if(iMktRes<0) return -1;
 
 //next_step_all:
 		//如果两个成交时间都未达到统计点，
 		//死等数据到来，没到来扫描数据一下；
-		if(iTzRes!=MY_WANT_STAT&&iThRes!=MY_WANT_STAT){
+		if(iTraRes!=MY_WANT_STAT){
 
 			int nCurTime=nGetHostCurTime();
 						
@@ -679,8 +509,8 @@ int main(int argc, char *argv[])
 
 		int nCur=nGetHostCurTime();
 		
-		printf("hello world tzr=%d,tzp=%ld,thr=%d,thp=%ld,\tcur=%d,ms=%d.\n",
-			iTzRes,lTzCurPos,iThRes,lThCurPos,nCur/1000,nCur%1000);
+		printf("hello world trar=%d,trap=%ld,ordr=%d,ordp=%ld,\tcur=%d,ms=%d.\n",
+			iTraRes,lTraCurPos,iOrdRes,lOrdCurPos,nCur/1000,nCur%1000);
 
 		//做一个循环将D31的数据统计出来
 		if(GenD31StatAll()<0) return -1;

@@ -495,18 +495,16 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 
 bool ValidShStockCode(char sStockCode[])
 {
-	if (sStockCode[8] == 'S'&& 
-		((sStockCode[0] == '6' && sStockCode[1] == '0')||
-		(sStockCode[0] == '1' && sStockCode[1] == '1'))) return true;
+	if((sStockCode[0] == '6' && sStockCode[1] == '0')||
+		(sStockCode[0] == '1' && sStockCode[1] == '1')) return true;
 	return false;
 }
 
 bool ValidSzStockCode(char sStockCode[])
 {
-	if (sStockCode[8] == 'Z'&& 
-		((sStockCode[0] == '3' && sStockCode[1] == '0')||
+	if((sStockCode[0] == '3' && sStockCode[1] == '0')||
 		(sStockCode[0] == '0' && sStockCode[1] == '0')||
-		(sStockCode[0] == '1' && sStockCode[1] == '2'))) return true;
+		(sStockCode[0] == '1' && sStockCode[1] == '2')) return true;
 	return false;
 }
 
