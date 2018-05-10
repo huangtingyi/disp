@@ -903,10 +903,9 @@ void MessageQueue::setBlockFlag(bool ifblock)
 void MessageQueue::setMaxNum(int maxnum)
 {
 #ifdef CHECK_MSG_NUM
-	if (!m_bAttached)
-	return;
-	if (maxnum > m_iMaxNum)
-	m_iMaxNum = maxnum;
+	if (!m_bAttached) return;
+
+	if (maxnum > m_iMaxNum) m_iMaxNum = maxnum;
 #endif
 }
 

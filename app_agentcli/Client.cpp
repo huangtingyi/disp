@@ -3,6 +3,10 @@
 #include "marketInterface.h"
 #include "wwtiny.h"
 
+#include "mktdata.pb.h"
+#include "d31data.pb.h"
+
+#include "callsupp.h"
 
 int getTodayYyyymmdd()
 {
@@ -34,8 +38,56 @@ void Client::async_send(const google::protobuf::Message &msg, BizCode bizCode)
 	m_tcpClient->writeThreadSafe(msgBody);
 }
 
+int GetStockCodeFromProtoBuf(BizCode iBizCode,string &msgProtobuf)
+{
+	int iStockCode=0;
+	
+	switch(iBizCode){
+	case MKT_DATA_LV2:
+	{
+		MktData 	t;
+		t.ParseFromString(msgProtobuf);
+		iStockCode=	t.szcode();
+	}
+	break;
+	case MKT_DATA_DEAL:
+	{
+		Transaction 	t;
+		t.ParseFromString(msgProtobuf);
+		iStockCode=	t.szcode();
+	}
+	break;
+	case SZ_ORDER:
+	{
+		Order 		t;
+		t.ParseFromString(msgProtobuf);
+		iStockCode=	t.szcode();
+	}
+	break;
+	case MKT_DATA_ORDERQUEUE:
+	{
+		Order_queue	t;
+		t.ParseFromString(msgProtobuf);
+		iStockCode=	t.szcode();
+	}
+	break;
+	case D31_ITEM:
+	{
+		D31Item         t;
+		t.ParseFromString(msgProtobuf);
+		iStockCode=	t.nstockcode();
+	}
+	break;
+	default:
+	break;
+	}
+	
+	return iStockCode;
+}
+
 void Client::recv(string &msg)
 {
+	int iStockCode=0;
 	string msgProtobuf; //剥离了bizcode序列化了的pb数据
 	BizCode iBizCode;
 	getBizcode(iBizCode, msgProtobuf, msg);
@@ -60,24 +112,52 @@ void Client::recv(string &msg)
 			}
 			beginHeartbeat();
 		}
-		else
-		{
-		}
 	}
 		break;
 	case MKT_DATA_LV2:
+	{
+		MktData 	t;
+		t.ParseFromString(msgProtobuf);
+		iStockCode=	t.szcode();
+		SendMsg2Cli(iStockCode,'M',msgProtobuf);
+	}
+	break;
 	case MKT_DATA_DEAL:
+	{
+		Transaction 	t;
+		t.ParseFromString(msgProtobuf);
+		iStockCode=	t.szcode();
+		SendMsg2Cli(iStockCode,'T',msgProtobuf);
+	}
+	break;
 	case SZ_ORDER:
+	{
+		Order 		t;
+		t.ParseFromString(msgProtobuf);
+		iStockCode=	t.szcode();
+		SendMsg2Cli(iStockCode,'O',msgProtobuf);
+	}
+	break;
 	case MKT_DATA_ORDERQUEUE:
+	{
+		Order_queue	t;
+		t.ParseFromString(msgProtobuf);
+		iStockCode=	t.szcode();
+		SendMsg2Cli(iStockCode,'Q',msgProtobuf);
+	}
+	break;
+	case D31_ITEM:
+	{
+		D31Item         t;
+		t.ParseFromString(msgProtobuf);
+		iStockCode=	t.nstockcode();
+		SendMsg2Cli(iStockCode,'D',msgProtobuf);
+	}
+	break;
 	case INDEX_SH:
 	case INDEX_SZ:
 	{
-		uint16_t networkLenBody = uint16_t(htons(msg.size()));
-		char sLen[3] = { 0 };
-		sLen[0] = ((char*) &networkLenBody)[0];
-		sLen[1] = ((char*) &networkLenBody)[1];
-		msg.insert(0, sLen, 2); //生成原始串
-		sendMsg2Client(msg);
+		//目前系统没这类数据，不实现这部分了
 	}
 		break;
 	case BizCode::CODES_BROADCAST:
@@ -101,6 +181,7 @@ void Client::recv(string &msg)
 		//g_sendComplete = true;
 	}
 		break;
+	default: break;
 	}
 }
 
@@ -138,7 +219,11 @@ void Client::subscribeReq(bool marketdata, bool transaction, bool orderqueue, bo
 
 void Client::handle_error(const string &errmsg)
 {
+	time_t timeNow = time(nullptr);
+	tm *tmNow = localtime(&timeNow);
 
+	printf("ERROR  msg at %02d%02d%02d:%s\n",
+		tmNow->tm_hour, tmNow->tm_min, tmNow->tm_sec,errmsg.c_str());
 }
 
 void Client::handle_connect(bool c)

@@ -68,5 +68,6 @@ private:
 	int m_iMaxCnt;
 };
 
+
 #endif
 

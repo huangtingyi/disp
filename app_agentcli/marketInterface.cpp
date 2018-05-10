@@ -10,8 +10,10 @@
 static boost::asio::io_service *io_ser = nullptr;
 static Client *client = nullptr;
 
-//static TcpClient> tcpclient;
-/*shared_ptr<thread>*/thread *pThread = nullptr;
+thread *pThread = nullptr;
+
+static bool connected = false;
+static void *st_des;
 
 void threadFuncTcpclientStart(bool &createIos, bool &connected)
 {
@@ -36,19 +38,6 @@ void threadFuncTcpclientStart(bool &createIos, bool &connected)
 	createIos = false;
 	//BOOST_LOG_SEV(g_lg, trace) << __FUNCTION__ << " will finish";
 }
-
-//bool initIdxH(RecvHandleIdxH handleIH) {
-//	g_recvHandleIH = handleIH;
-//	return true;
-//}
-//
-//bool initIdxZ(RecvHandleIdxZ handleIZ) {
-//	g_recvHandleIZ = handleIZ;
-//	return true;
-//}
-
-static bool connected = false;
-static void *st_des;
 int16_t m_connect(char *errmsg)
 {
 	static bool createIos = false;
@@ -88,18 +77,18 @@ int16_t login(char *errmsg)
 	client->setPassword(g_strPassword);
 	client->m_loginSuccess = UINT8_MAX;
 	client->login();
+
 	do
 	{
 		this_thread::sleep_for(chrono::seconds(1));
 	} while (client->m_loginSuccess == UINT8_MAX);
+
 	if (client->m_loginSuccess == M_SUCCESS)
 		return M_SUCCESS;
-	else
-	{
-		strncpy(errmsg, client->m_loginErrMsg.c_str(), 255);
-		//marketInterfaceClose();
-		return ERR_LOGIN;
-	}
+
+	strncpy(errmsg, client->m_loginErrMsg.c_str(), 255);
+	//marketInterfaceClose();
+	return ERR_LOGIN;
 }
 
 void subscribe(bool marketdata, bool transaction, bool orderqueue, bool order)
@@ -116,14 +105,12 @@ void replay(bool marketdata, bool transaction, bool orderqueue, bool order, uint
 void marketInterfaceCloseImpl()
 {
 	this_thread::sleep_for(chrono::seconds(2));
-	if (client)
-	{
+	if (client){
 		client->m_loginSuccess = UINT8_MAX;
 		client->stop();
 		if (client->m_tcpClient)
-		{
 			delete client->m_tcpClient;
-		}
+
 		delete client;
 		client = nullptr;
 	}
@@ -159,7 +146,6 @@ int32_t getCodes(int32_t *codes)
 
 void addReduceCode(int8_t addReduce, int32_t *codes, int32_t size)
 {
-	//BOOST_LOG_SEV(g_lg, debug) << __FUNCTION__ << " " << int(addReduce) << ' ' << size;
 	client->addReduceCode(addReduce, codes, size);
 }
 

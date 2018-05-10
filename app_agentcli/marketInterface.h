@@ -9,7 +9,8 @@
 
 using namespace std;
 
-#pragma pack(show)
+#pragma  pack(push)
+#pragma pack(1)
 
 struct IpDomain
 {
@@ -23,7 +24,6 @@ extern string g_strUsername;
 extern string password;
 extern int st_interface;
 extern IpDomain g_strServer;
-
 
 struct TDF_MARKET_DATA2
 {
@@ -137,9 +137,13 @@ struct SZSEL2_Index2
 
 enum MarketInterfaceError
 {
-	M_SUCCESS = (int16_t) 0, ERR_CONNECT = (int16_t) 1, //ÍøÂçÁ¬½Ó´íÎó
+	M_SUCCESS = (int16_t) 0,
+	ERR_CONNECT = (int16_t) 1, //ÍøÂçÁ¬½Ó´íÎó
 	ERR_LOGIN = (int16_t) 2, //µÇÂ¼Ê§°Ü
 };
+
+#pragma pack(pop)
+
 
 typedef void (*RecvHandleM)(const TDF_MARKET_DATA2 *msg);
 typedef void (*RecvHandleT)(const TDF_TRANSACTION2 *msg);

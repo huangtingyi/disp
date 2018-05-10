@@ -65,7 +65,9 @@ private:
 	inline void writeImpl(shared_ptr<vector<char> > &msgSend)
 	{
 		m_buf.push(msgSend);
-		boost::asio::async_write(m_socket, boost::asio::buffer(*msgSend, msgSend->size()), boost::bind(&TcpClient::handle_write, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+		boost::asio::async_write(m_socket, boost::asio::buffer(*msgSend, msgSend->size()), 
+			boost::bind(&TcpClient::handle_write, this, boost::asio::placeholders::error, 
+			boost::asio::placeholders::bytes_transferred));
 	}
 	;
 	inline void writeImpl2(shared_ptr<vector<char> > msgSend)

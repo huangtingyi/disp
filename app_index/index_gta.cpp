@@ -306,7 +306,7 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 	0 到达文件末尾，或大于nEndTime0,放回
 	-1	处理错误
 */
-int MountQutation2IndexStatArray(char sFileName[],int nBgnActionDay,
+int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
 	int nPreT0,int nT0,int nEndTime0,long lItemLen,long *plCurPos)
 {
 	int iRet;
@@ -627,7 +627,7 @@ int main(int argc, char *argv[])
 //		if(iContinueFlag==true&&iQzRes==MY_WANT_STAT) goto next_step_th;
 		//加载深圳行情数据
 		GTA_Quotation2TinyQuotation=SZSEL2_Quotation2TinyQuotation;
-		iQzRes=MountQutation2IndexStatArray(sGtaQzName,nBgnActionDay,nPreT0,nT0,
+		iQzRes=MountQuotation2IndexStatArray(sGtaQzName,nBgnActionDay,nPreT0,nT0,
 			nEndTime0,sizeof(long long)+sizeof(SZSEL2_Quotation),&lQzCurPos);
 		if(iQzRes<0) return -1;
 
@@ -649,7 +649,7 @@ int main(int argc, char *argv[])
 //		if(iContinueFlag==true&&iThRes==MY_WANT_STAT) goto next_step_all;
 		//加载上海行情数据
 		GTA_Quotation2TinyQuotation=SSEL2_Quotation2TinyQuotation;
-		iQhRes=MountQutation2IndexStatArray(sGtaQhName,nBgnActionDay,nPreT0,nT0,
+		iQhRes=MountQuotation2IndexStatArray(sGtaQhName,nBgnActionDay,nPreT0,nT0,
 			nEndTime0,sizeof(long long)+sizeof(SSEL2_Quotation),&lQhCurPos);
 		if(iQhRes<0) return -1;
 

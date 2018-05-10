@@ -401,29 +401,17 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	//解析delay串，生成上海和深圳、时延参数
+	//解析delay串，生成上海和深圳总的时延参数
 	if(strlen(sDelayStr)!=0){
-		char *p0,*p1,*p2;
+		char *p0;
 
 		if((p0=strchr(sDelayStr,','))==NULL){
 			printf("-e =%s 格式非法,正确格式如 '12000,1000:6000,900'.\n",sDelayStr);
 			return -1;
 		}
 		p0++;
-		if((p1=strchr(p0,':'))==NULL){
-			printf("-e =%s 格式非法,正确格式如 '12000,1000:6000,900'.\n",sDelayStr);
-			return -1;
-		}
-		p1++;
-		if((p2=strchr(p1,','))==NULL){
-			printf("-e =%s 格式非法,正确格式如 '12000,1000:6000,900'.\n",sDelayStr);
-			return -1;
-		}
-		p2++;
 		iShBusyDelay=	atoi(sDelayStr);
 		iShDelay=	atoi(p0);
-		iSzBusyDelay=	atoi(p1);
-		iSzDelay=	atoi(p2);
 	}
 
 	//生成四个文件名

@@ -193,6 +193,7 @@ enum BizCode {
   SZ_ORDER = 15,
   INDEX_SH = 16,
   INDEX_SZ = 17,
+  D31_ITEM = 18,
   HEART_BEAT = 254,
   FOR_TEST = 255,
   BizCode_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,

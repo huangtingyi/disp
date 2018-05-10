@@ -10,7 +10,6 @@
 #include "TcpClient.h"
 #include <google/protobuf/message.h>
 #include "marketInterface.h"
-//#include "getToday.h"
 #include "mktdata.pb.h"
 
 using namespace std;

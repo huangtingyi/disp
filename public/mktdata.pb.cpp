@@ -660,17 +660,18 @@ void AddDescriptorsImpl() {
       "\000\022\021\n\rproto_sub_LV1\020\013\022\021\n\rproto_sub_LV2\020\014\022"
       "\022\n\016proto_sub_DEAL\020\r\022\030\n\024proto_sub_ORDERQU"
       "EUE\020\016\022\026\n\022proto_sub_SZ_ORDER\020\017\022\026\n\022proto_s"
-      "ub_INDEX_SH\020\020\022\026\n\022proto_sub_INDEX_SZ\020\021*\212\002"
+      "ub_INDEX_SH\020\020\022\026\n\022proto_sub_INDEX_SZ\020\021*\230\002"
       "\n\007BizCode\022\023\n\017BizCode_DEFAULT\020\000\022\r\n\tLOGIN_"
       "REQ\020\001\022\r\n\tLOGIN_REP\020\002\022\016\n\nSUBSCRIBLE\020\003\022\r\n\t"
       "CODES_SUB\020\004\022\023\n\017CODES_BROADCAST\020\005\022\020\n\014MKT_"
       "DATA_LV1\020\013\022\020\n\014MKT_DATA_LV2\020\014\022\021\n\rMKT_DATA"
       "_DEAL\020\r\022\027\n\023MKT_DATA_ORDERQUEUE\020\016\022\014\n\010SZ_O"
-      "RDER\020\017\022\014\n\010INDEX_SH\020\020\022\014\n\010INDEX_SZ\020\021\022\017\n\nHE"
-      "ART_BEAT\020\376\001\022\r\n\010FOR_TEST\020\377\001b\006proto3"
+      "RDER\020\017\022\014\n\010INDEX_SH\020\020\022\014\n\010INDEX_SZ\020\021\022\014\n\010D3"
+      "1_ITEM\020\022\022\017\n\nHEART_BEAT\020\376\001\022\r\n\010FOR_TEST\020\377\001"
+      "b\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 2394);
+      descriptor, 2408);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "mktdata.proto", &protobuf_RegisterTypes);
 }
@@ -739,6 +740,7 @@ bool BizCode_IsValid(int value) {
     case 15:
     case 16:
     case 17:
+    case 18:
     case 254:
     case 255:
       return true;

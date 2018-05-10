@@ -13,6 +13,7 @@ INCLUDE_DIRECTORIES(
     /usr/include/boost
 	.
 	../public
+	../comm_supp
 )
 
 MESSAGE(PROJECT_BINARY_DIR=${PROJECT_BINARY_DIR})
@@ -22,7 +23,7 @@ MESSAGE(PROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR})
 #source directory
 AUX_SOURCE_DIRECTORY(.   MAIN_SRCS)
 
-SET(DIR_SRCS ${MAIN_SRCS} ../public/MessageQueue.cpp ../public/CSemaphore.cpp ../public/mktdata.pb.cpp ../public/wwtiny.cpp)
+SET(DIR_SRCS ${MAIN_SRCS} ../public/MessageQueue.cpp ../public/CSemaphore.cpp ../public/mktdata.pb.cpp ../public/d31data.pb.cpp ../public/wwtiny.cpp ../comm_supp/callsupp.cpp)
 
 MESSAGE(DIR_SRCS=${DIR_SRCS})
 

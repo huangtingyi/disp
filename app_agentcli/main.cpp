@@ -28,11 +28,12 @@
 
 #include "wwtiny.h"
 
+#include "callsupp.h"
+
+
 using namespace std;
 using namespace boost::property_tree;
 using namespace boost;
-
-void loaddispjson();
 
 IpDomain g_strServer; //一传服务器IP
 unsigned int g_iPort; //一传服务器服务端口
@@ -50,13 +51,6 @@ vector<MessageQueue*> g_vMqList;//发送队列列表
 
 void GetSysDate(char sSysDate[])
 {
-/*	struct tm *tim;
-	time_t ltim;
-	time(&ltim);
-	tim = localtime(&ltim);
-	sprintf(sSysDate,"%04d%02d%02d%02d%02d%02d",tim->tm_year+1900,tim->tm_mon+1,tim->tm_mday,
-	        tim->tm_hour,tim->tm_min,tim->tm_sec);
-*/
 	GetHostTime(sSysDate);
 }
 
@@ -94,122 +88,16 @@ bool init(const char *cfgfile,char sDispFile[])
 		g_poDataLock = new CSemaphore();
 		g_poDataLock->getSem(sSemName, 1, 1);
 	}
-	loaddispjson();
 
-//	getTodayInit();
 	cout << __FUNCTION__ << " complete" << endl;
 	return true;
 }
-
-//发送业务消息到各个客户端队列
-void sendMsg2Client(string &msg)
+void signalProcess(int signal)
 {
-#ifdef DEBUG_ONE
-		static long lTotal = 0;
-		static map<int,long> mapStat;
-		lTotal++;
-#endif
-	if (g_locked)
-	{
-		loaddispjson();
-		g_locked = false;
+	if (signal == SIGUSR1){
+		printf("signal SIGUSR1...\n");
+		return;
 	}
-	for (int i = 0; i < g_vMqList.size(); i++)
-	{
-#ifdef DEBUG_ONE
-		mapStat[g_vMqList[i]->m_oriKey]++;
-#endif
-		g_vMqList[i]->send(msg, 0);
-	}
-#ifdef DEBUG_ONE
-	if(lTotal % 30000 == 0)
-	{
-		char sSysDate[15];
-		GetSysDate(sSysDate);
-		cout<<"["<<sSysDate<<"] Recv Msg Num:["<<lTotal<<"]"<<endl;
-		cout<<setw(10)<<"MqID"<<setw(16)<<"Recv Num"<<endl;
-		cout<<"---------------------------"<<endl;
-		for (int i = 0; i < g_vMqList.size(); i++)
-		{
-			cout<<setw(10)<<g_vMqList[i]->m_oriKey<<setw(16)<<mapStat[g_vMqList[i]->m_oriKey]<<endl;
-		}
-		cout<<"---------------------------"<<endl<<endl;
-	}
-#endif
-}
-
-//监控客户端登陆、注销路由文件
-int WatchFileCloseWriteAndLock(const char* sFileName)
-{
-	int fd, len, i;
-	char buf[BUFSIZ];
-	struct inotify_event *event;
-
-	if ((fd = inotify_init()) < 0)
-	{
-		fprintf(stderr, "inotify_init failed\n");
-		return -1;
-	}
-
-	if (inotify_add_watch(fd, sFileName, IN_CLOSE_WRITE) < 0)
-	{
-		fprintf(stderr, "inotify_add_watch %s failed\n", sFileName);
-		return -1;
-	}
-
-	buf[sizeof(buf) - 1] = 0;
-	while ((len = read(fd, buf, sizeof(buf) - 1)) > 0)
-	{
-#ifdef DEBUG_ONE
-		char sSysDate[15] = {0};
-		GetSysDate(sSysDate);
-		cout << "["<<sSysDate<<"]:"<<sFileName<<" recv close event!"<<endl;
-#endif
-		g_locked = true;
-
-	}
-	return 0;
-}
-
-//重新加载路由文件--采用全量的方式
-void loaddispjson()
-{
-#ifdef DEBUG_ONE
-		char sSysDate[15] = {0};
-		GetSysDate(sSysDate);
-		cout << "["<<sSysDate<<"]: reload disp.json!"<<endl;
-#endif
-	for (int i = 0; i < g_vMqList.size(); i++)
-	{
-		delete g_vMqList[i];
-	}
-	g_vMqList.clear();
-
-	g_poDataLock->P();
-
-	ptree root, readPt, items, userparam, itemsub, itemsubcodes, root_1;
-	read_json(g_sMoniDispFilePath.c_str(), readPt);
-	if (readPt.count("users"))
-	{
-		ptree ptChildRead = readPt.get_child("users");
-		for (auto pos : ptChildRead) //遍历数组
-		{
-			ptree p = pos.second;
-			int iPid = p.get<int>("pid", 0);
-			int iKey = p.get<int>("mqid",0);
-			if (iKey != 0 && 0 == kill(iPid, 0)) //登陆过程中会存在先行写入防重复登陆信息，此时默认未完全登陆则不处理
-			{
-				MessageQueue *pMq = new MessageQueue(iKey);
-				pMq->open(false, true, g_iSysMqMaxLen, g_iSysMqMaxNum);
-				g_vMqList.push_back(pMq);
-			}
-		}
-	}
-	g_poDataLock->V();
-}
-
-void signalProcess(int isignal)
-{
 	marketInterfaceClose();
 	exit(0);
 }
@@ -274,19 +162,13 @@ int main(int argc, char *argv[])
 	//全量订阅
 	subscribe(true, true, true, true);
 
-	WatchFileCloseWriteAndLock(g_sMoniDispFilePath.c_str());
+	WatchFileCloseWriteAndLock((char*)g_sMoniDispFilePath.c_str());
 
 	if (g_poDataLock)
 	{
 		delete g_poDataLock;
 		g_poDataLock = NULL;
 	}
-	for (int i = 0; i < g_vMqList.size(); i++)
-	{
-		delete g_vMqList[i];
-	}
-	g_vMqList.clear();
-
 	marketInterfaceClose();
 
 	return 0;
