@@ -50,8 +50,8 @@ do
 	sudo netstat -nap | egrep "ints_gta|ints_tdf|dat2cli|Address"
 	
 	##增加进程占用的cpu监控
-	pid_str="`$pidof_bin ints_gta ints_tdf replay_gta dat2cli | sed 's/[0-9]*/-p&/g'`"
-	top -b -n1 -H "$pid_str" | egrep "ints_gta|ints_tdf|replay_gta|dat2cli|sshd|COMMAND" | head -12
+	pid_str="`$pidof_bin ints_gta ints_tdf replay_gta replay_tdf agentcli dat2cli | sed 's/[0-9]*/-p&/g'`"
+	top -b -n1 -H "$pid_str" | egrep "ints_gta|ints_tdf|replay_gta|replay_tdf|agentcli|dat2cli|COMMAND" | head -12
 	##增加消息队列监控
 	ipcs -q
 done

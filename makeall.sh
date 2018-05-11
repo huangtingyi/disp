@@ -92,7 +92,10 @@ installdir()
 			cp shell/cvnew.sh	../bin
 			cp shell/cvd31.sh	../bin
 			cp shell/iptables.sh	../bin
-			cp shell/startdf.sh	../bin
+			cp shell/startez.sh	../bin
+			cp shell/commons	../bin
+			cp shell/startup.sh	../bin/startdf.sh
+			cp shell/startrep.sh	../bin/startrep_tdf.sh
 			;;
 		conf)   
 			cp conf/cfg.json	../conf

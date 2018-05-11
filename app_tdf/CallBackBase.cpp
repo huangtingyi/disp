@@ -27,11 +27,14 @@
 #define PM_MARKET_CLOSE_TIME	151000000
 #define PM_MARKET_PRE_CLOSE_TIME 145800000
 
-int CallBackBase::OpenFileSet(int iWriteFlag,string& strWork)
+int CallBackBase::OpenFileSet(int iWriteFlag,char sDataDate[],string& strWork)
 {
 	char sHostTime[15];
 	
-	GetHostTime(sHostTime);
+	if(strlen(sDataDate)==0)
+		GetHostTime(sHostTime);
+	else	strcpy(sHostTime,sDataDate);
+	
 	sHostTime[8]=0;
 	
 //	memset((void*)&m_fileSet,0,sizeof(FileNameSet));
@@ -63,9 +66,9 @@ void CallBackBase::CloseFileSet()
 	if(m_fileSet.fpTdfOrd!=NULL) fclose(m_fileSet.fpTdfOrd);
 }
 
-CallBackBase::CallBackBase(int iWriteFlag,string& strWork)
+CallBackBase::CallBackBase(int iWriteFlag,char sDataDate[],string& strWork)
 {
-	if(OpenFileSet(iWriteFlag,strWork)<0){
+	if(OpenFileSet(iWriteFlag,sDataDate,strWork)<0){
 		printf("打开目录 %s 下写文件失败.\n",strWork.c_str());
 		exit(1);
 	}

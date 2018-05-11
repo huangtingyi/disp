@@ -11,6 +11,7 @@ endif
 #最终生成程序
 TARGET_A=../bin/ints_tdf_t
 TARGET_B=../bin/ints_tdf
+TARGET_C=../bin/replay_tdf
 
 #编译命令
 CXX=g++ 
@@ -25,13 +26,17 @@ LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_se
 Example_SRC=$(wildcard ./ints_tdf_t.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../Common/*.cpp)
 Example_OBJS=$(patsubst %.cpp, %.o, $(Example_SRC))
 
-Example_SRC_B=$(wildcard ./ints_tdf.cpp ./CallBackBase.cpp ../comm_supp/callsupp.cpp ../public/wwtiny.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../public/d31data.pb.cpp ../Common/*.cpp ../comm_supp/tdf_supp.cpp)
-Example_OBJS_B=$(patsubst %.cpp, %.o, $(Example_SRC_B))
+ExampleB_SRC=$(wildcard ./ints_tdf.cpp ./CallBackBase.cpp ../comm_supp/callsupp.cpp ../public/wwtiny.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../public/d31data.pb.cpp ../Common/*.cpp ../comm_supp/tdf_supp.cpp)
+ExampleB_OBJS=$(patsubst %.cpp, %.o, $(ExampleB_SRC))
+
+ExampleC_SRC=$(wildcard ./replay_tdf.cpp ./CallBackBase.cpp ../comm_supp/callsupp.cpp ../public/wwtiny.cpp ../public/MessageQueue.cpp ../public/mktdata.pb.cpp ../public/d31data.pb.cpp ../Common/*.cpp ../comm_supp/gta_supp.cpp ../comm_supp/tdf_supp.cpp)
+ExampleC_OBJS=$(patsubst %.cpp, %.o, $(ExampleC_SRC))
+
 
 
 #所有目标文件
-OBJS= $(Example_OBJS) $(Example_OBJS_B)
-TARGETS=$(TARGET_A) $(TARGET_B)
+OBJS= $(Example_OBJS) $(ExampleB_OBJS)  $(ExampleC_OBJS)
+TARGETS=$(TARGET_A) $(TARGET_B) $(TARGET_C)
 
 .PHONY: debug release clean
 
@@ -42,7 +47,10 @@ debug: $(TARGETS)
 $(TARGET_A): $(Example_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) -L$(TARGETPATH) -lTDFAPI30
 
-$(TARGET_B): $(Example_OBJS_B)
+$(TARGET_B): $(ExampleB_OBJS)
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) -L$(TARGETPATH) -lTDFAPI30
+	
+$(TARGET_C): $(ExampleC_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB) -L$(TARGETPATH) -lTDFAPI30
 
 %.o: %.cpp

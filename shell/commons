@@ -1,0 +1,223 @@
+
+###定义确认pid是特定用户的pid函数
+comfirm_mypid()
+{
+	myname=$1
+	mypid=$2
+	
+	myflag="0"
+	mypidstr=`ps -ef |grep $mypid`
+
+	IFS_old=$IFS
+	IFS=$'\n'
+
+	for tmp in `echo $mypidstr`
+	do
+		who_str=`echo $tmp | awk '{print $1}'`
+		who_pid=`echo $tmp | awk '{print $2}'`
+		##如果是普通用户，则匹配普通用户及PID
+		if [ "$myname" = "$who_str" -a "$mypid" = "$who_pid" ];then
+			myflag="1"
+			break;			
+		fi
+		##如果是root用户，则全部匹配PID
+		if [ "$myname" = "root" -a "$mypid" = "$who_pid" ];then
+			myflag="1"
+			break;	
+		fi
+	done
+	
+	IFS=$IFS_old
+
+	echo "$myflag"
+}
+##找到pid对应的用户名
+belong_user_mypid()
+{
+	mypid=$1
+	
+	res_str="0"
+
+	mypidstr=`ps -ef |grep $mypid`
+
+	IFS_old=$IFS
+	IFS=$'\n'
+
+	for tmp in `echo $mypidstr`
+	do
+		who_pid=`echo $tmp | awk '{print $2}'`				
+		if [ "$mypid" = "$who_pid" ];then
+			res_str=`echo $tmp | awk '{print $1}'`
+			break;
+		fi
+	done
+	
+	IFS=$IFS_old
+
+	echo "$res_str"
+}
+##找到pid对应的命令行名
+belong_cmd_mypid()
+{
+	mypid=$1
+	
+	res_str="0"
+
+	mypidstr=`ps -ef |grep $mypid`
+
+	IFS_old=$IFS
+	IFS=$'\n'
+
+	for tmp in `echo $mypidstr`
+	do
+		who_pid=`echo $tmp | awk '{print $2}'`
+		if [ "$mypid" = "$who_pid" ];then
+
+			res_str=`echo $tmp | awk '{print $8}'`
+			
+			#如果是脚本，则取脚本名称了
+			if [ $res_str = "/bin/bash" -o \
+				$res_str = "/bin/sh" -o \
+				$res_str = "/bin/ksh" ];then
+
+				res_str=`echo $tmp | awk '{print $9}'`
+			fi
+			
+			break;
+		fi
+	done
+	
+	IFS=$IFS_old
+
+	echo "$res_str"
+}
+
+###定义确认mqid是特定用户的mqid函数
+comfirm_mymqid()
+{
+	myname=$1
+	mymqid=$2
+	
+	myflag="0"
+	mymqidstr=`ipcs -q |grep $mymqid`
+
+	IFS_old=$IFS
+	IFS=$'\n'
+
+	for tmp in `echo $mymqidstr`
+	do
+		who_str=`echo $tmp | awk '{print $3}'`
+		who_mqid=`echo $tmp | awk '{print $2}'`
+		##如果是普通用户，则匹配普通用户及MQID
+		if [ "$myname" = "$who_str" -a "$mymqid" = "$who_mqid" ];then
+			myflag="1"
+			break;			
+		fi
+		##如果是root用户，则全部匹配MQID
+		if [ "$myname" = "root" -a "$mymqid" = "$who_mqid" ];then
+			myflag="1"
+			break;	
+		fi
+	done
+	
+	IFS=$IFS_old
+
+	echo "$myflag"
+}
+
+###定义确认semid是特定用户的semid函数
+comfirm_mysemid()
+{
+	myname=$1
+	mysemid=$2
+	
+	myflag="0"
+	mysemidstr=`ipcs -q |grep $mysemid`
+
+	IFS_old=$IFS
+	IFS=$'\n'
+
+	for tmp in `echo $mysemidstr`
+	do
+		who_str=`echo $tmp | awk '{print $3}'`
+		who_semid=`echo $tmp | awk '{print $2}'`
+		##如果是普通用户，则匹配普通用户及SEMID
+		if [ "$myname" = "$who_str" -a "$mysemid" = "$who_semid" ];then
+			myflag="1"
+			break;			
+		fi
+		##如果是root用户，则全部匹配SEMID
+		if [ "$myname" = "root" -a "$mysemid" = "$who_semid" ];then
+			myflag="1"
+			break;	
+		fi
+	done
+	
+	IFS=$IFS_old
+
+	echo "$myflag"
+}
+
+##清除mq队列
+remove_mymq_all()
+{
+
+	my_name=`who am i | awk '{print $1}'`
+	
+	ipcs -q | grep "0x" | awk '{print $2}' | while read tmp
+	do
+		my_flag=`comfirm_mymqid $my_name $tmp`
+	
+		if [ $my_flag -eq 0 ];then
+			continue;
+		fi
+
+		ipcrm -q $tmp 1>/dev/null 2>&1
+		if [ $? -eq 0 ]; then
+			echo "ipcrm -q $tmp sucess"
+		fi
+	done
+}
+
+##清除mq队列
+remove_mysem_all()
+{
+
+	my_name=`who am i | awk '{print $1}'`
+
+	ipcs -s | grep "0x" | awk '{print $2}' | while read tmp
+	do
+	
+		my_flag=`comfirm_mysemid $my_name $tmp`
+		
+		if [ $my_flag -eq 0 ];then
+			continue;
+		fi
+	
+		ipcrm -s $tmp 1>/dev/null 2>&1
+		if [ $? -eq 0 ]; then
+			echo "ipcrm -s $tmp sucess"
+		fi
+	done
+}
+##检查本用户的pid进程是否存在
+check_mypid_exist()
+{
+	pids=$@
+	res_str="0"
+	belong_cmd=""
+	my_name=`who am i | awk '{print $1}'`
+	
+	for i in $pids
+	do
+		my_flag=`comfirm_mypid $my_name $i`
+		
+		if [ $my_flag -eq 1 ];then
+			res_str=$i
+			belong_cmd=`belong_cmd_mypid $i`
+			break;
+		fi
+	done
+	
+	echo $res_str
+}

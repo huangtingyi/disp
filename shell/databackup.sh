@@ -46,12 +46,23 @@ gta_oz_file="gta_oz_$bakdate.dat";
 gta_qz_file="gta_qz_$bakdate.dat";
 gta_tz_file="gta_tz_$bakdate.dat";
 
-[ ! -f $workroot/$gta_ah_file ] && echo "$workroot/$gta_ah_file is not exist" && exit 1;
-[ ! -f $workroot/$gta_qh_file ] && echo "$workroot/$gta_qh_file is not exist" && exit 1;
-[ ! -f $workroot/$gta_th_file ] && echo "$workroot/$gta_th_file is not exist" && exit 1;
-[ ! -f $workroot/$gta_oz_file ] && echo "$workroot/$gta_oz_file is not exist" && exit 1;
-[ ! -f $workroot/$gta_qz_file ] && echo "$workroot/$gta_qz_file is not exist" && exit 1;
-[ ! -f $workroot/$gta_tz_file ] && echo "$workroot/$gta_tz_file is not exist" && exit 1;
+tdf_mkt_file="tdf_mkt_$bakdate.dat";
+tdf_que_file="tdf_que_$bakdate.dat";
+tdf_ord_file="tdf_ord_$bakdate.dat";
+tdf_tra_file="tdf_tra_$bakdate.dat";
+
+tdf_mk_file="tdf_mk_$bakdate.dat";
+tdf_qu_file="tdf_qu_$bakdate.dat";
+tdf_or_file="tdf_or_$bakdate.dat";
+tdf_tr_file="tdf_tr_$bakdate.dat";
+
+
+#[ ! -f $workroot/$gta_ah_file ] && echo "$workroot/$gta_ah_file is not exist" && exit 1;
+#[ ! -f $workroot/$gta_qh_file ] && echo "$workroot/$gta_qh_file is not exist" && exit 1;
+#[ ! -f $workroot/$gta_th_file ] && echo "$workroot/$gta_th_file is not exist" && exit 1;
+#[ ! -f $workroot/$gta_oz_file ] && echo "$workroot/$gta_oz_file is not exist" && exit 1;
+#[ ! -f $workroot/$gta_qz_file ] && echo "$workroot/$gta_qz_file is not exist" && exit 1;
+#[ ! -f $workroot/$gta_tz_file ] && echo "$workroot/$gta_tz_file is not exist" && exit 1;
 
 ###定义备份函数
 backup_file()
@@ -59,6 +70,10 @@ backup_file()
 	source_file=$1
 	target_file=$2
 	
+	if [ ! -f $source_file ]; then
+		exit 0;		
+	fi
+
 	echo "`date '+%Y/%m/%d %k:%M:%S'` backup $source_file BEGIN..."
 	gzip -c $source_file > $target_file
 	if [ $? -ne 0 ]; then
@@ -73,7 +88,17 @@ backup_file $workroot/$gta_qh_file $bakpath/$gta_qh_file.gz || exit 1;
 backup_file $workroot/$gta_th_file $bakpath/$gta_th_file.gz || exit 1;
 backup_file $workroot/$gta_oz_file $bakpath/$gta_oz_file.gz || exit 1;
 backup_file $workroot/$gta_qz_file $bakpath/$gta_qz_file.gz || exit 1;
-backup_file $workroot/$gta_tz_file $bakpath/$gta_tz_file.gz || exit 1;
+backup_file $workroot/$gta_tz_file $bakpath/$gta_tz_file.gz || exit 1;    
+
+backup_file $workroot/$tdf_mkt_file $bakpath/$tdf_mkt_file.gz || exit 1;
+backup_file $workroot/$tdf_que_file $bakpath/$tdf_que_file.gz || exit 1;
+backup_file $workroot/$tdf_ord_file $bakpath/$tdf_ord_file.gz || exit 1;
+backup_file $workroot/$tdf_tra_file $bakpath/$tdf_tra_file.gz || exit 1;
+
+backup_file $workroot/$tdf_mk_file $bakpath/$tdf_mk_file.gz || exit 1;
+backup_file $workroot/$tdf_qu_file $bakpath/$tdf_qu_file.gz || exit 1;
+backup_file $workroot/$tdf_or_file $bakpath/$tdf_or_file.gz || exit 1;
+backup_file $workroot/$tdf_tr_file $bakpath/$tdf_tr_file.gz || exit 1;
 
 echo "`date '+%Y/%m/%d %k:%M:%S'` backup $bakdate file All OK..."
 

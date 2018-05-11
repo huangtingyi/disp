@@ -59,10 +59,9 @@ if [ $mytype -eq 0 -o $mytype -eq 1 ]; then
 
 	echo "`date '+%Y/%m/%d %k:%M:%S'` $workroot $clean_workdate file clean BEGIN"
 
-	ls $workroot/gta*$clean_workdate* 2>/dev/null | while read tmp
+	ls $workroot/[g|t]*$clean_workdate* 2>/dev/null | while read tmp
 	do
 		echo "$tmp"
-
 		rm -rf $tmp
 		if [ $? -eq 0 ]; then
 			echo "`date '+%Y/%m/%d %k:%M:%S'` $tmp file cleaned..."

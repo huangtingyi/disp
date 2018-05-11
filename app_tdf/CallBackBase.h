@@ -31,12 +31,12 @@ typedef struct _my_sub_data_
 class CallBackBase
 {
 public:
-	CallBackBase(int iWriteFlag,string& strWork);
+	CallBackBase(int iWriteFlag,char sDataDate[],string& strWork);
 	virtual ~CallBackBase();
 
 	void SetIoService(IoService *ios);
 	
-	int OpenFileSet(int iWriteFlag,string& strWork);
+	int OpenFileSet(int iWriteFlag,char sDataDate[],string& strWork);
 	void CloseFileSet();
 
 	

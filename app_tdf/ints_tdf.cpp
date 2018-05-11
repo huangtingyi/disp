@@ -145,7 +145,7 @@ int main(int argc, char** argv)
 
 	IoService	ios;
 	//订阅消息回调类
-	pCallBase=new CallBackBase(iWriteFlag,strWork);
+	pCallBase=new CallBackBase(iWriteFlag,(char*)"",strWork);
 
 	pCallBase->SetIoService(&ios);
 

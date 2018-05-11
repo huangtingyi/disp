@@ -7,6 +7,11 @@ conf_file="$HOME/conf/config.ini"
 
 . $conf_file
 
+commons_file="$HOME/bin/commons"
+[ ! -f $commons_file ] && echo "$commons_file is not exist" && exit 1;
+
+. $commons_file
+
 ethdev=${ethdev:-eno1}
 workroot=${workroot:-/stock/work}
 writeusr=${writeusr:-0}
@@ -35,28 +40,29 @@ moni_log="$HOME/bin/log/moni_`date '+%Y%m%d'`.log"
 [ ! -f $moni_bin ] && echo "$moni_bin is not exist" && exit 1;
 [ ! -f $pidof_bin ] && echo "$pidof_bin is not exist" && exit 1;
 
+my_name=`who am i | awk '{print $1}'`
+my_flag=""
 
-$pidof_bin -x agentcli && echo "agentcli is running" && exit 2;
-$pidof_bin -x dat2cli && echo "dat2cli is running" && exit 2;
-$pidof_bin -x moni.sh && echo "moni.sh is running" && exit 2;
+
+#$pidof_bin -x agentcli && echo "agentcli is running" && exit 2;
+#$pidof_bin -x dat2cli && echo "dat2cli is running" && exit 2;
+#$pidof_bin -x moni.sh && echo "moni.sh is running" && exit 2;
+
+pids=`$pidof_bin -x agentcli dat2cli moni.sh`
+
+##如果有指定进程在运行，则检查是否有本用户的进程存在，如果有则提示退出
+mypid=`check_mypid_exist $pids`
+if [ $mypid -ne 0 ];then
+	belong_cmd=`belong_cmd_mypid $mypid`
+	echo "`date '+%Y/%m/%d %k:%M:%S'` pid $mypid cmd=$belong_cmd user=$my_name is running"
+	exit 2
+fi
 
 ##清除mq队列
-ipcs -q | grep "0x" | awk '{print $2}' | while read tmp
-do
-	ipcrm -q $tmp 1>/dev/null 2>&1
-	if [ $? -eq 0 ]; then
-		echo "ipcrm -q $tmp sucess"
-	fi
-done
+remove_mymq_all
 
 ##清除信号量
-ipcs -s | grep "0x" | awk '{print $2}' | while read tmp
-do
-	ipcrm -s $tmp 1>/dev/null 2>&1
-	if [ $? -eq 0 ]; then
-		echo "ipcrm -s $tmp sucess"
-	fi
-done
+remove_mysem_all
 
 ##清空disp.json文件
 cat > $disp_file << 'EOF'

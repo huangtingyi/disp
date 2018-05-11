@@ -2,7 +2,6 @@
 /// @brief    基础API
 ///           实现不同方式的定阅和取消订阅及快照查询
 //////////////////////////////////////////////////////////////////////////
-#include "GTAQTSInterfaceBase.h"
 #include "CallBackBase.h"
 #include <stdio.h>
 #include <string.h>
@@ -14,7 +13,6 @@
 
 #include "wwtiny.h"
 
-#include "gta_supp.h"
 #include "d31_item.h"
 
 #include "public.h"
@@ -30,23 +28,21 @@
 #define MY_DAY_END_TIME		240000000
 
 
-int iWriteFlag=0,iDelayMilSec=100,iMultiTimes=1,iInfoSec=3;
+int iWriteFlag=0,iDelayMilSec=100,iMultiTimes=1,iInfoSec=3,iFlag=1;
 
 long lBgnTime=91500000L;
 char sDispName[1024],sSourcePath[1024],sWorkRoot[1024],sReplayDate[15];
 
-int iQhCnt=0,iThCnt=0,iAhCnt=0,iQzCnt=0,iTzCnt=0,iOzCnt=0,iDiCnt=0;
-int iQhTime,iThTime,iAhTime,iQzTime,iTzTime,iOzTime,iDiTime;
+int iMktCnt=0,iTraCnt=0,iOrdCnt=0,iQueCnt=0,iDiCnt=0;
+int iMktTime,iTraTime,iOrdTime,iQueTime,iDiTime;
 
 CallBackBase *pCallBack;
 
-void *MainReplayRunQh(void *);
-void *MainReplayRunTh(void *);
-void *MainReplayRunAh(void *);
+void *MainReplayRunMkt(void *);
+void *MainReplayRunTra(void *);
+void *MainReplayRunOrd(void *);
+void *MainReplayRunQue(void *);
 
-void *MainReplayRunQz(void *);
-void *MainReplayRunTz(void *);
-void *MainReplayRunOz(void *);
 void *MainReplayRunD31(void *);
 
 void *MainReplayRunInfo(void *);
@@ -59,7 +55,6 @@ int main(int argc, char *argv[])
 	strcpy(sDispName,	"./disp.json");
 	strcpy(sSourcePath,	"/stock/work");
 	strcpy(sWorkRoot,	"/stock/work");
-
 
 	for (int c; (c = getopt(argc, argv, "d:r:w:t:m:s:o:i:b:?:")) != EOF;){
 
@@ -90,6 +85,9 @@ int main(int argc, char *argv[])
 		case 'i':
 			iInfoSec=atoi(optarg);
 			break;
+		case 'f':
+			iFlag=atoi(optarg);
+			break;
 		case 'b':
 			lBgnTime=atoi(optarg);
 			if(lBgnTime>=90000000L&&lBgnTime<153000000L)
@@ -106,6 +104,7 @@ int main(int argc, char *argv[])
 			printf("   [-s (source-path) ]\n");
 			printf("   [-o work-root-name ]\n");
 			printf("   [-i (infosec def=3) ]\n");
+			printf("   [-f (flag  def=1 mk,or,tr,qu; 2 mkt,ord,tra,que) ]\n");
 			printf("   [-b (begintime def=9:00:00:000,format hhmmssNNN) ]\n");
 			exit(1);
 			break;
@@ -132,79 +131,54 @@ int main(int argc, char *argv[])
 	//启动一个线程查询数据，并将数据加到工作线程中
 	pCallBack=	&CallbackBase;
 
-	pthread_t pthd_qh;
-	pthread_attr_t attr_qh;
+	pthread_t pthd_mkt;
+	pthread_attr_t attr_mkt;
 
-	//加载qh回放线程
-	pthread_attr_init(&attr_qh);
-	pthread_attr_setdetachstate(&attr_qh, PTHREAD_CREATE_DETACHED);
-	pthread_attr_setstacksize(&attr_qh, 1024*512);
-	pthread_create(&pthd_qh, NULL, MainReplayRunQh, NULL);
+	//加载mkt回放线程
+	pthread_attr_init(&attr_mkt);
+	pthread_attr_setdetachstate(&attr_mkt, PTHREAD_CREATE_DETACHED);
+	pthread_attr_setstacksize(&attr_mkt, 1024*512);
+	pthread_create(&pthd_mkt, NULL, MainReplayRunMkt, NULL);
 
 	printf("-----------------------------1.\n");
+	
+	pthread_t pthd_tra;
+	pthread_attr_t attr_tra;
 
-	pthread_t pthd_th;
-	pthread_attr_t attr_th;
-
-	//加载th回放线程
-	pthread_attr_init(&attr_th);
-	pthread_attr_setdetachstate(&attr_th, PTHREAD_CREATE_DETACHED);
-	pthread_attr_setstacksize(&attr_th, 1024*512);
-	pthread_create(&pthd_th, NULL, MainReplayRunTh, NULL);
-
+	//加载tra回放线程
+	pthread_attr_init(&attr_tra);
+	pthread_attr_setdetachstate(&attr_tra, PTHREAD_CREATE_DETACHED);
+	pthread_attr_setstacksize(&attr_tra, 1024*512);
+	pthread_create(&pthd_tra, NULL, MainReplayRunTra, NULL);
+	
 	printf("-----------------------------2.\n");
 
+	pthread_t pthd_ord;
+	pthread_attr_t attr_ord;
 
-	pthread_t pthd_ah;
-	pthread_attr_t attr_ah;
-
-	//加载ah回放线程
-	pthread_attr_init(&attr_ah);
-	pthread_attr_setdetachstate(&attr_ah, PTHREAD_CREATE_DETACHED);
-	pthread_attr_setstacksize(&attr_ah, 1024*512);
-	pthread_create(&pthd_ah, NULL, MainReplayRunAh, NULL);
-
+	//加载ord回放线程
+	pthread_attr_init(&attr_ord);
+	pthread_attr_setdetachstate(&attr_ord, PTHREAD_CREATE_DETACHED);
+	pthread_attr_setstacksize(&attr_ord, 1024*512);
+	pthread_create(&pthd_ord, NULL, MainReplayRunOrd, NULL);
+	
 	printf("-----------------------------3.\n");
 
+	pthread_t pthd_que;
+	pthread_attr_t attr_que;
 
-	pthread_t pthd_qz;
-	pthread_attr_t attr_qz;
-
-	//加载th回放线程
-	pthread_attr_init(&attr_qz);
-	pthread_attr_setdetachstate(&attr_qz, PTHREAD_CREATE_DETACHED);
-	pthread_attr_setstacksize(&attr_qz, 1024*512);
-	pthread_create(&pthd_qz, NULL, MainReplayRunQz, NULL);
+	//加载que回放线程
+	pthread_attr_init(&attr_que);
+	pthread_attr_setdetachstate(&attr_que, PTHREAD_CREATE_DETACHED);
+	pthread_attr_setstacksize(&attr_que, 1024*512);
+	pthread_create(&pthd_que, NULL, MainReplayRunQue, NULL);
 
 	printf("-----------------------------4.\n");
-
-	pthread_t pthd_tz;
-	pthread_attr_t attr_tz;
-
-	//加载tz回放线程
-	pthread_attr_init(&attr_tz);
-	pthread_attr_setdetachstate(&attr_tz, PTHREAD_CREATE_DETACHED);
-	pthread_attr_setstacksize(&attr_tz, 1024*512);
-	pthread_create(&pthd_tz, NULL, MainReplayRunTz, NULL);
-
-	printf("-----------------------------5.\n");
-
-
-	pthread_t pthd_oz;
-	pthread_attr_t attr_oz;
-
-	//加载oz回放线程
-	pthread_attr_init(&attr_oz);
-	pthread_attr_setdetachstate(&attr_oz, PTHREAD_CREATE_DETACHED);
-	pthread_attr_setstacksize(&attr_oz, 1024*512);
-	pthread_create(&pthd_oz, NULL, MainReplayRunOz, NULL);
-
-	printf("-----------------------------6.\n");
 
 	pthread_t pthd_d31;
 	pthread_attr_t attr_d31;
 
-	//加载oz回放线程
+	//加载D31回放线程
 	pthread_attr_init(&attr_d31);
 	pthread_attr_setdetachstate(&attr_d31, PTHREAD_CREATE_DETACHED);
 	pthread_attr_setstacksize(&attr_d31, 1024*512);
@@ -339,7 +313,7 @@ int nGetReplayTimeByCur(int nCurTime,int nStartTime,int nEndTime,
 
 }
 
-void *MainReplayRunQh(void *)
+void *MainReplayRunMkt(void *)
 {
 	int iCount=0,nStartTime,nEndTime,nCurTime,nPickTime,nReplayTime,iCostMSec,iDayLeftMSec;
 	char sInFileName[1024],sBuffer[10240];
@@ -348,104 +322,18 @@ void *MainReplayRunQh(void *)
 
 	FILE *fpIn;
 
-	SSEL2_Quotation *p=(SSEL2_Quotation*)(sBuffer+sizeof(long long));
+	TDF_MARKET_DATA *p=(TDF_MARKET_DATA*)(sBuffer+sizeof(long long));
 
-	sprintf(sInFileName,"%s/gta_qh_%s.dat",sSourcePath,sReplayDate);
-
-	if((fpIn=fopen(sInFileName,"r"))==NULL){
-		printf("error open file %s to read.\n",sInFileName);
-		return NULL;
-	}
-
-	lItemLen=(sizeof(SSEL2_Quotation))+sizeof(long long);
-
-
-	//确定开始时间
-	nStartTime=	nGetHostCurTime();
-	iCostMSec=	GetReplayCostMSec((int)lBgnTime);
-	iDayLeftMSec=	GetReplayDayLeftMSec(nStartTime);
-	nEndTime=	GetReplayEndTime(nStartTime,iCostMSec);
-
-	while(1){
-
-		//size_t fread ( void *buffer, size_t size, size_t count, FILE *stream) ;
-		if(fread((void*)sBuffer,lItemLen,1,fpIn)!=1){
-			printf("end of file break.\n");
-			break;
-		}
-		//业务时间在指定回放开始时间之前的数据舍弃
-		if(p->Time<lBgnTime)continue;
-__delay:
-
-		nCurTime=nGetHostCurTime();
-		nPickTime=(int)((*plPickTime)%MY_DATE_CEIL_LONG);
-		nReplayTime=nGetReplayTimeByCur(nCurTime,nStartTime,nEndTime,iCostMSec,iDayLeftMSec);
-
-		//如果实盘数据采集的时间picktime
-		//比当前系统时间对应的应当回放到的时间点大了，则线程等待
-		if(nPickTime>nReplayTime){
-			//休眠指定的时长
-			usleep(iDelayMilSec*1000);
-			goto __delay;
-		}
-
-		//发送multi-times次数据
-		for(int j=0;j<iMultiTimes;j++){
-
-			UTIL_Time stTime;
-			PUTIL_GetLocalTime(&stTime);
-			long long lCurTime=PUTIL_SystemTimeToDateTime(&stTime);
-
-			//接收到数据后，先放入本地队列，等待数据处理接口处理
-			SubData *subdata = new SubData;
-			subdata->msgType = Msg_SSEL2_Quotation;
-			subdata->cur_time = lCurTime;
-			subdata->data.assign((const char*)p, sizeof(SSEL2_Quotation));
-
-			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_SSEL2_Quotation,pCallBack, subdata)));
-
-			pCallBack->m_ios->Post(task);
-
-//			if((++iCount)%10000==0)
-//				printf("qh stock rt=%d,ct=%lld cur process count =%d.\n",
-//					p->Time,lCurTime%MY_DATE_CEIL_LONG,iCount);
-
-			iQhCnt=++iCount;
-			iQhTime=p->Time;
-		}
-
-		if(feof(fpIn)) break;
-
-	}
-
-	fclose(fpIn);
-
-	printf("qh stock rt=%d,ct=%d cur process count =%d.\n",
-		p->Time,nCurTime,iCount);
-
-	return NULL;
-}
-
-
-void *MainReplayRunTh(void *)
-{
-	int iCount=0,nStartTime,nEndTime,nCurTime,nPickTime,nReplayTime,iCostMSec,iDayLeftMSec;
-	char sInFileName[1024],sBuffer[10240];
-	long lItemLen=0;
-	long long *plPickTime=(long long*)sBuffer;
-
-	FILE *fpIn;
-
-	SSEL2_Transaction *p=(SSEL2_Transaction*)(sBuffer+sizeof(long long));
-
-	sprintf(sInFileName,"%s/gta_th_%s.dat",sSourcePath,sReplayDate);
+	if(iFlag==1)
+		sprintf(sInFileName,"%s/tdf_mk_%s.dat",sSourcePath,sReplayDate);
+	else	sprintf(sInFileName,"%s/tdf_mkt_%s.dat",sSourcePath,sReplayDate);
 
 	if((fpIn=fopen(sInFileName,"r"))==NULL){
 		printf("error open file %s to read.\n",sInFileName);
 		return NULL;
 	}
 
-	lItemLen=(sizeof(SSEL2_Transaction))+sizeof(long long);
+	lItemLen=(sizeof(TDF_MARKET_DATA))+sizeof(long long);
 
 
 	//确定开始时间
@@ -462,177 +350,7 @@ void *MainReplayRunTh(void *)
 			break;
 		}
 
-		if(p->TradeTime<lBgnTime)continue;
-
-__delay:
-		nCurTime=nGetHostCurTime();
-		nPickTime=(int)((*plPickTime)%MY_DATE_CEIL_LONG);
-		nReplayTime=nGetReplayTimeByCur(nCurTime,nStartTime,nEndTime,iCostMSec,iDayLeftMSec);
-
-		//如果实盘数据采集的时间picktime
-		//比当前系统时间对应的应当回放到的时间点大了，则线程等待
-		if(nPickTime>nReplayTime){			//休眠指定的时长
-			usleep(iDelayMilSec*1000);
-			goto __delay;
-		}
-
-		//发送multi-times次数据
-		for(int j=0;j<iMultiTimes;j++){
-
-			UTIL_Time stTime;
-			PUTIL_GetLocalTime(&stTime);
-			long long lCurTime=PUTIL_SystemTimeToDateTime(&stTime);
-
-			//接收到数据后，先放入本地队列，等待数据处理接口处理
-			SubData *subdata = new SubData;
-			subdata->msgType = Msg_SSEL2_Transaction;
-			subdata->cur_time = lCurTime;
-			subdata->data.assign((const char*)p, sizeof(SSEL2_Transaction));
-
-			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_SSEL2_Transaction,pCallBack, subdata)));
-
-			pCallBack->m_ios->Post(task);
-
-//			if((++iCount)%20000==0)
-//				printf("th stock rt=%d,ct=%lld cur process count =%d.\n",
-//					p->TradeTime,lCurTime%MY_DATE_CEIL_LONG,iCount);
-			iThCnt=++iCount;
-			iThTime=p->TradeTime;
-
-		}
-		if(feof(fpIn)) break;
-	}
-
-	fclose(fpIn);
-
-	printf("th stock rt=%d,ct=%d cur process count =%d.\n",
-		p->TradeTime,nCurTime,iCount);
-	return NULL;
-}
-
-void *MainReplayRunAh(void *)
-{
-	int iCount=0,nStartTime,nEndTime,nCurTime,nPickTime,nReplayTime,iCostMSec,iDayLeftMSec;
-	char sInFileName[1024],sBuffer[10240];
-	long lItemLen=0;
-	long long *plPickTime=(long long*)sBuffer;
-
-	FILE *fpIn;
-
-	SSEL2_Auction *p=(SSEL2_Auction*)(sBuffer+sizeof(long long));
-
-	sprintf(sInFileName,"%s/gta_ah_%s.dat",sSourcePath,sReplayDate);
-
-	if((fpIn=fopen(sInFileName,"r"))==NULL){
-		printf("error open file %s to read.\n",sInFileName);
-		return NULL;
-	}
-
-	lItemLen=(sizeof(SSEL2_Auction))+sizeof(long long);
-
-
-	//确定开始时间
-	nStartTime=	nGetHostCurTime();
-	iCostMSec=	GetReplayCostMSec((int)lBgnTime);
-	iDayLeftMSec=	GetReplayDayLeftMSec(nStartTime);
-	nEndTime=	GetReplayEndTime(nStartTime,iCostMSec);
-
-	while(1){
-
-		//size_t fread ( void *buffer, size_t size, size_t count, FILE *stream) ;
-		if(fread((void*)sBuffer,lItemLen,1,fpIn)!=1){
-			printf("end of file break.\n");
-			break;
-		}
-
-		if(p->Time<lBgnTime)continue;
-
-__delay:
-		nCurTime=nGetHostCurTime();
-		nPickTime=(int)((*plPickTime)%MY_DATE_CEIL_LONG);
-		nReplayTime=nGetReplayTimeByCur(nCurTime,nStartTime,nEndTime,iCostMSec,iDayLeftMSec);
-
-		//如果实盘数据采集的时间picktime
-		//比当前系统时间对应的应当回放到的时间点大了，则线程等待
-		if(nPickTime>nReplayTime){			//休眠指定的时长
-			//休眠指定的时长
-			usleep(iDelayMilSec*1000);
-			goto __delay;
-		}
-
-		//发送multi-times次数据
-		for(int j=0;j<iMultiTimes;j++){
-
-			UTIL_Time stTime;
-			PUTIL_GetLocalTime(&stTime);
-			long long lCurTime=PUTIL_SystemTimeToDateTime(&stTime);
-
-			//接收到数据后，先放入本地队列，等待数据处理接口处理
-			SubData *subdata = new SubData;
-			subdata->msgType = Msg_SSEL2_Auction;
-			subdata->cur_time = lCurTime;
-			subdata->data.assign((const char*)p, sizeof(SSEL2_Auction));
-
-			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_SSEL2_Auction,pCallBack, subdata)));
-
-			pCallBack->m_ios->Post(task);
-
-//			if((++iCount)%10000==0)
-//				printf("ah stock rt=%d,ct=%lld cur process count =%d.\n",
-//					p->Time,lCurTime%MY_DATE_CEIL_LONG,iCount);
-
-			iAhCnt=++iCount;
-			iAhTime=p->Time;
-
-		}
-		if(feof(fpIn)) break;
-	}
-
-	fclose(fpIn);
-
-	printf("ah stock rt=%d,ct=%d cur process count =%d.\n",
-		p->Time,nCurTime,iCount);
-
-	return NULL;
-}
-
-
-void *MainReplayRunQz(void *)
-{
-	int iCount=0,nStartTime,nEndTime,nCurTime,nPickTime,nReplayTime,iCostMSec,iDayLeftMSec;
-	char sInFileName[1024],sBuffer[10240];
-	long lItemLen=0;
-	long long *plPickTime=(long long*)sBuffer;
-
-	FILE *fpIn;
-
-	SZSEL2_Quotation *p=(SZSEL2_Quotation*)(sBuffer+sizeof(long long));
-
-	sprintf(sInFileName,"%s/gta_qz_%s.dat",sSourcePath,sReplayDate);
-
-	if((fpIn=fopen(sInFileName,"r"))==NULL){
-		printf("error open file %s to read.\n",sInFileName);
-		return NULL;
-	}
-
-	lItemLen=(sizeof(SZSEL2_Quotation))+sizeof(long long);
-
-
-	//确定开始时间
-	nStartTime=	nGetHostCurTime();
-	iCostMSec=	GetReplayCostMSec((int)lBgnTime);
-	iDayLeftMSec=	GetReplayDayLeftMSec(nStartTime);
-	nEndTime=	GetReplayEndTime(nStartTime,iCostMSec);
-
-	while(1){
-
-		//size_t fread ( void *buffer, size_t size, size_t count, FILE *stream) ;
-		if(fread((void*)sBuffer,lItemLen,1,fpIn)!=1){
-			printf("end of file break.\n");
-			break;
-		}
-
-		if((p->Time%MY_DATE_CEIL_LONG)<lBgnTime)continue;
+		if(p->nTime<lBgnTime)continue;
 
 __delay:
 		nCurTime=nGetHostCurTime();
@@ -655,199 +373,285 @@ __delay:
 			long long lCurTime=PUTIL_SystemTimeToDateTime(&stTime);
 
 			//接收到数据后，先放入本地队列，等待数据处理接口处理
-			SubData *subdata = new SubData;
-			subdata->msgType = Msg_SZSEL2_Quotation;
-			subdata->cur_time = lCurTime;
-			subdata->data.assign((const char*)p, sizeof(SZSEL2_Quotation));
+			MySubData *d = new MySubData;
+			d->nItemCnt = 1;
+			d->cur_time = lCurTime;
+			d->data.assign((const char*)p, sizeof(TDF_MARKET_DATA));
 
-			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_SZSEL2_Quotation,pCallBack, subdata)));
-
-			pCallBack->m_ios->Post(task);
-
-//			if((++iCount)%10000==0)
-//				printf("qz stock rt=%d,ct=%lld cur process count =%d.\n",
-//					(int)(p->Time%MY_DATE_CEIL_LONG),lCurTime%MY_DATE_CEIL_LONG,iCount);
-
-			iQzCnt=++iCount;
-			iQzTime=(int)(p->Time%MY_DATE_CEIL_LONG);
-		}
-		if(feof(fpIn)) break;
-	}
-
-	fclose(fpIn);
-
-	printf("qz stock rt=%d,ct=%d cur process count =%d.\n",
-		(int)(p->Time%MY_DATE_CEIL_LONG),nCurTime,iCount);
-
-	return NULL;
-}
-
-
-void *MainReplayRunTz(void *)
-{
-	int iCount=0,nStartTime,nEndTime,nCurTime,nPickTime,nReplayTime,iCostMSec,iDayLeftMSec;
-	char sInFileName[1024],sBuffer[10240];
-	long lItemLen=0;
-	long long *plPickTime=(long long*)sBuffer;
-
-	FILE *fpIn;
-
-	SZSEL2_Transaction *p=(SZSEL2_Transaction*)(sBuffer+sizeof(long long));
-
-	sprintf(sInFileName,"%s/gta_tz_%s.dat",sSourcePath,sReplayDate);
-
-	if((fpIn=fopen(sInFileName,"r"))==NULL){
-		printf("error open file %s to read.\n",sInFileName);
-		return NULL;
-	}
-
-	lItemLen=(sizeof(SZSEL2_Transaction))+sizeof(long long);
-
-
-	//确定开始时间
-	nStartTime=	nGetHostCurTime();
-	iCostMSec=	GetReplayCostMSec((int)lBgnTime);
-	iDayLeftMSec=	GetReplayDayLeftMSec(nStartTime);
-	nEndTime=	GetReplayEndTime(nStartTime,iCostMSec);
-
-	while(1){
-
-		//size_t fread ( void *buffer, size_t size, size_t count, FILE *stream) ;
-		if(fread((void*)sBuffer,lItemLen,1,fpIn)!=1){
-			printf("end of file break.\n");
-			break;
-		}
-
-		if((p->TradeTime%MY_DATE_CEIL_LONG)<lBgnTime)continue;
-__delay:
-		nCurTime=nGetHostCurTime();
-		nPickTime=(int)((*plPickTime)%MY_DATE_CEIL_LONG);
-		nReplayTime=nGetReplayTimeByCur(nCurTime,nStartTime,nEndTime,iCostMSec,iDayLeftMSec);
-
-		//如果实盘数据采集的时间picktime
-		//比当前系统时间对应的应当回放到的时间点大了，则线程等待
-		if(nPickTime>nReplayTime){
-			//休眠指定的时长
-			usleep(iDelayMilSec*1000);
-			goto __delay;
-		}
-
-		//发送multi-times次数据
-		for(int j=0;j<iMultiTimes;j++){
-
-			UTIL_Time stTime;
-			PUTIL_GetLocalTime(&stTime);
-			long long lCurTime=PUTIL_SystemTimeToDateTime(&stTime);
-
-
-			//接收到数据后，先放入本地队列，等待数据处理接口处理
-			SubData *subdata = new SubData;
-			subdata->msgType = Msg_SZSEL2_Transaction;
-			subdata->cur_time = lCurTime;
-			subdata->data.assign((const char*)p, sizeof(SZSEL2_Transaction));
-
-			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_SZSEL2_Transaction,pCallBack, subdata)));
-
-			pCallBack->m_ios->Post(task);
-
-//			if((++iCount)%50000==0)
-//				printf("tz stock rt=%d,ct=%lld cur process count =%d.\n",
-//					(int)(p->TradeTime%MY_DATE_CEIL_LONG),lCurTime%MY_DATE_CEIL_LONG,iCount);
-
-			iTzCnt=++iCount;
-			iTzTime=(int)(p->TradeTime%MY_DATE_CEIL_LONG);
-		}
-		if(feof(fpIn)) break;
-	}
-
-	fclose(fpIn);
-
-	printf("tz stock rt=%d,ct=%d cur process count =%d.\n",
-		(int)(p->TradeTime%MY_DATE_CEIL_LONG),nCurTime,iCount);
-
-	return NULL;
-}
-
-void *MainReplayRunOz(void *)
-{
-	int iCount=0,nStartTime,nEndTime,nCurTime,nPickTime,nReplayTime,iCostMSec,iDayLeftMSec;
-	char sInFileName[1024],sBuffer[10240];
-	long lItemLen=0;
-	long long *plPickTime=(long long*)sBuffer;
-
-	FILE *fpIn;
-
-	SZSEL2_Order *p=(SZSEL2_Order*)(sBuffer+sizeof(long long));
-
-	sprintf(sInFileName,"%s/gta_oz_%s.dat",sSourcePath,sReplayDate);
-
-	if((fpIn=fopen(sInFileName,"r"))==NULL){
-		printf("error open file %s to read.\n",sInFileName);
-		return NULL;
-	}
-
-	lItemLen=(sizeof(SZSEL2_Order))+sizeof(long long);
-
-
-	//确定开始时间
-	nStartTime=	nGetHostCurTime();
-	iCostMSec=	GetReplayCostMSec((int)lBgnTime);
-	iDayLeftMSec=	GetReplayDayLeftMSec(nStartTime);
-	nEndTime=	GetReplayEndTime(nStartTime,iCostMSec);
-
-	while(1){
-
-		//size_t fread ( void *buffer, size_t size, size_t count, FILE *stream) ;
-		if(fread((void*)sBuffer,lItemLen,1,fpIn)!=1){
-			printf("end of file break.\n");
-			break;
-		}
-
-		if((p->Time%MY_DATE_CEIL_LONG)<lBgnTime)continue;
-
-__delay:
-		nCurTime=nGetHostCurTime();
-		nPickTime=(int)((*plPickTime)%MY_DATE_CEIL_LONG);
-		nReplayTime=nGetReplayTimeByCur(nCurTime,nStartTime,nEndTime,iCostMSec,iDayLeftMSec);
-
-		//如果实盘数据采集的时间picktime
-		//比当前系统时间对应的应当回放到的时间点大了，则线程等待
-		if(nPickTime>nReplayTime){
-			//休眠指定的时长
-			usleep(iDelayMilSec*1000);
-			goto __delay;
-		}
-
-		//发送multi-times次数据
-		for(int j=0;j<iMultiTimes;j++){
-
-			UTIL_Time stTime;
-			PUTIL_GetLocalTime(&stTime);
-			long long lCurTime=PUTIL_SystemTimeToDateTime(&stTime);
-
-			//接收到数据后，先放入本地队列，等待数据处理接口处理
-			SubData *subdata = new SubData;
-			subdata->msgType = Msg_SZSEL2_Order;
-			subdata->cur_time = lCurTime;
-			subdata->data.assign((const char*)p, sizeof(SZSEL2_Order));
-
-			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_SZSEL2_Order,pCallBack, subdata)));
+			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_TdfMkt,pCallBack, d)));
 
 			pCallBack->m_ios->Post(task);
 
 //			if((++iCount)%50000==0)
 //				printf("oz stock rt=%d,ct=%lld cur process count =%d.\n",
 //					(int)(p->Time%MY_DATE_CEIL_LONG),lCurTime%MY_DATE_CEIL_LONG,iCount);
-			iOzCnt=++iCount;
-			iOzTime=(int)(p->Time%MY_DATE_CEIL_LONG);
+			iMktCnt=++iCount;
+			iMktTime=p->nTime;
 		}
 		if(feof(fpIn)) break;
 	}
 
 	fclose(fpIn);
 
-	printf("oz stock rt=%d,ct=%d cur process count =%d.\n",
-		(int)(p->Time%MY_DATE_CEIL_LONG),nCurTime,iCount);
+	printf("mkt stock rt=%d,ct=%d cur process count =%d.\n",
+		(int)p->nTime,nCurTime,iCount);
+
+	return NULL;
+}
+void *MainReplayRunTra(void *)
+{
+	int iCount=0,nStartTime,nEndTime,nCurTime,nPickTime,nReplayTime,iCostMSec,iDayLeftMSec;
+	char sInFileName[1024],sBuffer[10240];
+	long lItemLen=0;
+	long long *plPickTime=(long long*)sBuffer;
+
+	FILE *fpIn;
+
+	TDF_TRANSACTION *p=(TDF_TRANSACTION*)(sBuffer+sizeof(long long));
+
+	if(iFlag==1)
+		sprintf(sInFileName,"%s/tdf_tr_%s.dat",sSourcePath,sReplayDate);
+	else	sprintf(sInFileName,"%s/tdf_tra_%s.dat",sSourcePath,sReplayDate);
+
+	if((fpIn=fopen(sInFileName,"r"))==NULL){
+		printf("error open file %s to read.\n",sInFileName);
+		return NULL;
+	}
+
+	lItemLen=(sizeof(TDF_TRANSACTION))+sizeof(long long);
+
+
+	//确定开始时间
+	nStartTime=	nGetHostCurTime();
+	iCostMSec=	GetReplayCostMSec((int)lBgnTime);
+	iDayLeftMSec=	GetReplayDayLeftMSec(nStartTime);
+	nEndTime=	GetReplayEndTime(nStartTime,iCostMSec);
+
+	while(1){
+
+		//size_t fread ( void *buffer, size_t size, size_t count, FILE *stream) ;
+		if(fread((void*)sBuffer,lItemLen,1,fpIn)!=1){
+			printf("end of file break.\n");
+			break;
+		}
+
+		if(p->nTime<lBgnTime)continue;
+
+__delay:
+		nCurTime=nGetHostCurTime();
+		nPickTime=(int)((*plPickTime)%MY_DATE_CEIL_LONG);
+		nReplayTime=nGetReplayTimeByCur(nCurTime,nStartTime,nEndTime,iCostMSec,iDayLeftMSec);
+
+		//如果实盘数据采集的时间picktime
+		//比当前系统时间对应的应当回放到的时间点大了，则线程等待
+		if(nPickTime>nReplayTime){
+			//休眠指定的时长
+			usleep(iDelayMilSec*1000);
+			goto __delay;
+		}
+
+		//发送multi-times次数据
+		for(int j=0;j<iMultiTimes;j++){
+
+			UTIL_Time stTime;
+			PUTIL_GetLocalTime(&stTime);
+			long long lCurTime=PUTIL_SystemTimeToDateTime(&stTime);
+
+			//接收到数据后，先放入本地队列，等待数据处理接口处理
+			MySubData *d = new MySubData;
+			d->nItemCnt = 1;
+			d->cur_time = lCurTime;
+			d->data.assign((const char*)p, sizeof(TDF_TRANSACTION));
+
+			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_TdfTra,pCallBack, d)));
+
+			pCallBack->m_ios->Post(task);
+
+//			if((++iCount)%50000==0)
+//				printf("oz stock rt=%d,ct=%lld cur process count =%d.\n",
+//					(int)(p->Time%MY_DATE_CEIL_LONG),lCurTime%MY_DATE_CEIL_LONG,iCount);
+			iTraCnt=++iCount;
+			iTraTime=p->nTime;
+		}
+		if(feof(fpIn)) break;
+	}
+
+	fclose(fpIn);
+
+	printf("tra stock rt=%d,ct=%d cur process count =%d.\n",
+		(int)p->nTime,nCurTime,iCount);
+
+	return NULL;
+}
+
+void *MainReplayRunOrd(void *)
+{
+	int iCount=0,nStartTime,nEndTime,nCurTime,nPickTime,nReplayTime,iCostMSec,iDayLeftMSec;
+	char sInFileName[1024],sBuffer[10240];
+	long lItemLen=0;
+	long long *plPickTime=(long long*)sBuffer;
+
+	FILE *fpIn;
+
+	TDF_ORDER *p=(TDF_ORDER*)(sBuffer+sizeof(long long));
+
+	if(iFlag==1)
+		sprintf(sInFileName,"%s/tdf_or_%s.dat",sSourcePath,sReplayDate);
+	else	sprintf(sInFileName,"%s/tdf_ord_%s.dat",sSourcePath,sReplayDate);
+
+	if((fpIn=fopen(sInFileName,"r"))==NULL){
+		printf("error open file %s to read.\n",sInFileName);
+		return NULL;
+	}
+
+	lItemLen=(sizeof(TDF_ORDER))+sizeof(long long);
+
+
+	//确定开始时间
+	nStartTime=	nGetHostCurTime();
+	iCostMSec=	GetReplayCostMSec((int)lBgnTime);
+	iDayLeftMSec=	GetReplayDayLeftMSec(nStartTime);
+	nEndTime=	GetReplayEndTime(nStartTime,iCostMSec);
+
+	while(1){
+
+		//size_t fread ( void *buffer, size_t size, size_t count, FILE *stream) ;
+		if(fread((void*)sBuffer,lItemLen,1,fpIn)!=1){
+			printf("end of file break.\n");
+			break;
+		}
+
+		if(p->nTime<lBgnTime)continue;
+
+__delay:
+		nCurTime=nGetHostCurTime();
+		nPickTime=(int)((*plPickTime)%MY_DATE_CEIL_LONG);
+		nReplayTime=nGetReplayTimeByCur(nCurTime,nStartTime,nEndTime,iCostMSec,iDayLeftMSec);
+
+		//如果实盘数据采集的时间picktime
+		//比当前系统时间对应的应当回放到的时间点大了，则线程等待
+		if(nPickTime>nReplayTime){
+			//休眠指定的时长
+			usleep(iDelayMilSec*1000);
+			goto __delay;
+		}
+
+		//发送multi-times次数据
+		for(int j=0;j<iMultiTimes;j++){
+
+			UTIL_Time stTime;
+			PUTIL_GetLocalTime(&stTime);
+			long long lCurTime=PUTIL_SystemTimeToDateTime(&stTime);
+
+			//接收到数据后，先放入本地队列，等待数据处理接口处理
+			MySubData *d = new MySubData;
+			d->nItemCnt = 1;
+			d->cur_time = lCurTime;
+			d->data.assign((const char*)p, sizeof(TDF_ORDER));
+
+			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_TdfOrd,pCallBack, d)));
+
+			pCallBack->m_ios->Post(task);
+
+//			if((++iCount)%50000==0)
+//				printf("oz stock rt=%d,ct=%lld cur process count =%d.\n",
+//					(int)(p->Time%MY_DATE_CEIL_LONG),lCurTime%MY_DATE_CEIL_LONG,iCount);
+			iOrdCnt=++iCount;
+			iOrdTime=p->nTime;
+		}
+		if(feof(fpIn)) break;
+	}
+
+	fclose(fpIn);
+
+	printf("ord stock rt=%d,ct=%d cur process count =%d.\n",
+		(int)p->nTime,nCurTime,iCount);
+
+	return NULL;
+}
+
+void *MainReplayRunQue(void *)
+{
+	int iCount=0,nStartTime,nEndTime,nCurTime,nPickTime,nReplayTime,iCostMSec,iDayLeftMSec;
+	char sInFileName[1024],sBuffer[10240];
+	long lItemLen=0;
+	long long *plPickTime=(long long*)sBuffer;
+
+	FILE *fpIn;
+
+	TDF_ORDER_QUEUE *p=(TDF_ORDER_QUEUE*)(sBuffer+sizeof(long long));
+
+	if(iFlag==1)
+		sprintf(sInFileName,"%s/tdf_qu_%s.dat",sSourcePath,sReplayDate);
+	else	sprintf(sInFileName,"%s/tdf_que_%s.dat",sSourcePath,sReplayDate);
+
+	if((fpIn=fopen(sInFileName,"r"))==NULL){
+		printf("error open file %s to read.\n",sInFileName);
+		return NULL;
+	}
+
+	lItemLen=(sizeof(TDF_ORDER_QUEUE))+sizeof(long long);
+
+
+	//确定开始时间
+	nStartTime=	nGetHostCurTime();
+	iCostMSec=	GetReplayCostMSec((int)lBgnTime);
+	iDayLeftMSec=	GetReplayDayLeftMSec(nStartTime);
+	nEndTime=	GetReplayEndTime(nStartTime,iCostMSec);
+
+	while(1){
+
+		//size_t fread ( void *buffer, size_t size, size_t count, FILE *stream) ;
+		if(fread((void*)sBuffer,lItemLen,1,fpIn)!=1){
+			printf("end of file break.\n");
+			break;
+		}
+
+		if(p->nTime<lBgnTime)continue;
+
+__delay:
+		nCurTime=nGetHostCurTime();
+		nPickTime=(int)((*plPickTime)%MY_DATE_CEIL_LONG);
+		nReplayTime=nGetReplayTimeByCur(nCurTime,nStartTime,nEndTime,iCostMSec,iDayLeftMSec);
+
+		//如果实盘数据采集的时间picktime
+		//比当前系统时间对应的应当回放到的时间点大了，则线程等待
+		if(nPickTime>nReplayTime){
+			//休眠指定的时长
+			usleep(iDelayMilSec*1000);
+			goto __delay;
+		}
+
+		//发送multi-times次数据
+		for(int j=0;j<iMultiTimes;j++){
+
+			UTIL_Time stTime;
+			PUTIL_GetLocalTime(&stTime);
+			long long lCurTime=PUTIL_SystemTimeToDateTime(&stTime);
+
+			//接收到数据后，先放入本地队列，等待数据处理接口处理
+			MySubData *d = new MySubData;
+			d->nItemCnt = 1;
+			d->cur_time = lCurTime;
+			d->data.assign((const char*)p, sizeof(TDF_ORDER_QUEUE));
+
+			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_TdfQue,pCallBack, d)));
+
+			pCallBack->m_ios->Post(task);
+
+//			if((++iCount)%50000==0)
+//				printf("oz stock rt=%d,ct=%lld cur process count =%d.\n",
+//					(int)(p->Time%MY_DATE_CEIL_LONG),lCurTime%MY_DATE_CEIL_LONG,iCount);
+			iQueCnt=++iCount;
+			iQueTime=p->nTime;
+		}
+		if(feof(fpIn)) break;
+	}
+
+	fclose(fpIn);
+
+	printf("que stock rt=%d,ct=%d cur process count =%d.\n",
+		(int)p->nTime,nCurTime,iCount);
 
 	return NULL;
 }
@@ -863,7 +667,7 @@ void *MainReplayRunD31(void *)
 
 	struct D31ItemStruct *p=(struct D31ItemStruct*)(sBuffer+sizeof(long long));
 
-	sprintf(sInFileName,"%s/d31_g3_%s.dat",sSourcePath,sReplayDate);
+	sprintf(sInFileName,"%s/d31_t3_%s.dat",sSourcePath,sReplayDate);
 
 	if((fpIn=fopen(sInFileName,"r"))==NULL){
 		printf("error open file %s to read.\n",sInFileName);
@@ -916,12 +720,12 @@ __delay:
 			long long lCurTime=PUTIL_SystemTimeToDateTime(&stTime);
 
 			//接收到数据后，先放入本地队列，等待数据处理接口处理
-			SubData *subdata = new SubData;
-			subdata->msgType = Msg_SZSEL2_Order;
-			subdata->cur_time = lCurTime;
-			subdata->data.assign((const char*)p, sizeof(struct D31ItemStruct));
+			MySubData *d = new MySubData;
+			d->nItemCnt = 1;
+			d->cur_time = lCurTime;
+			d->data.assign((const char*)p, sizeof(struct D31ItemStruct));
 
-			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_D31Item,pCallBack, subdata)));
+			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_D31Item,pCallBack, d)));
 
 			pCallBack->m_ios->Post(task);
 
@@ -953,10 +757,10 @@ qz=%-9dqzt=%-10dtz=%-9dtzt=%-10doz=%-9dozt=%-10dt=%lld\n",
 			iQzCnt,iQzTime,iTzCnt,iTzTime,iOzCnt,iOzTime,lCurTime/1000);
 */
 		if(iCount++%10==0)
-			printf("qh(%-9d)\tth(%-9d)\tah(%-9d)\tqz(%-9d)\ttz(%-9d)\toz(%-9d)\tdi(%-9d)\tcurtime\n",
-				 iQhTime,iThTime,iAhTime,iQzTime,iTzTime,iOzTime,iDiTime);
-		printf("%-9d\t%-9d\t%-9d\t%-9d\t%-9d\t%-9d\t%-9d\t%d\n",
-			iQhCnt,iThCnt,iAhCnt,iQzCnt,iTzCnt,iOzCnt,iDiCnt,nCurTime/1000);
+			printf("mkt(%-9d)\ttra(%-9d)\tord(%-9d)\tque(%-9d)\tdi(%-9d)\tcurtime\n",
+				 iMktTime,iTraTime,iOrdTime,iQueTime,iDiTime);
+		printf("%-9d\t%-9d\t%-9d\t%-9d\t%-9d\t%d\n",
+			iMktCnt,iTraCnt,iOrdCnt,iQueCnt,iDiCnt,nCurTime/1000);
 
 	}
 	return NULL;
