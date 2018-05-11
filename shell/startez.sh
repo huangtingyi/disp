@@ -75,14 +75,14 @@ cd $HOME/bin
 
 nohup $agent_bin -p$agent_file -r$disp_file 1>$agentcli_log 2>&1 &
 sleep 1
-$pidof_bin -x ints_tdf
+$pidof_bin -x agentcli
 if [ $? -ne 0 ]; then
 	echo "`date '+%Y/%m/%d %k:%M:%S'` agentcli is startup FAIL..";
 	echo "$$agent_bin -p$agent_file -r$disp_file"
 	exit 3;
 fi
 
-echo "`date '+%Y/%m/%d %k:%M:%S'` ints_tdf is startup SUCESS.."
+echo "`date '+%Y/%m/%d %k:%M:%S'` agentcli is startup SUCESS.."
 
 nohup $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
 sleep 1

@@ -100,7 +100,7 @@ installdir()
 		conf)   
 			cp conf/cfg.json	../conf
 			cp conf/disp.json       ../conf
-			cp conf/ints_tdf.json   ../conf
+			cp conf/ints_gta.json   ../conf
 			cp conf/user_privilege.json ../conf
 			cp conf/config.ini   	../conf
 			cp conf/ints_tdf.json   ../conf

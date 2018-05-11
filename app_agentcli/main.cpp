@@ -146,6 +146,12 @@ int main(int argc, char *argv[])
 
 	init(m_sCfgJsonPath,m_sDispJsonPath);
 
+	//初始化刷新数组，以及刷新文件名的全局变量
+	InitUserArray(m_sDispJsonPath,&R);
+
+	//刷新一下参数，避免要求disp先启动，才能启动本程序
+	RefreshUserArray(m_sDispJsonPath,&R);
+
 	char errmsg[256];
 	bool connected = m_connect(errmsg);
 	if (connected)
