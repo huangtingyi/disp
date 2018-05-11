@@ -58,5 +58,27 @@ bool ValidStockCode(char szWinCode[]);
 extern struct DispRuleStruct R;
 extern char sRefreshDispName[1024];
 
+#define MY_AM_MARKET_BEGIN_TIME	90000000
+#define MY_AM_MARKET_OPEN_TIME	93000000
+#define MY_AM_MARKET_CLOSE_TIME	113000000
+#define MY_PM_MARKET_OPEN_TIME	130000000
+#define MY_PM_MARKET_CLOSE_TIME	150000000
+#define MY_PM_MARKET_STOP_TIME	153000000
+#define MY_DAY_END_TIME		240000000
+
+//根据, 指定回放开始时间位置, 算出做完本次回放需要多长时间，单位（毫秒）
+int GetReplayCostMSec(int nBgnTime);
+//程序启动后，当前还剩余多少毫秒可以使用
+int GetReplayDayLeftMSec(int nStartTime);
+//程序启动后，预计程序在什么时间结束回放
+int GetReplayEndTime(int nStartTime,int iCostMSec);
+//根据计算得出的：当前对应的回放位置（距离：MY_PM_MARKET_STOP_TIME的毫秒数），
+//换算出ReplayTime的数值为
+int GetReplayTimeByLeftMSec(int iEndLeftMSec);
+//将程序运行当前时间，映射到回放位置上去
+int nGetReplayTimeByCur(int nCurTime,int nStartTime,int nEndTime,
+	int iCostMSec,int iDayLeftMSec);
+
+long lFileSize(char sFileName[]);//获取文件名为filename的文件大小。
 
 #endif  //__CALLSUPP_H__

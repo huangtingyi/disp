@@ -23,8 +23,17 @@
 
 #include "gta_supp.h"
 
+#include "d31_item.h"
+#include "public.h"
+
+#include "wwtiny.h"
+
+CallBackBase *pCallBack;
+
 int iDebugFlag=0,iWriteFlag=0;
 char sCfgJsonName[1024],sDispName[1024],sPrivilegeName[1024],sWorkRoot[1024];
+
+void *MainD31Transfer(void *);
 
 void signalProcess(int signal)
 {
@@ -107,6 +116,8 @@ int main(int argc, char *argv[])
 	//订阅消息回调类
 	CallBackBase CallbackBase(iWriteFlag,(char*)"",strWork);
 	CallbackBase.SetIoService(&ios);
+	
+	pCallBack=&CallbackBase;
 
 	//启动处理数据服务
 	ios.Start();
@@ -263,6 +274,17 @@ int main(int argc, char *argv[])
 	}
 	while (false);
 
+
+	pthread_t pthd_d31;
+	pthread_attr_t attr_d31;
+
+	//加载d31回放线程
+	pthread_attr_init(&attr_d31);
+	pthread_attr_setdetachstate(&attr_d31, PTHREAD_CREATE_DETACHED);
+	pthread_attr_setstacksize(&attr_d31, 1024*512);
+	pthread_create(&pthd_d31, NULL, MainD31Transfer, NULL);
+
+
 	printf("-----------------------------1.\n");
 
 	//循环监视disp规则变化，如果变化则通知刷新
@@ -283,4 +305,84 @@ int main(int argc, char *argv[])
 	IGTAQTSApiBase::ReleaseInstance(pApiBase);
 
 	return 0;
+}
+
+int ReadD31FileAndSend(char sFileName[],long *plCurPos)
+{
+	FILE *fp;
+	char sBuffer[10240];
+	long lCurPos=*plCurPos,lSize,lCnt,lItemLen;
+	struct D31ItemStruct *p=(struct D31ItemStruct*)(sBuffer+sizeof(long long));
+
+	lSize=lFileSize(sFileName);
+	
+	if(lSize<=lCurPos) return 0;
+
+	lItemLen=sizeof(struct D31ItemStruct)+sizeof(long long);
+	
+	lCnt=(lSize-lCurPos)/lItemLen;
+	
+	if(lCnt==0) return 0;
+
+
+	if((fp=fopen(sFileName,"r"))==NULL){
+		printf("error open file %s to read.\n",sFileName);
+		return -1;
+	}
+
+	if(fseek(fp,lCurPos,SEEK_SET)<0){
+		printf("error fseek file=%s,pos=%ld.\n",sFileName,lCurPos);
+		return -1;
+	}
+
+	while(lCnt>0){
+		if(fread((void*)sBuffer,lItemLen,1,fp)!=1){
+			printf("error end of file break.\n");
+			return -1;
+		}
+		{
+
+			UTIL_Time stTime;
+			PUTIL_GetLocalTime(&stTime);
+			long long lCurTime=PUTIL_SystemTimeToDateTime(&stTime);
+
+			//接收到数据后，先放入本地队列，等待数据处理接口处理
+			SubData *subdata = new SubData;
+			subdata->cur_time = lCurTime;
+			subdata->data.assign((const char*)p, sizeof(struct D31ItemStruct));
+
+			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_D31Item,pCallBack, subdata)));
+
+			pCallBack->m_ios->Post(task);
+
+		}
+		
+		lCnt--;
+		lCurPos+=lItemLen;
+	}
+	
+	*plCurPos=lCurPos;
+	
+	fclose(fp);
+
+	return 0;
+}
+void *MainD31Transfer(void *)
+{
+	long lCurPos=0;
+	char sHostTime[15],sInFileName[1024];
+	
+	GetHostTime(sHostTime);
+	sHostTime[8]=0;
+
+	sprintf(sInFileName,"%s/d31_g3_%s.dat",sWorkRoot,sHostTime);
+	
+	while(1){
+		ReadD31FileAndSend(sInFileName,&lCurPos);
+		
+		//每10毫秒刷一次
+		usleep(10*1000);
+	}
+
+	return NULL;
 }

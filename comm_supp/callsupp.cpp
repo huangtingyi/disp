@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/inotify.h>
+#include <sys/stat.h>
 
 #include <boost/property_tree/json_parser.hpp>
 
@@ -513,4 +514,112 @@ bool ValidStockCode(char szWinCode[])
 	if(ValidShStockCode(szWinCode)||ValidSzStockCode(szWinCode)) return true;
 	
 	return false;
+}
+
+/***
+//lBgnTime  ：指定回放开始时间位置
+//lStartTime: 回放程序启动时间
+//lCurTime  : 回放程序当前运行时间
+// *plPickTime :原始记录落地时间
+
+#define MY_AM_MARKET_BEGIN_TIME	90000000
+#define MY_AM_MARKET_OPEN_TIME	93000000
+#define MY_AM_MARKET_CLOSE_TIME	113000000
+#define MY_PM_MARKET_OPEN_TIME	130000000
+#define MY_PM_MARKET_CLOSE_TIME	150000000
+#define MY_PM_MARKET_STOP_TIME	153000000
+#define MY_DAY_END_TIME		240000000
+
+
+
+关键点：
+	判断回放时点lCurTime为何值时，到上午休市？
+	判断回放时间点lCurTime为何值时超过了原始记录落地时间？
+逻辑：
+	lCurTime==>lPickTime
+	lConvCur2ReplayTime: 将当前时间转换为回放时间逻辑如下：
+
+	1，通过 指定回放开始时间算出，整个回放全过程需要多少时间；
+	2，如果回放程序启动时间，到天结束整个够回放整个需要多长时间，则 直接映射这个时间；
+	3，如果回放程序启动时间，不够整个结束时间，则做两个时间段的映射。
+**/
+
+//根据, 指定回放开始时间位置, 算出做完本次回放需要多长时间，单位（毫秒）
+int GetReplayCostMSec(int nBgnTime)
+{
+	int iCostMSec=iDiffnTime(MY_PM_MARKET_STOP_TIME,nBgnTime);
+
+	//如果是午盘则直接返回
+	if(iCostMSec<=3600*2500) return iCostMSec;
+
+	//如果是 大于  11:30:00:000 整，直接规整为下午一点
+	if(iCostMSec<3600*4000) return  3600*2500;
+
+	//如果是早盘，则扣除中间午间时间
+	return iCostMSec-3600*1500;
+}
+//程序启动后，当前还剩余多少毫秒可以使用
+int GetReplayDayLeftMSec(int nStartTime)
+{
+	return iDiffnTime(MY_DAY_END_TIME,nStartTime);
+}
+//程序启动后，预计程序在什么时间结束回放
+int GetReplayEndTime(int nStartTime,int iCostMSec)
+{
+	int nEndTime=iAddMilliSec(nStartTime,iCostMSec);
+
+	//这里包含了一个特殊点，最迟结束时间，永远不会到达
+	if(nEndTime<=MY_DAY_END_TIME) return nEndTime;
+
+	return nEndTime-MY_DAY_END_TIME;
+}
+//根据计算得出的：当前对应的回放位置（距离：MY_PM_MARKET_STOP_TIME的毫秒数），
+//换算出ReplayTime的数值为
+int GetReplayTimeByLeftMSec(int iEndLeftMSec)
+{
+	//如果时间点已经来到了下午，则直接算出时间
+	if(iEndLeftMSec<=3600*2500)
+		return iAddMilliSec(MY_PM_MARKET_STOP_TIME,-iEndLeftMSec);
+
+	//否则还是上午，则直接多扣一个半小时
+	return iAddMilliSec(MY_PM_MARKET_STOP_TIME,-(iEndLeftMSec+3600*1500));
+}
+//将程序运行当前时间，映射到回放位置上去
+int nGetReplayTimeByCur(int nCurTime,int nStartTime,int nEndTime,
+	int iCostMSec,int iDayLeftMSec)
+{
+	int iEndLeftMSec,iDay1EndLeftMSec;
+
+	//一整天够用来回放整份数据
+	if(iDayLeftMSec>=iCostMSec){
+		iEndLeftMSec=iDiffnTime(nEndTime,nCurTime);
+		return GetReplayTimeByLeftMSec(iEndLeftMSec);
+	}
+
+	//回放时间一天不够用,跨天，支持跨1天
+	//设计回放最长时段为5小时,所以只可能跨一天.
+	//剩余为第二天的的毫秒数
+
+	//当前时间比会放开始时间还早了，则跨天了
+	if(nCurTime<nStartTime){
+		iEndLeftMSec=iDiffnTime(nEndTime,nCurTime);
+
+		return GetReplayTimeByLeftMSec(iEndLeftMSec);
+	}
+
+	iDay1EndLeftMSec=iDiffnTime(MY_DAY_END_TIME,nCurTime);
+
+	iEndLeftMSec=iDay1EndLeftMSec+(iCostMSec-iDayLeftMSec);
+
+	return GetReplayTimeByLeftMSec(iEndLeftMSec);
+
+}
+
+long lFileSize(char sFileName[])//获取文件名为filename的文件大小。
+{
+	struct stat statbuf;
+	int ret;
+	ret = stat(sFileName,&statbuf);//调用stat函数
+	if(ret != 0) return -1;//获取失败。
+	return statbuf.st_size;//返回文件大小。
 }
