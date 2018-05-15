@@ -18,6 +18,7 @@ if [ -z "$pids" ]; then
 fi
 
 my_name=`who am i | awk '{print $1}'`
+my_name=${my_name:-$USER}
 my_flag=""
 
 for i in $pids
@@ -38,6 +39,21 @@ do
 	sleep 1
 	echo "`date '+%Y/%m/%d %k:%M:%S'` send SIGTERM to $i and it is stopped.."
 done
+
+##为了避免客户端程序，因为服务端的连接强制关闭后的重连机制造成的dat2cli主进程fork出子进程
+##这里追加循环，专门杀reconnect dat2cli进程，避免第二天启动时因为存在这个进程无法启动系统
+pids=`$pidof_bin -x dat2cli`
+if [ -n "$pids" ]; then
+	for i in $pids
+	do
+		##确保只杀自己的进程
+		my_flag=`comfirm_mypid $my_name $i`
+		if [ $my_flag -ne 0 ]; then
+			kill -SIGTERM $i
+			echo "`date '+%Y/%m/%d %k:%M:%S'` send SIGTERM to $i (reconn=dat2cli)and it is stopped.."
+		fi
+	done
+fi
 
 sleep 1;
 

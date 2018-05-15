@@ -58,6 +58,7 @@ fi
 [ ! -f $pidof_bin ] && echo "$pidof_bin is not exist" && exit 1;
 
 my_name=`who am i | awk '{print $1}'`
+my_name=${my_name:-$USER}
 my_flag=""
                
 if [ $sysflag = "gta" ]; then

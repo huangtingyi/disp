@@ -163,6 +163,7 @@ remove_mymq_all()
 {
 
 	my_name=`who am i | awk '{print $1}'`
+	my_name=${my_name:-$USER}
 	
 	ipcs -q | grep "0x" | awk '{print $2}' | while read tmp
 	do
@@ -184,6 +185,7 @@ remove_mysem_all()
 {
 
 	my_name=`who am i | awk '{print $1}'`
+	my_name=${my_name:-$USER}
 
 	ipcs -s | grep "0x" | awk '{print $2}' | while read tmp
 	do
@@ -207,6 +209,7 @@ check_mypid_exist()
 	res_str="0"
 	belong_cmd=""
 	my_name=`who am i | awk '{print $1}'`
+	my_name=${my_name:-$USER}
 	
 	for i in $pids
 	do
