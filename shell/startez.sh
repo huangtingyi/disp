@@ -112,11 +112,3 @@ sleep 1;
 echo "`date '+%Y/%m/%d %k:%M:%S'` system startup  OK..."
 
 exit 0
-
-
-
-
-
-
-
-

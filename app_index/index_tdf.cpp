@@ -11,6 +11,29 @@
 #include "QTSStruct.h"
 #include "index_supp.h"
 
+static bool ValidShStockCode(char sStockCode[])
+{
+	if((sStockCode[0] == '6' && sStockCode[1] == '0')||
+		(sStockCode[0] == '1' && sStockCode[1] == '1')) return true;
+	return false;
+}
+
+static bool ValidSzStockCode(char sStockCode[])
+{
+	if((sStockCode[0] == '3' && sStockCode[1] == '0')||
+		(sStockCode[0] == '0' && sStockCode[1] == '0')||
+		(sStockCode[0] == '1' && sStockCode[1] == '2')) return true;
+	return false;
+}
+
+static bool ValidStockCode(char szWinCode[])
+{
+	if(ValidShStockCode(szWinCode)||ValidSzStockCode(szWinCode)) return true;
+	
+	return false;
+}
+
+
 void TDF_MARKET_DATA2TinyQuotation(TDF_MARKET_DATA *pi,struct TinyQuotationStruct *po)
 {
 	po->iStockCode=	atoi(pi->szCode);
@@ -83,6 +106,8 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 		}
 
 		lCurPos+=lItemLen;
+
+		if(ValidStockCode(p->szCode)==false)	continue;
 
 		if(p->nActionDay!=nBgnActionDay){
 			printf("error date file=%s,pos=%ld,actionday=%d,calcdate=%d\n",
@@ -202,6 +227,8 @@ int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
 
 		lCurPos+=lItemLen;
 
+		if(ValidStockCode(p->szCode)==false)	continue;
+
 		TDF_MARKET_DATA2TinyQuotation(p,&q);
 
 		if((pIndexStat=GetIndexStat(q.iStockCode,sFileName,
@@ -277,6 +304,8 @@ int MountOrdData2IndexStatArray(char sFileName[],int nBgnActionDay,
 			break;
 		}
 		lCurPos+=lItemLen;
+
+		if(ValidStockCode(p->szCode)==false)	continue;
 
 		TDF_ORDER2TinyOrder(p,&o);
 
