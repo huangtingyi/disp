@@ -17,7 +17,7 @@ fi
 
 bakdate=${1:-"`date '+%Y%m%d'`"}
 
-conf_file="$HOME/bin/config.ini"
+conf_file="$HOME/conf/config.ini"
 [ ! -f $conf_file ] && echo "$conf_file is not exist" && exit 1;
 
 . $conf_file
@@ -71,14 +71,15 @@ backup_file()
 	target_file=$2
 	
 	if [ ! -f $source_file ]; then
-		exit 0;		
+		echo file $source_file not exist IGNORE.
+		return 0;		
 	fi
 
 	echo "`date '+%Y/%m/%d %k:%M:%S'` backup $source_file BEGIN..."
 	gzip -c $source_file > $target_file
 	if [ $? -ne 0 ]; then
 		echo "backup $source_file fail"
-		exit 1;
+		return 1;
 	fi
 	echo "`date '+%Y/%m/%d %k:%M:%S'` backup $source_file to $bakpath OK..."
 }
