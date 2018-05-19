@@ -6,7 +6,7 @@ comfirm_mypid()
 	mypid=$2
 	
 	myflag="0"
-	mypidstr=`ps -ef |grep $mypid`
+	mypidstr=`ps -ef |awk '{print $1,$2}'|grep $mypid`
 
 	IFS_old=$IFS
 	IFS=$'\n'
@@ -38,7 +38,7 @@ belong_user_mypid()
 	
 	res_str="0"
 
-	mypidstr=`ps -ef |grep $mypid`
+	mypidstr=`ps -ef |awk '{print $1,$2}'|grep $mypid`
 
 	IFS_old=$IFS
 	IFS=$'\n'
@@ -63,7 +63,7 @@ belong_cmd_mypid()
 	
 	res_str="0"
 
-	mypidstr=`ps -ef |grep $mypid`
+	mypidstr=`ps -ef |awk '{print $1,$2}'|grep $mypid`
 
 	IFS_old=$IFS
 	IFS=$'\n'

@@ -123,6 +123,12 @@ struct PriceOrderStruct
 	int nOrderTime;
 };
 
+struct EtfStockStruct{
+	struct EtfStockStruct *pNext;
+	int	iEtfCode;
+	int	iStockCode;
+};
+
 struct IndexStatStruct
 {
 	struct IndexStatStruct *pNext;	//下一支股票的数据
@@ -165,6 +171,8 @@ struct IndexStatStruct
 
 	LISTHEAD S0Q;	//存放[T0-1,T0),{当T0==15:00:00 时，为 [14:59,15:00]}的行情数据
 	LISTHEAD S1Q;	//存放[T0,之后的行情数据}
+	
+	LISTHEAD ETF;	//存放ETF结构中包含的股票代码列表
 };
 
 #include "d31_item.h"
@@ -213,5 +221,7 @@ int InitTinyTransactionField(struct IndexStatStruct *p,struct TinyTransactionStr
 #define MY_WANT_STAT	1
 #define MY_TAIL_NO_STAT	2
 
+
+int InitIndexEtfList(char sEtfList[],char sEtfPath[]);
 
 #endif

@@ -492,7 +492,7 @@ int main(int argc, char *argv[])
 
 	char sCurTime[15],sCalcDate[15],sCalcBgn[15];
 	char sDelayStr[256],sCodeStr[512],sD31Name[512],sSourcePath[512],sWorkRoot[512];
-	char sGtaQhName[512],sGtaQzName[512],sGtaThName[512],sGtaTzName[512],sGtaOzName[512];
+	char sGtaQhName[512],sGtaQzName[512],sGtaThName[512],sGtaTzName[512],sGtaOzName[512],sEtfList[512],sEtfPath[512];
 
 	time_t tBeginTime,tEndTime,tDelTime;
 	//当前文件处理位置
@@ -512,9 +512,11 @@ int main(int argc, char *argv[])
 	strcpy(sWorkRoot,	"/stock/work");
 	strcpy(sCodeStr,"");
 	strcpy(sDelayStr,"");
+	strcpy(sEtfList,"510050,510180,510300,510500");
+	strcpy(sEtfPath,"../conf/etf");
 
 	//获取命令行参数
-	for (int c; (c = getopt(argc, argv, "d:b:m:s:o:e:t:w:l:?:")) != EOF;){
+	for (int c; (c = getopt(argc, argv, "d:b:m:s:o:e:t:w:l:L:E:?:")) != EOF;){
 
 		switch (c){
 		case 'd':strncpy(sCalcDate, optarg,8);sCalcDate[8]=0;	break;
@@ -527,6 +529,8 @@ int main(int argc, char *argv[])
 		case 'w':iWriteFlag=atoi(optarg);
 			if(iWriteFlag!=1&&iWriteFlag!=2&&iWriteFlag!=3)iWriteFlag=1;	break;
 		case 'l':strcpy(sCodeStr, optarg);	break;
+		case 'L':strcpy(sEtfList, optarg);	break;
+		case 'E':strcpy(sEtfPath, optarg);	break;
 		case '?':
 		default:
 			printf("Usage: %s \n", argv[0]);
@@ -539,6 +543,8 @@ int main(int argc, char *argv[])
 			printf("   [-t idlewaitmilli \n");
 			printf("   [-w writeflag (1,zbzd 2,ext 3,bin info) \n");
 			printf("   [-l codelist (e.g \"000001,603912,002415\") ]\n");
+			printf("   [-L etflist (e.g \"510050,510180,510300,510500\") ]\n");
+			printf("   [-E etfpath (e.g ../conf/etf) ]\n");
 			exit(1);
 			break;
 		}
@@ -568,6 +574,9 @@ int main(int argc, char *argv[])
 		iSzBusyDelay=	atoi(p1);
 		iSzDelay=	atoi(p2);
 	}
+
+	//加载ETF参数数据到内存中
+	if(InitIndexEtfList(sEtfList,sEtfPath)<0) return -1;
 
 	//生成六个文件名
 	sprintf(sGtaThName,"%s/gta_th_%s.dat",sSourcePath,sCalcDate);

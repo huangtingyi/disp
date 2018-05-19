@@ -18,7 +18,7 @@ long alJmpLevel[MAX_JMP_LEVEL_CNT]={
 	50*10000*100,
 	100*10000*100
 };
-struct IndexStatStruct *INDEX_HEAD=NULL;
+struct IndexStatStruct *INDEX_HEAD=NULL,*INDEX_ETF=NULL;
 struct IndexStatStruct *AISTAT[MAX_STOCK_CODE];
 
 
@@ -727,6 +727,111 @@ struct IndexStatStruct *GetIndexStat(int iStockCode,char sFileName[],long lCurPo
 	return pTemp;
 }
 
+int InitEtfList(char sFileName[],int iEtfCode,LISTHEAD *ptHead)
+{
+	FILE *fp;
+	char sBuffer[256];
+	struct EtfStockStruct *pTemp;
+	
+	if((fp=fopen(sFileName,"r"))==NULL){
+		printf("error open file %s to read.\n",sFileName);
+		return -1;
+	}
+	
+	//char *fgets(char *buf, int bufsize, FILE *stream);
+	
+	while(1){
+		fgets(sBuffer,256,fp);
+		
+		if(feof(fp)) break;
+			
+		if((pTemp=(struct EtfStockStruct *)malloc(sizeof(struct EtfStockStruct)))==NULL){
+			printf("malloc EtfStockStruct error.\n");
+			fclose(fp);
+			return -1;
+		}
+		bzero((void*)pTemp,sizeof(struct EtfStockStruct));
+		
+		pTemp->iEtfCode=iEtfCode;
+		pTemp->iStockCode=atoi(sBuffer);
+		pTemp->pNext=NULL;
+
+		Append2List(ptHead,(LIST*)pTemp);
+	}
+	
+	
+	fclose(fp);
+	return 0;
+}
+struct IndexStatStruct *GetEtfIndexStat(int iEtfCode,char sEtfPath[],
+	int nBgnActionDay,int nPreT0,int nT0)
+{
+	char sFileName[512];
+	struct IndexStatStruct *pTemp;
+
+	//检查股票代码的合法性
+	if(iEtfCode<=0||iEtfCode>=MAX_STOCK_CODE){
+		printf("error etfcode etfcode=%06d\n",iEtfCode);
+		return NULL;
+	}
+
+	if((pTemp=AISTAT[iEtfCode])==NULL){
+		if((AISTAT[iEtfCode]=NewInitIndexStat(iEtfCode,
+			nBgnActionDay,nPreT0,nT0))==NULL){
+			printf("error new_init_index_stat etfcode=%d\n",iEtfCode);
+			return NULL;
+		}
+		pTemp=AISTAT[iEtfCode];
+
+		sprintf(sFileName,"%s/%06d.etf",sEtfPath,iEtfCode);
+		
+		if(InitEtfList(sFileName,iEtfCode,&pTemp->ETF)<0) return NULL;
+
+		//新生成节点，插入到全局结构表中
+		InsertList((LIST**)&INDEX_ETF,(LIST*)pTemp);
+	}
+	return pTemp;
+}
+
+int InitIndexEtfList(char sEtfList[],char sEtfPath[])
+{
+	int iEtfCode;
+	char *p=&sEtfList[0],sFileName[512];
+	struct IndexStatStruct *pTemp;
+
+	while(1){
+		iEtfCode=atoi(p);
+		
+		//检查股票代码的合法性
+		if(iEtfCode<=0||iEtfCode>=MAX_STOCK_CODE){
+			printf("error etfcode etfcode=%06d\n",iEtfCode);
+			return -1;
+		}
+
+		if((pTemp=(struct IndexStatStruct *)malloc(
+			sizeof(struct IndexStatStruct)))==NULL){
+			printf("malloc IndexStatStruct error.\n");
+			return -1;
+		}
+		bzero((void*)pTemp,sizeof(struct IndexStatStruct));
+		pTemp->iStockCode=iEtfCode;
+		AISTAT[iEtfCode]=pTemp;
+
+		sprintf(sFileName,"%s/%06d.etf",sEtfPath,iEtfCode);
+		
+		if(InitEtfList(sFileName,iEtfCode,&pTemp->ETF)<0) return -1;
+
+		//新生成节点，插入到全局结构表中
+		InsertList((LIST**)&INDEX_ETF,(LIST*)pTemp);
+
+		if((p=strchr(p,','))==NULL) break;
+		
+		//跳过','号到下一个代码
+		p++;
+	}
+	return 0;
+}
+
 int MoveS1T2S0T(struct IndexStatStruct *p,int nPreT0,int nT0)
 {
 	LISTHEAD *pS0T=&(p->S0T),*pS1T=&(p->S1T);
@@ -829,7 +934,85 @@ int MoveS1O2M_ORDER(struct IndexStatStruct *p,int nT0)
 	}
 	return 0;
 }
+void SumIndexStatZx(struct D31IndexItemStruct *po,struct D31IndexItemStruct *pi)
+{
+	/**
+	int8b	alBidAmount[MAX_LEVEL_CNT];	//主买额度，单位（分）
+	int	aiBidVolume[MAX_LEVEL_CNT];	//主买量，单位（手）
+	int	aiBidOrderNum[MAX_LEVEL_CNT];	//主买笔数，单位（笔）
+	int8b	alAskAmount[MAX_LEVEL_CNT];	//主卖额度，单位（分）
+	int	aiAskVolume[MAX_LEVEL_CNT];	//主卖量，单位（手）
+	int	aiAskOrderNum[MAX_LEVEL_CNT];	//主卖笔数，单位（笔）
+	**/
+	int i;
+	
+	for(i=0;i<MAX_LEVEL_CNT;i++){
+		po->alBidAmount[i]+=	pi->alBidAmount[i];
+		po->aiBidVolume[i]+=	pi->aiBidVolume[i];
+		po->aiBidOrderNum[i]+=	pi->aiBidOrderNum[i];
+		po->alAskAmount[i]+=	pi->alAskAmount[i];
+		po->aiAskVolume[i]+=	pi->aiAskVolume[i];
+		po->aiAskOrderNum[i]+=	pi->aiAskOrderNum[i];
+	}
+}
+void SumIndexStatEx(struct D31IndexExtStruct *po,struct D31IndexExtStruct *pi)
+{
+	int i;
 
+	//上半部分指标开始
+	po->nTenBidVolume+=	pi->nTenBidVolume;
+	po->nTenAskVolume+=	pi->nTenAskVolume;
+	po->lTenBidAmnt+=	pi->lTenBidAmnt;
+	po->lTenAskAmnt+=	pi->lTenAskAmnt;
+	po->nTotalBidVolume+=	pi->nTotalBidVolume;
+	po->nTotalAskVolume+=	pi->nTotalAskVolume;
+	po->lTotalBidAmnt+=	pi->lTotalBidAmnt;
+	po->lTotalAskAmnt+=	pi->lTotalAskAmnt;
+	po->nWtAvgBidPrice+=	pi->nWtAvgBidPrice;
+	po->nWtAvgAskPrice+=	pi->nWtAvgAskPrice;
+
+	//下半部分指标开始
+	po->nLastClose+=		pi->nLastClose;
+	po->nCurPrice+=		pi->nCurPrice;
+	po->lAvgTotalBidAmnt+=	pi->lAvgTotalBidAmnt;
+	po->lAvgTotalAskAmnt+=  pi->lAvgTotalAskAmnt;
+
+	for(i=0;i<MAX_JMP_LEVEL_CNT;i++){
+		po->alBidAmount[i]+=	pi->alBidAmount[i];
+		po->alAskAmount[i]+=	pi->alAskAmount[i];
+	}
+}
+//将ETF列表中的数据，汇总到ETF结构中去
+int SumEtfStat(struct IndexStatStruct *p)
+{
+	struct EtfStockStruct *pTemp=(struct EtfStockStruct *)(p->ETF.pHead);
+	struct IndexStatStruct *pi;
+	
+	//设置一下全局参数
+	if(pTemp!=NULL){
+		
+		if((pi=AISTAT[pTemp->iStockCode])==NULL) return -1;
+	
+		if(p->nT0!=pi->nT0){
+			p->nActionDay=	pi->nActionDay;
+			p->nPreT0=	pi->nPreT0;
+			p->nT0=		pi->nT0;
+		}
+	}
+
+	while(pTemp!=NULL){
+		
+		if((pi=AISTAT[pTemp->iStockCode])==NULL) return -1;
+		
+		SumIndexStatZx(&p->Zb,&pi->Zb);
+		SumIndexStatZx(&p->Zd,&pi->Zd);
+		SumIndexStatEx(&p->Ex,&pi->Ex);
+		
+		pTemp=pTemp->pNext;		
+	}
+	
+	return 0;
+}
 int GenD31StatAll()
 {
 	struct IndexStatStruct *pIndexStat=INDEX_HEAD;
@@ -841,14 +1024,20 @@ int GenD31StatAll()
 		}
 		pIndexStat=pIndexStat->pNext;
 	}
+	
+	//做一个循环，统计ETF数据
+	pIndexStat=INDEX_ETF;
+	while(pIndexStat!=NULL){
+		SumEtfStat(pIndexStat);
+		pIndexStat=pIndexStat->pNext;		
+	}
+	
 	return 0;
 }
-
-int WriteD31StatAll(FILE *fpD31,char sCodeStr[],int iWriteFlag)
+int WriteD31StatList(FILE *fpD31,char sCodeStr[],int iWriteFlag,
+	struct IndexStatStruct *pIndexStat)
 {
 	char sTempCode[8];
-	struct IndexStatStruct *pIndexStat=INDEX_HEAD;
-
 	while(pIndexStat!=NULL){
 
 		sprintf(sTempCode,"%06d",pIndexStat->iStockCode);
@@ -866,7 +1055,13 @@ int WriteD31StatAll(FILE *fpD31,char sCodeStr[],int iWriteFlag)
 	}
 	return 0;
 }
+int WriteD31StatAll(FILE *fpD31,char sCodeStr[],int iWriteFlag)
+{
+	if(WriteD31StatList(fpD31,sCodeStr,iWriteFlag,INDEX_HEAD)<0) return -1;
+	if(WriteD31StatList(fpD31,sCodeStr,iWriteFlag,INDEX_ETF)<0) return -1;
 
+	return 0;
+}
 //将所有预加载的T0之前的数据，放到统计缓存中
 int AddPreT0Data2Ready(int nPreT0,int nT0)
 {
