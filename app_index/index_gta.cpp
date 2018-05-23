@@ -138,6 +138,7 @@ void SSEL2_Quotation2TinyQuotation(void *p, struct TinyQuotationStruct *po)
 	po->nTotalAskVol = 	(int8b)pi->TotalSellOrderVolume;
 	po->nWtAvgBidPrice = 	(int)yuan2percentFen(pi->WtAvgBuyPrice);
 	po->nWtAvgAskPrice = 	(int)yuan2percentFen(pi->WtAvgSellPrice);
+	po->iSamplingFlag=0;
 }
 void SZSEL2_Quotation2TinyQuotation(void *p, struct TinyQuotationStruct *po)
 {
@@ -171,6 +172,7 @@ void SZSEL2_Quotation2TinyQuotation(void *p, struct TinyQuotationStruct *po)
 	po->nTotalAskVol = (int8b)(pi->TotalSellOrderVolume + 0.5);
 	po->nWtAvgBidPrice =(int)yuan2percentFen(pi->WtAvgBuyPrice);
 	po->nWtAvgAskPrice =(int)yuan2percentFen(pi->WtAvgSellPrice);
+	po->iSamplingFlag=0;
 }
 
 
@@ -183,7 +185,7 @@ void SZSEL2_Quotation2TinyQuotation(void *p, struct TinyQuotationStruct *po)
 
 
 int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
-	int nPreT0,int nT0,int nEndTime0,long lItemLen,long *plCurPos)
+	int nPreT0,int nT0,int nEndTime0,long lItemLen,char sCodeStr[],long *plCurPos)
 {
 	FILE *fp;
 	int iRet;
@@ -216,8 +218,11 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 
 		lCurPos+=lItemLen;
 
+
 		//将格式转换为TRANSACTION
 		GTA2TDF_Q2T(p,&t);
+
+		if(CodeInCodeStr(t.szCode,sCodeStr)==false) continue;
 
 		if(t.nActionDay!=nBgnActionDay){
 			printf("error date file=%s,pos=%ld,actionday=%d,calcdate=%d\n",
@@ -307,7 +312,7 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 	-1	处理错误
 */
 int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
-	int nPreT0,int nT0,int nEndTime0,long lItemLen,long *plCurPos)
+	int nPreT0,int nT0,int nEndTime0,long lItemLen,char sCodeStr[],long *plCurPos)
 {
 	int iRet;
 	FILE *fp;
@@ -338,13 +343,11 @@ int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
 		lCurPos+=lItemLen;
 
 		GTA_Quotation2TinyQuotation(p,&q);
+	
+		if(IntCodeInCodeStr(q.iStockCode,sCodeStr)==false) continue;
 
 		if((pIndexStat=GetIndexStat(q.iStockCode,sFileName,
 			lCurPos,nBgnActionDay,nPreT0,nT0))==NULL) return -1;
-
-
-		//遇到大于nEndTime0的数据停止
-		if(q.nTime>=nEndTime0) break;
 
 		//从lCurPos,读到 nT0, 对于大于 nPreT0的部分，加入到
 		//S0T，大于nT0的数据加到pS1Head,遇到，遇到大于nEndTime0的数据停止;
@@ -366,8 +369,11 @@ int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
 
 		Append2List(pSXQ,(LIST*)pt);
 
+//		遇到大于nEndTime0的数据停止
+//		if(q.nTime>=nEndTime0) break;
+
 		//遇到大于nEndTime0的数据停止
-		if(q.nTime>nEndTime0){
+		if(q.nTime>=nEndTime0){
 			iRet=MY_WANT_STAT;
 			break;
 		}
@@ -386,7 +392,7 @@ int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
 	-1	处理错误
 */
 int MountOrdData2IndexStatArray(char sFileName[],int nBgnActionDay,
-	int nPreT0,int nT0,int nEndTime0,long lItemLen,long *plCurPos)
+	int nPreT0,int nT0,int nEndTime0,long lItemLen,char sCodeStr[],long *plCurPos)
 {       
 	int iRet;
 	FILE *fp;
@@ -415,6 +421,8 @@ int MountOrdData2IndexStatArray(char sFileName[],int nBgnActionDay,
 		lCurPos+=lItemLen;
 
 		GTA2TDF_SZSEL2_O(p[0],od);
+		
+		if(CodeInCodeStr(od.szCode,sCodeStr)==false) continue;
 
 		if((pIndexStat=GetIndexStat(atoi(od.szCode),sFileName,
 			lCurPos,nBgnActionDay,nPreT0,nT0))==NULL) return -1;
@@ -616,7 +624,7 @@ int main(int argc, char *argv[])
 			
 		//加载深圳订单数据
 		iOzRes=MountOrdData2IndexStatArray(sGtaOzName,nBgnActionDay,nPreT0,nT0, 
-			nEndTime0,sizeof(long long)+sizeof(SZSEL2_Order),&lOzCurPos);
+			nEndTime0,sizeof(long long)+sizeof(SZSEL2_Order),sCodeStr,&lOzCurPos);
 		if(iOzRes<0) return -1;
 
 //next_step_tz:
@@ -629,7 +637,7 @@ int main(int argc, char *argv[])
 		//加载深圳交易数据
 		GTA2TDF_Q2T=GTA2TDF_QZ2T;
 		iTzRes=MountTrsData2IndexStatArray(sGtaTzName,nBgnActionDay,nPreT0,nT0,
-			nEndTime0,sizeof(long long)+sizeof(SZSEL2_Transaction),&lTzCurPos);
+			nEndTime0,sizeof(long long)+sizeof(SZSEL2_Transaction),sCodeStr,&lTzCurPos);
 		if(iTzRes<0) return -1;
                           
 //next_step_qz:
@@ -637,7 +645,7 @@ int main(int argc, char *argv[])
 		//加载深圳行情数据
 		GTA_Quotation2TinyQuotation=SZSEL2_Quotation2TinyQuotation;
 		iQzRes=MountQuotation2IndexStatArray(sGtaQzName,nBgnActionDay,nPreT0,nT0,
-			nEndTime0,sizeof(long long)+sizeof(SZSEL2_Quotation),&lQzCurPos);
+			nEndTime0,sizeof(long long)+sizeof(SZSEL2_Quotation),sCodeStr,&lQzCurPos);
 		if(iQzRes<0) return -1;
 
 //next_step_th:
@@ -651,7 +659,7 @@ int main(int argc, char *argv[])
 		//加载上海交易数据
 		GTA2TDF_Q2T=GTA2TDF_QH2T;
 		iThRes=MountTrsData2IndexStatArray(sGtaThName,nBgnActionDay,nPreT0,nT0,
-			nEndTime0,sizeof(long long)+sizeof(SSEL2_Transaction),&lThCurPos);
+			nEndTime0,sizeof(long long)+sizeof(SSEL2_Transaction),sCodeStr,&lThCurPos);
 		if(iThRes<0) return -1;
 
 //next_step_qh:
@@ -659,7 +667,7 @@ int main(int argc, char *argv[])
 		//加载上海行情数据
 		GTA_Quotation2TinyQuotation=SSEL2_Quotation2TinyQuotation;
 		iQhRes=MountQuotation2IndexStatArray(sGtaQhName,nBgnActionDay,nPreT0,nT0,
-			nEndTime0,sizeof(long long)+sizeof(SSEL2_Quotation),&lQhCurPos);
+			nEndTime0,sizeof(long long)+sizeof(SSEL2_Quotation),sCodeStr,&lQhCurPos);
 		if(iQhRes<0) return -1;
 
 //next_step_all:

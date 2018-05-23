@@ -7,7 +7,13 @@ else
 endif
 
 #最终生成程序
-TARGET_A=./notify_watch
+TARGET_A=../bin/notify_watch
+TARGET_B=../bin/tcpserver
+TARGET_C=../bin/tcpclient
+TARGET_D=../bin/broadcast_s
+TARGET_E=../bin/broadcast_c
+
+
 #编译命令
 CXX=g++ 
 
@@ -21,22 +27,48 @@ LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_se
 Example_SRC=$(wildcard ./main.cpp ./Watch.cpp )
 Example_OBJS=$(patsubst %.cpp, %.o, $(Example_SRC))
 
+ExampleB_SRC=$(wildcard ./tcpserver.c )
+ExampleB_OBJS=$(patsubst %.c, %.o, $(ExampleB_SRC))
+
+ExampleC_SRC=$(wildcard ./tcpclient.c )
+ExampleC_OBJS=$(patsubst %.c, %.o, $(ExampleC_SRC))
+
+ExampleD_SRC=$(wildcard ./broadcast_s.cpp )
+ExampleD_OBJS=$(patsubst %.cpp, %.o, $(ExampleD_SRC))
+
+ExampleE_SRC=$(wildcard ./broadcast_c.cpp )
+ExampleE_OBJS=$(patsubst %.cpp, %.o, $(ExampleE_SRC))
+
+
 #所有目标文件
-OBJS= $(Example_OBJS)
+OBJS= $(Example_OBJS) $(ExampleB_OBJS) $(ExampleC_OBJS) $(ExampleD_OBJS) $(ExampleE_OBJS)
+TARGETS=$(TARGET_A) $(TARGET_B) $(TARGET_C) $(TARGET_D) $(TARGET_E)
 
 .PHONY: debug release clean
 
-release: $(TARGET_A) $(TARGET_SO)
+release: $(TARGETS)
 
-debug: $(TARGET_A) $(TARGET_SO)
+debug: $(TARGETS)
+
 #连接静态库
 $(TARGET_A): $(Example_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
+$(TARGET_B): $(ExampleB_OBJS)
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
+$(TARGET_C): $(ExampleC_OBJS)
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
+
+$(TARGET_D): $(ExampleD_OBJS)
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
+
+$(TARGET_E): $(ExampleE_OBJS)
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
+
 
 %.o: %.cpp
 	$(CXX) -o $@ -c $(CXXFLAGS) $(INC) $<
 
 clean:
-	rm -fr $(TARGET_A)  $(OBJS)
+	rm -fr $(TARGETS)  $(OBJS)
 
 

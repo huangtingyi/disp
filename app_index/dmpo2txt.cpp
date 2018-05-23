@@ -32,9 +32,35 @@ char MyGetRecType(char *p)
 
 	if(p[10]>=12&&p[10]<=15)
 		return TypeMapStr[p[10]-12];
+
+	if(p[0]==18) return 'D';
+
 	return 'M';
 }
-
+int MyMatchRecType(char *p,int iType)
+{
+	switch (iType){
+	case 'M':
+		if(p[0]==12) return 1;
+	break;
+	case 'T':
+		if(p[0]==13) return 1;
+	break;
+	case 'Q':
+		if(p[0]==14) return 1;
+	break;
+	case 'O':
+		if(p[0]==15) return 1;
+	break;
+	case 7:
+	case 8:
+		if(p[0]==18) return 1;
+	break;
+	default:
+	break;
+	}
+	return 0;
+}
 long lGetSkipPos(char sFileName[],int iSkipCnt)
 {
 	long lCurPos=0;
@@ -116,7 +142,7 @@ int main(int argc, char *argv[])
 	int iExceedCnt=0,iDelayCnt=0,iDelaySec=10,iTimeFlag=1;
 	long lBgnTime=0,lEndTime=999999999999,lCurTime=0,lItemLen=0,lCurPos,lRecLen;
 
-	char cType,sInFileName[1024],sCodeStr[1024],sBuffer[1024],sProtoBuf[1024],sOutBuf[10240];
+	char sInFileName[1024],sCodeStr[1024],sBuffer[1024],sProtoBuf[1024],sOutBuf[10240];
 
 	FILE *fpIn;
 
@@ -185,9 +211,9 @@ int main(int argc, char *argv[])
 
 		//拿到记录长度
 		lRecLen=MY_GET_REC_LEN(sBuffer)-1;
-		cType=MyGetRecType(sBuffer);
-
-		if(cType!=iType){
+		
+		if(MyMatchRecType(sBuffer,iType)==0){
+				
 			if(fseek(fpIn,lRecLen,SEEK_CUR)<0){
 				perror("seek file");
 				return -1;

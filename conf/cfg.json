@@ -6,6 +6,6 @@
         "SocketRecvLen": 8096,
         "SysMqID": 10002,
         "SysMqMaxLen": 512,
-        "SysMqMaxNum":15000,
+        "SysMqMaxNum":30000,
 	"heartbeat":240
 }

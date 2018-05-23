@@ -114,6 +114,7 @@ struct TinyQuotationStruct
     	int8b	nTotalAskVol;	//委托卖出总量
     	int	nWtAvgBidPrice;	//加权平均委买价格
     	int	nWtAvgAskPrice;	//加权平均委卖价格
+    	int	iSamplingFlag;
 };
 
 struct PriceOrderStruct
@@ -223,5 +224,7 @@ int InitTinyTransactionField(struct IndexStatStruct *p,struct TinyTransactionStr
 
 
 int InitIndexEtfList(char sEtfList[],char sEtfPath[]);
+int CodeInCodeStr(char szCode[],char sCodeStr[]);
+int IntCodeInCodeStr(int iStockCode,char sCodeStr[]);
 
 #endif

@@ -11,18 +11,17 @@
 #include "QTSStruct.h"
 #include "index_supp.h"
 
+//这里去掉了11开头的2000多支的代码
 static bool ValidShStockCode(char sStockCode[])
 {
-	if((sStockCode[0] == '6' && sStockCode[1] == '0')||
-		(sStockCode[0] == '1' && sStockCode[1] == '1')) return true;
+	if((sStockCode[0] == '6' && sStockCode[1] == '0')) return true;
 	return false;
 }
-
+//这里去掉了12开头的2000多支的代码
 static bool ValidSzStockCode(char sStockCode[])
 {
 	if((sStockCode[0] == '3' && sStockCode[1] == '0')||
-		(sStockCode[0] == '0' && sStockCode[1] == '0')||
-		(sStockCode[0] == '1' && sStockCode[1] == '2')) return true;
+		(sStockCode[0] == '0' && sStockCode[1] == '0')) return true;
 	return false;
 }
 
@@ -63,6 +62,7 @@ void TDF_MARKET_DATA2TinyQuotation(TDF_MARKET_DATA *pi,struct TinyQuotationStruc
         po->nTotalAskVol= 	pi->nTotalAskVol;
         po->nWtAvgBidPrice= 	pi->nWeightedAvgBidPrice;
         po->nWtAvgAskPrice=	pi->nWeightedAvgAskPrice;
+        po->iSamplingFlag=	0;
 }
 
 
@@ -75,7 +75,7 @@ void TDF_MARKET_DATA2TinyQuotation(TDF_MARKET_DATA *pi,struct TinyQuotationStruc
 
 
 int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
-	int nPreT0,int nT0,int nEndTime0,long lItemLen,long *plCurPos)
+	int nPreT0,int nT0,int nEndTime0,long lItemLen,char sCodeStr[],long *plCurPos)
 {
 	FILE *fp;
 	int iRet;
@@ -108,6 +108,8 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 		lCurPos+=lItemLen;
 
 		if(ValidStockCode(p->szCode)==false)	continue;
+		
+		if(CodeInCodeStr(p->szCode,sCodeStr)==false) continue;
 
 		if(p->nActionDay!=nBgnActionDay){
 			printf("error date file=%s,pos=%ld,actionday=%d,calcdate=%d\n",
@@ -186,6 +188,9 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 
 	}
 
+	if(nEndTime0>=MY_CLOSE_MARKET_TIME&&
+		iRet==MY_TAIL_NO_STAT) iRet=MY_WANT_STAT;
+
 	fclose(fp);
 	*plCurPos=lCurPos;
 
@@ -197,7 +202,7 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 	-1	处理错误
 */
 int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
-	int nPreT0,int nT0,int nEndTime0,long lItemLen,long *plCurPos)
+	int nPreT0,int nT0,int nEndTime0,long lItemLen,char sCodeStr[],long *plCurPos)
 {
 	int iRet;
 	FILE *fp;
@@ -228,6 +233,8 @@ int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
 		lCurPos+=lItemLen;
 
 		if(ValidStockCode(p->szCode)==false)	continue;
+		
+		if(CodeInCodeStr(p->szCode,sCodeStr)==false) continue;
 
 		TDF_MARKET_DATA2TinyQuotation(p,&q);
 
@@ -235,8 +242,6 @@ int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
 			lCurPos,nBgnActionDay,nPreT0,nT0))==NULL) return -1;
 
 
-		//遇到大于nEndTime0的数据停止
-		if(q.nTime>=nEndTime0) break;
 
 		//从lCurPos,读到 nT0, 对于大于 nPreT0的部分，加入到
 		//S0T，大于nT0的数据加到pS1Head,遇到，遇到大于nEndTime0的数据停止;
@@ -258,8 +263,12 @@ int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
 
 		Append2List(pSXQ,(LIST*)pt);
 
+
+//		遇到大于nEndTime0的数据停止
+//		if(q.nTime>=nEndTime0) break;
+
 		//遇到大于nEndTime0的数据停止
-		if(q.nTime>nEndTime0){
+		if(q.nTime>=nEndTime0){
 			iRet=MY_WANT_STAT;
 			break;
 		}
@@ -278,7 +287,7 @@ int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
 	-1	处理错误
 */
 int MountOrdData2IndexStatArray(char sFileName[],int nBgnActionDay,
-	int nPreT0,int nT0,int nEndTime0,long lItemLen,long *plCurPos)
+	int nPreT0,int nT0,int nEndTime0,long lItemLen,char sCodeStr[],long *plCurPos)
 {       
 	int iRet;
 	FILE *fp;
@@ -306,6 +315,8 @@ int MountOrdData2IndexStatArray(char sFileName[],int nBgnActionDay,
 		lCurPos+=lItemLen;
 
 		if(ValidStockCode(p->szCode)==false)	continue;
+		
+		if(CodeInCodeStr(p->szCode,sCodeStr)==false) continue;
 
 		TDF_ORDER2TinyOrder(p,&o);
 
@@ -363,8 +374,7 @@ int MountOrdData2IndexStatArray(char sFileName[],int nBgnActionDay,
 
 int IsBusyTime(int iTime)
 {
-	if(iTime<93500000||(iTime>125900000&&iTime<130200000)||
-		iTime>145900000) return true;
+	if(iTime<93500000||(iTime>125900000&&iTime<130200000)) return true;
 	return false;
 }
 int IsStopTime(int iTime)
@@ -377,7 +387,7 @@ int main(int argc, char *argv[])
 {
 	FILE *fpD31;
 	int iIdleWaitMilli=10,iWriteFlag=1;//,iContinueFlag=false;
-	int iShBusyDelay=12000,iShDelay=3000,iSzBusyDelay=12000,iSzDelay=2000;
+	int iShBusyDelay=12000,iShDelay=3000;//,iSzBusyDelay=12000,iSzDelay=2000;
 	int nBgnActionDay,nBgnTime,nPreT0,nT0,nEndTime0;
 	int iMktRes,iTraRes,iOrdRes;
 
@@ -471,7 +481,7 @@ int main(int argc, char *argv[])
 
 	if(nBgnTime==93000)
 		nPreT0=iAddMilliSec(nT0,-1000*1800);
-	else	nPreT0=iAddMilliSec(nT0,-1000*60);
+	else	nPreT0=iAddMilliSec(nT0,-1000);
 
 	while(1){
 
@@ -479,24 +489,24 @@ int main(int argc, char *argv[])
 
 		//为了避免订单数据迟到,订单超前取20秒，在收盘最后一笔，手工设置时延
 		if(IsBusyTime(nT0)){
-			nEndTime0=iAddMilliSec(nT0,iSzBusyDelay+20000);
+			nEndTime0=iAddMilliSec(nT0,iShBusyDelay+20000);
 			if(nT0==MY_CLOSE_MARKET_TIME) nEndTime0=MY_CLOSE_MARKET_TIME+1000000;
 		}
-		else	nEndTime0=iAddMilliSec(nT0,iSzDelay+20000);
+		else	nEndTime0=iAddMilliSec(nT0,iShDelay+20000);
 
 			
 		//加载深圳订单数据
 		iOrdRes=MountOrdData2IndexStatArray(sOrdName,nBgnActionDay,nPreT0,nT0, 
-			nEndTime0,sizeof(long long)+sizeof(TDF_ORDER),&lOrdCurPos);
+			nEndTime0,sizeof(long long)+sizeof(TDF_ORDER),sCodeStr,&lOrdCurPos);
 		if(iOrdRes<0) return -1;
 
 		if(IsBusyTime(nT0))
-			nEndTime0=iAddMilliSec(nT0,iSzBusyDelay);
-		else	nEndTime0=iAddMilliSec(nT0,iSzDelay);
+			nEndTime0=iAddMilliSec(nT0,iShBusyDelay);
+		else	nEndTime0=iAddMilliSec(nT0,iShDelay);
 			
 		//加载深圳、和上海的交易数据
 		iTraRes=MountTrsData2IndexStatArray(sTraName,nBgnActionDay,nPreT0,nT0,
-			nEndTime0,sizeof(long long)+sizeof(TDF_TRANSACTION),&lTraCurPos);
+			nEndTime0,sizeof(long long)+sizeof(TDF_TRANSACTION),sCodeStr,&lTraCurPos);
 		if(iTraRes<0) return -1;
                           
 		
@@ -506,7 +516,7 @@ int main(int argc, char *argv[])
 
 
 		iMktRes=MountQuotation2IndexStatArray(sMktName,nBgnActionDay,nPreT0,nT0,
-			nEndTime0,sizeof(long long)+sizeof(TDF_MARKET_DATA),&lMktCurPos);
+			nEndTime0,sizeof(long long)+sizeof(TDF_MARKET_DATA),sCodeStr,&lMktCurPos);
 		if(iMktRes<0) return -1;
 
 //next_step_all:
@@ -529,8 +539,11 @@ int main(int argc, char *argv[])
 				usleep(180*1000000);
 				continue;
 			}
-			usleep(iIdleWaitMilli*1000);
-			continue;
+			//只有没有到收盘时间，才返回
+			if(nT0<150000000){
+				usleep(iIdleWaitMilli*1000);
+				continue;
+			}
 		}
 
 		int nCur=nGetHostCurTime();

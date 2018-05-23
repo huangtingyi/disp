@@ -387,6 +387,57 @@ int InitTinyTransactionField(struct IndexStatStruct *p,struct TinyTransactionStr
 
 	return 0;
 }
+/*****
+	//上半部分指标开始
+	int	nTenBidVolume;			//十档买量（手）
+	int	nTenAskVolume;			//十档卖量（手）
+	int8b	lTenBidAmnt;			//十档买额（分）
+	int8b	lTenAskAmnt;			//十档卖额（分）
+	int	nTotalBidVolume;		//叫买总量（手）
+	int	nTotalAskVolume;		//叫卖总量（手）
+	int8b	lTotalBidAmnt;			//叫买总额（分）
+	int8b	lTotalAskAmnt;			//叫卖总额（分）
+	int	nWtAvgBidPrice;			//加权平均叫买价（分）
+	int	nWtAvgAskPrice;			//加权平均叫卖价（分）
+	//下半部分指标开始
+	int	nLastClose;			//昨收盘价
+	int	nCurPrice;			//最新价
+	int8b	lAvgTotalBidAmnt;		//平均叫买总额（当日平均，分）
+	int8b	lAvgTotalAskAmnt;		//平均叫卖总额（当日平均，分）
+*****/
+
+void StatD31Ext(struct IndexStatStruct *p,struct TinyQuotationStruct *ptCur)
+{
+	struct D31IndexExtStruct *pD31Ex=&p->Ex;
+	
+	for(int i=0;i<10;i++){
+		pD31Ex->nTenBidVolume+=	ptCur->nBidVol[i];
+		pD31Ex->nTenAskVolume+=	ptCur->nAskVol[i];
+		pD31Ex->lTenBidAmnt+=	(int8b)ptCur->nBidVol[i]*ptCur->nBidPrice[i]/100;
+		pD31Ex->lTenAskAmnt+=	(int8b)ptCur->nAskVol[i]*ptCur->nAskPrice[i]/100;
+	}
+	pD31Ex->nLastClose=	ptCur->nPreClose;
+	pD31Ex->nCurPrice=	ptCur->nMatch;
+
+	pD31Ex->nTotalBidVolume=ptCur->nTotalBidVol;
+	pD31Ex->nTotalAskVolume=ptCur->nTotalAskVol;
+	pD31Ex->lTotalBidAmnt=	ptCur->nTotalBidVol*ptCur->nWtAvgBidPrice/100;
+	pD31Ex->lTotalAskAmnt=	ptCur->nTotalAskVol*ptCur->nWtAvgAskPrice/100;
+
+	pD31Ex->nWtAvgBidPrice=	ptCur->nWtAvgBidPrice;
+	pD31Ex->nWtAvgAskPrice=	ptCur->nWtAvgAskPrice;
+
+	//确保只累加一致
+	if(ptCur->iSamplingFlag==0){
+		p->iSamplingCnt++;
+		p->lAddupSamplingBidAmnt+=pD31Ex->lTotalBidAmnt;
+		p->lAddupSamplingAskAmnt+=pD31Ex->lTotalAskAmnt;
+		ptCur->iSamplingFlag=	1;
+	}
+
+	pD31Ex->lAvgTotalBidAmnt=p->lAddupSamplingBidAmnt/p->iSamplingCnt;
+	pD31Ex->lAvgTotalAskAmnt=p->lAddupSamplingAskAmnt/p->iSamplingCnt;
+}
 
 //b)根据S0T列表中，循环查找M_ORDER表中，生成 D31IndexItem数据；
 int GenD31Stat(struct IndexStatStruct *p)
@@ -463,26 +514,7 @@ int GenD31Stat(struct IndexStatStruct *p)
 		ptHead=ptHead->pNext;
 	}
 
-
 	//取时间段内的最后一笔行情进行处理
-	/*****
-	//上半部分指标开始
-	int	nTenBidVolume;			//十档买量（手）
-	int	nTenAskVolume;			//十档卖量（手）
-	int8b	lTenBidAmnt;			//十档买额（分）
-	int8b	lTenAskAmnt;			//十档卖额（分）
-	int	nTotalBidVolume;		//叫买总量（手）
-	int	nTotalAskVolume;		//叫卖总量（手）
-	int8b	lTotalBidAmnt;			//叫买总额（分）
-	int8b	lTotalAskAmnt;			//叫卖总额（分）
-	int	nWtAvgBidPrice;			//加权平均叫买价（分）
-	int	nWtAvgAskPrice;			//加权平均叫卖价（分）
-	//下半部分指标开始
-	int	nLastClose;			//昨收盘价
-	int	nCurPrice;			//最新价
-	int8b	lAvgTotalBidAmnt;		//平均叫买总额（当日平均，分）
-	int8b	lAvgTotalAskAmnt;		//平均叫卖总额（当日平均，分）
-	*****/
 
 	ptCur=(struct TinyQuotationStruct *)p->S0Q.pHead;
 	//统计行情数，以及每笔行情的叫卖总额、叫买总额的累计
@@ -500,55 +532,13 @@ int GenD31Stat(struct IndexStatStruct *p)
 		}
 
 		if((LIST*)ptPre==p->S0Q.pTail){
-//			p->lLastTotalBidAmnt=	ptPre->nTotalBidVol*ptPre->nWtAvgBidPrice/100;
-//			p->lLastTotalAskAmnt=	ptPre->nTotalAskVol*ptPre->nWtAvgAskPrice/100;
+			p->S0Q.pHead=p->S0Q.pTail;
+			StatD31Ext(p,ptPre);
 			break;
 		}
 		//除了最后一个节点都释放了内存
 		free(ptPre);
 	}
-	ptCur=(struct TinyQuotationStruct *)p->S0Q.pTail;
-	if(ptCur!=NULL){
-		for(int i=0;i<10;i++){
-			pD31Ex->nTenBidVolume+=	ptCur->nBidVol[i];
-			pD31Ex->nTenAskVolume+=	ptCur->nAskVol[i];
-			pD31Ex->lTenBidAmnt+=	(int8b)ptCur->nBidVol[i]*ptCur->nBidPrice[i]/100;
-			pD31Ex->lTenAskAmnt+=	(int8b)ptCur->nAskVol[i]*ptCur->nAskPrice[i]/100;
-		}
-		pD31Ex->nLastClose=	ptCur->nPreClose;
-		pD31Ex->nCurPrice=	ptCur->nMatch;
-
-		pD31Ex->nTotalBidVolume=ptCur->nTotalBidVol;
-		pD31Ex->nTotalAskVolume=ptCur->nTotalAskVol;
-		pD31Ex->lTotalBidAmnt=	ptCur->nTotalBidVol*ptCur->nWtAvgBidPrice/100;
-		pD31Ex->lTotalAskAmnt=	ptCur->nTotalAskVol*ptCur->nWtAvgAskPrice/100;
-
-		pD31Ex->nWtAvgBidPrice=	ptCur->nWtAvgBidPrice;
-		pD31Ex->nWtAvgAskPrice=	ptCur->nWtAvgAskPrice;
-
-		p->iSamplingCnt++;
-		p->lAddupSamplingBidAmnt+=pD31Ex->lTotalBidAmnt;
-		p->lAddupSamplingAskAmnt+=pD31Ex->lTotalAskAmnt;
-
-		pD31Ex->lAvgTotalBidAmnt=p->lAddupSamplingBidAmnt/p->iSamplingCnt;
-		pD31Ex->lAvgTotalAskAmnt=p->lAddupSamplingAskAmnt/p->iSamplingCnt;
-
-/*
-		if(p->iQuotationCnt<0){
-			pD31Ex->lAvgTotalBidAmnt=(p->lAddupTotalBidAmnt-p->lLastTotalBidAmnt)/(p->iQuotationCnt-1);
-			pD31Ex->lAvgTotalAskAmnt=(p->lAddupTotalAskAmnt-p->lLastTotalAskAmnt)/(p->iQuotationCnt-1);
-		}
-		else{
-			pD31Ex->lAvgTotalBidAmnt=p->lAddupTotalBidAmnt/p->iQuotationCnt;
-			pD31Ex->lAvgTotalAskAmnt=p->lAddupTotalAskAmnt/p->iQuotationCnt;
-		}
-*/
-		//释放最后一个节点
-		free(ptCur);
-	}
-
-	//将LISTHEAD清空
-	p->S0Q.pHead=p->S0Q.pTail=NULL;
 	return 0;
 }
 
@@ -972,7 +962,7 @@ void SumIndexStatEx(struct D31IndexExtStruct *po,struct D31IndexExtStruct *pi)
 	po->nWtAvgAskPrice+=	pi->nWtAvgAskPrice;
 
 	//下半部分指标开始
-	po->nLastClose+=		pi->nLastClose;
+	po->nLastClose+=	pi->nLastClose;
 	po->nCurPrice+=		pi->nCurPrice;
 	po->lAvgTotalBidAmnt+=	pi->lAvgTotalBidAmnt;
 	po->lAvgTotalAskAmnt+=  pi->lAvgTotalAskAmnt;
@@ -1054,6 +1044,30 @@ int WriteD31StatList(FILE *fpD31,char sCodeStr[],int iWriteFlag,
 		pIndexStat=pIndexStat->pNext;
 	}
 	return 0;
+}
+int CodeInCodeStr(char szCode[],char sCodeStr[])
+{
+	char sTempCode[7];
+
+	if(sCodeStr[0]==0) return true;
+	
+	strncpy(sTempCode,szCode,6);sTempCode[6]=0;
+
+	if(strstr(sCodeStr,sTempCode)!=NULL) return true;
+	
+	return false;
+}
+int IntCodeInCodeStr(int iStockCode,char sCodeStr[])
+{
+	char sTempCode[7];
+
+	if(sCodeStr[0]==0) return true;
+	
+	sprintf(sTempCode,"%06d",iStockCode);
+
+	if(strstr(sCodeStr,sTempCode)!=NULL) return true;
+	
+	return false;
 }
 int WriteD31StatAll(FILE *fpD31,char sCodeStr[],int iWriteFlag)
 {

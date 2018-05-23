@@ -8,18 +8,18 @@
   
 char *event_str[EVENT_NUM] =   
 {  
-    "IN_ACCESS",  
-    "IN_MODIFY",  
-    "IN_ATTRIB",  
-    "IN_CLOSE_WRITE",  
-    "IN_CLOSE_NOWRITE",  
-    "IN_OPEN",  
-    "IN_MOVED_FROM",  
-    "IN_MOVED_TO",  
-    "IN_CREATE",  
-    "IN_DELETE",  
-    "IN_DELETE_SELF",  
-    "IN_MOVE_SELF"  
+    (char*)"IN_ACCESS",  
+    (char*)"IN_MODIFY",  
+    (char*)"IN_ATTRIB",  
+    (char*)"IN_CLOSE_WRITE",  
+    (char*)"IN_CLOSE_NOWRITE",  
+    (char*)"IN_OPEN",  
+    (char*)"IN_MOVED_FROM",  
+    (char*)"IN_MOVED_TO",  
+    (char*)"IN_CREATE",  
+    (char*)"IN_DELETE",  
+    (char*)"IN_DELETE_SELF",  
+    (char*)"IN_MOVE_SELF"  
 };  
 
 int WatchFileCloseWrite(char sFileName[]);
