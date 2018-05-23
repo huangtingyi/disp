@@ -10,8 +10,10 @@ endif
 TARGET_A=../bin/notify_watch
 TARGET_B=../bin/tcpserver
 TARGET_C=../bin/tcpclient
-TARGET_D=../bin/broadcast_s
-TARGET_E=../bin/broadcast_c
+TARGET_D=../bin/memtest
+TARGET_E=../bin/broadcast_s
+TARGET_F=../bin/broadcast_c
+
 
 
 #编译命令
@@ -33,16 +35,20 @@ ExampleB_OBJS=$(patsubst %.c, %.o, $(ExampleB_SRC))
 ExampleC_SRC=$(wildcard ./tcpclient.c )
 ExampleC_OBJS=$(patsubst %.c, %.o, $(ExampleC_SRC))
 
-ExampleD_SRC=$(wildcard ./broadcast_s.cpp )
-ExampleD_OBJS=$(patsubst %.cpp, %.o, $(ExampleD_SRC))
+ExampleD_SRC=$(wildcard ./memtest.c )
+ExampleD_OBJS=$(patsubst %.c, %.o, $(ExampleD_SRC))
 
-ExampleE_SRC=$(wildcard ./broadcast_c.cpp )
+ExampleE_SRC=$(wildcard ./broadcast_s.cpp )
 ExampleE_OBJS=$(patsubst %.cpp, %.o, $(ExampleE_SRC))
+
+ExampleF_SRC=$(wildcard ./broadcast_c.cpp )
+ExampleF_OBJS=$(patsubst %.cpp, %.o, $(ExampleF_SRC))
+
 
 
 #所有目标文件
-OBJS= $(Example_OBJS) $(ExampleB_OBJS) $(ExampleC_OBJS) $(ExampleD_OBJS) $(ExampleE_OBJS)
-TARGETS=$(TARGET_A) $(TARGET_B) $(TARGET_C) $(TARGET_D) $(TARGET_E)
+OBJS= $(Example_OBJS) $(ExampleB_OBJS) $(ExampleC_OBJS) $(ExampleD_OBJS) $(ExampleE_OBJS) $(ExampleF_OBJS)
+TARGETS=$(TARGET_A) $(TARGET_B) $(TARGET_C) $(TARGET_D) $(TARGET_E) $(TARGET_F)
 
 .PHONY: debug release clean
 
@@ -57,13 +63,12 @@ $(TARGET_B): $(ExampleB_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
 $(TARGET_C): $(ExampleC_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
-
 $(TARGET_D): $(ExampleD_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
-
 $(TARGET_E): $(ExampleE_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
-
+$(TARGET_F): $(ExampleF_OBJS)
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
 
 %.o: %.cpp
 	$(CXX) -o $@ -c $(CXXFLAGS) $(INC) $<
