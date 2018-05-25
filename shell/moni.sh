@@ -51,7 +51,9 @@ do
 	
 	##增加进程占用的cpu监控
 	pid_str="`$pidof_bin ints_gta ints_tdf replay_gta replay_tdf agentcli dat2cli | sed 's/[0-9]*/-p&/g'`"
-	top -b -n1 -H "$pid_str" | egrep "ints_gta|ints_tdf|replay_gta|replay_tdf|agentcli|dat2cli|COMMAND" | head -12
+	pnd_str="ints_gta|ints_tdf|replay_gta|replay_tdf|agentcli|dat2cli|COMMAND"
+	
+	top -b -n1 -H `echo $pid_str` | egrep `echo $pnd_str` | head -12
 	##增加消息队列监控
 	ipcs -q
 done

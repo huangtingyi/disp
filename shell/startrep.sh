@@ -149,7 +149,7 @@ if [ $sysflag = "gta" ]; then
 	$pidof_bin -x replay_gta
 	if [ $? -ne 0 ]; then
 		echo "`date '+%Y/%m/%d %k:%M:%S'` $replay_gta_bin is startup FAIL..";
-		echo "$replay_gta_bin -s$replaypath -d$replaydate -b$replaytime -r $disp_file -o $workroot -w$writeflag -t$replaydelay -m$replaymulti"
+		echo "$replay_gta_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti"
 		exit 3;
 	fi
 	
@@ -160,7 +160,7 @@ else
 	$pidof_bin -x replay_tdf
 	if [ $? -ne 0 ]; then
 		echo "`date '+%Y/%m/%d %k:%M:%S'` $replay_tdf_bin is startup FAIL..";
-		echo "$replay_tdf_bin -s$replaypath -d$replaydate -b$replaytime -r $disp_file -o $workroot -w$writeflag -t$replaydelay -m$replaymulti"
+		echo "$replay_tdf_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti"
 		exit 3;
 	fi
 	
@@ -172,7 +172,7 @@ sleep 1
 $pidof_bin -x dat2cli
 if [ $? -ne 0 ]; then
 	echo "`date '+%Y/%m/%d %k:%M:%S'` dat2cli is startup FAIL..";
-	echo "$dat2cli_bin -w $writeusr -o $workroot -p $cfg_file -r $disp_file -u $user_file"
+	echo "$dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file"
 	exit 3;
 fi
 

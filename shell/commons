@@ -35,61 +35,34 @@ comfirm_mypid()
 belong_user_mypid()
 {
 	mypid=$1
+
+	pscmd="ps -ef | awk '\$2==$mypid'"
+	pscmdstr=`eval $pscmd`
 	
-	res_str="0"
+	res_str=`echo $pscmdstr | awk '{print $1}'`
 
-	mypidstr=`ps -ef |awk '{print $1,$2}'|grep $mypid`
-
-	IFS_old=$IFS
-	IFS=$'\n'
-
-	for tmp in `echo $mypidstr`
-	do
-		who_pid=`echo $tmp | awk '{print $2}'`				
-		if [ "$mypid" = "$who_pid" ];then
-			res_str=`echo $tmp | awk '{print $1}'`
-			break;
-		fi
-	done
-	
-	IFS=$IFS_old
-
-	echo "$res_str"
+	echo "${res_str:-0}"
 }
 ##找到pid对应的命令行名
 belong_cmd_mypid()
 {
 	mypid=$1
-	
-	res_str="0"
 
-	mypidstr=`ps -ef |awk '{print $1,$2}'|grep $mypid`
+	pscmd="ps -ef | awk '\$2==$mypid'"
+	pscmdstr=`eval $pscmd`
 
-	IFS_old=$IFS
-	IFS=$'\n'
+	res_str=`echo $pscmdstr | awk '{print $8}'`
+	res_str=${res_str:-0}
 
-	for tmp in `echo $mypidstr`
-	do
-		who_pid=`echo $tmp | awk '{print $2}'`
-		if [ "$mypid" = "$who_pid" ];then
+	#如果是脚本，则取脚本名称了
+	if [ $res_str = "/bin/bash" -o \
+		$res_str = "/bin/sh" -o \
+		$res_str = "/bin/ksh" ];then
 
-			res_str=`echo $tmp | awk '{print $8}'`
-			
-			#如果是脚本，则取脚本名称了
-			if [ $res_str = "/bin/bash" -o \
-				$res_str = "/bin/sh" -o \
-				$res_str = "/bin/ksh" ];then
+		res_str=`echo $pscmdstr | awk '{print $9}'`
+	fi
 
-				res_str=`echo $tmp | awk '{print $9}'`
-			fi
-			
-			break;
-		fi
-	done
-	
-	IFS=$IFS_old
-
-	echo "$res_str"
+	echo "${res_str:-0}"
 }
 
 ###定义确认mqid是特定用户的mqid函数
