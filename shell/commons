@@ -1,45 +1,11 @@
 
-###定义确认pid是特定用户的pid函数
-comfirm_mypid()
-{
-	myname=$1
-	mypid=$2
-	
-	myflag="0"
-	mypidstr=`ps -ef |awk '{print $1,$2}'|grep $mypid`
-
-	IFS_old=$IFS
-	IFS=$'\n'
-
-	for tmp in `echo $mypidstr`
-	do
-		who_str=`echo $tmp | awk '{print $1}'`
-		who_pid=`echo $tmp | awk '{print $2}'`
-		##如果是普通用户，则匹配普通用户及PID
-		if [ "$myname" = "$who_str" -a "$mypid" = "$who_pid" ];then
-			myflag="1"
-			break;			
-		fi
-		##如果是root用户，则全部匹配PID
-		if [ "$myname" = "root" -a "$mypid" = "$who_pid" ];then
-			myflag="1"
-			break;	
-		fi
-	done
-	
-	IFS=$IFS_old
-
-	echo "$myflag"
-}
 ##找到pid对应的用户名
 belong_user_mypid()
 {
 	mypid=$1
 
-	pscmd="ps -ef | awk '\$2==$mypid'"
-	pscmdstr=`eval $pscmd`
-	
-	res_str=`echo $pscmdstr | awk '{print $1}'`
+	pscmd="ps -ef | awk '\$2==$mypid{print \$1}'"
+	res_str=`eval $pscmd`
 
 	echo "${res_str:-0}"
 }
@@ -65,6 +31,32 @@ belong_cmd_mypid()
 	echo "${res_str:-0}"
 }
 
+##找到pid对应的父进程ID
+belong_ppid_mypid()
+{
+	mypid=$1
+
+	pscmd="ps -ef | awk '\$2==$mypid{print \$3}"
+	res_str=`eval $pscmd`
+
+	echo "${res_str:-0}"
+}
+
+###定义确认pid是特定用户的pid函数
+comfirm_mypid()
+{
+	myname=$1
+	mypid=$2
+	
+	who_str=`belong_user_mypid $mypid`
+	
+	myflag="0"
+	if [ "$myname" = "$who_str" -o "$myname" = "root" ];then
+		myflag="1"
+	fi
+
+	echo "$myflag"
+}
 ###定义确认mqid是特定用户的mqid函数
 comfirm_mymqid()
 {
@@ -72,28 +64,14 @@ comfirm_mymqid()
 	mymqid=$2
 	
 	myflag="0"
-	mymqidstr=`ipcs -q |grep $mymqid`
-
-	IFS_old=$IFS
-	IFS=$'\n'
-
-	for tmp in `echo $mymqidstr`
-	do
-		who_str=`echo $tmp | awk '{print $3}'`
-		who_mqid=`echo $tmp | awk '{print $2}'`
-		##如果是普通用户，则匹配普通用户及MQID
-		if [ "$myname" = "$who_str" -a "$mymqid" = "$who_mqid" ];then
-			myflag="1"
-			break;			
-		fi
-		##如果是root用户，则全部匹配MQID
-		if [ "$myname" = "root" -a "$mymqid" = "$who_mqid" ];then
-			myflag="1"
-			break;	
-		fi
-	done
 	
-	IFS=$IFS_old
+	ipcscmd="ipcs -q | awk '\$2==$mymqid{print \$3}'"
+	
+	who_str=`eval $ipcscmd`
+	
+	if [ "$myname" = "$who_str" -o "$myname" = "root" ];then
+		myflag="1"
+	fi
 
 	echo "$myflag"
 }
@@ -105,28 +83,13 @@ comfirm_mysemid()
 	mysemid=$2
 	
 	myflag="0"
-	mysemidstr=`ipcs -q |grep $mysemid`
-
-	IFS_old=$IFS
-	IFS=$'\n'
-
-	for tmp in `echo $mysemidstr`
-	do
-		who_str=`echo $tmp | awk '{print $3}'`
-		who_semid=`echo $tmp | awk '{print $2}'`
-		##如果是普通用户，则匹配普通用户及SEMID
-		if [ "$myname" = "$who_str" -a "$mysemid" = "$who_semid" ];then
-			myflag="1"
-			break;			
-		fi
-		##如果是root用户，则全部匹配SEMID
-		if [ "$myname" = "root" -a "$mysemid" = "$who_semid" ];then
-			myflag="1"
-			break;	
-		fi
-	done
+	ipcscmd="ipcs -s | awk '\$2==$mysemid{print \$3}'"
 	
-	IFS=$IFS_old
+	who_str=`eval $ipcscmd`
+	
+	if [ "$myname" = "$who_str" -o "$myname" = "root" ];then
+		myflag="1"
+	fi
 
 	echo "$myflag"
 }
@@ -135,7 +98,7 @@ comfirm_mysemid()
 remove_mymq_all()
 {
 
-	my_name=`who am i | awk '{print $1}'`
+	my_name=`whoami`
 	my_name=${my_name:-$USER}
 	
 	ipcs -q | grep "0x" | awk '{print $2}' | while read tmp
@@ -157,7 +120,7 @@ remove_mymq_all()
 remove_mysem_all()
 {
 
-	my_name=`who am i | awk '{print $1}'`
+	my_name=`whoami`
 	my_name=${my_name:-$USER}
 
 	ipcs -s | grep "0x" | awk '{print $2}' | while read tmp
@@ -181,7 +144,7 @@ check_mypid_exist()
 	pids=$@
 	res_str="0"
 	belong_cmd=""
-	my_name=`who am i | awk '{print $1}'`
+	my_name=`whoami`
 	my_name=${my_name:-$USER}
 	
 	for i in $pids

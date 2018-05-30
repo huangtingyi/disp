@@ -496,16 +496,27 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 
 bool ValidShStockCode(char sStockCode[])
 {
+/*
+	去掉11开头的债券
 	if((sStockCode[0] == '6' && sStockCode[1] == '0')||
 		(sStockCode[0] == '1' && sStockCode[1] == '1')) return true;
+*/
+	if(sStockCode[0] == '6' && sStockCode[1] == '0') return true;
+
 	return false;
 }
 
 bool ValidSzStockCode(char sStockCode[])
 {
+/*
+	去掉12开头的债券
 	if((sStockCode[0] == '3' && sStockCode[1] == '0')||
 		(sStockCode[0] == '0' && sStockCode[1] == '0')||
 		(sStockCode[0] == '1' && sStockCode[1] == '2')) return true;
+*/
+	if((sStockCode[0] == '3' && sStockCode[1] == '0')||
+		(sStockCode[0] == '0' && sStockCode[1] == '0')) return true;
+
 	return false;
 }
 

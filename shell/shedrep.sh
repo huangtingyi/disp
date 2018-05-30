@@ -16,7 +16,9 @@ while [ 1 ];
 do
 	cmd=`head -1 $cmdfile | awk '{print $1}'`
 
-	echo "cmd=$cmd "
+	cmd=${cmd:-"nocmd"}
+
+	echo "`date '+%Y/%m/%d %k:%M:%S'` cmd=$cmd "
 
 	if [ $cmd = "start" ];then
 		datapath=`head -1 $cmdfile | awk '{print $2}'`

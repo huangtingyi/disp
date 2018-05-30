@@ -13,17 +13,17 @@ TARGET_C=../bin/tcpclient
 TARGET_D=../bin/memtest
 TARGET_E=../bin/broadcast_s
 TARGET_F=../bin/broadcast_c
-
+TARGET_G=../bin/agentcli_t
 
 
 #编译命令
 CXX=g++ 
 
 #头文件
-INC= 
+INC= -I../public
 
 #库
-LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_setup -lboost_system
+LIB=-pthread -lcurl -lboost_log -lboost_filesystem -lboost_thread -lboost_log_setup -lboost_system -lprotobuf
 
 #测试工程文件
 Example_SRC=$(wildcard ./main.cpp ./Watch.cpp )
@@ -44,11 +44,13 @@ ExampleE_OBJS=$(patsubst %.cpp, %.o, $(ExampleE_SRC))
 ExampleF_SRC=$(wildcard ./broadcast_c.cpp )
 ExampleF_OBJS=$(patsubst %.cpp, %.o, $(ExampleF_SRC))
 
+ExampleG_SRC=$(wildcard ./agentcli_t.cpp ./CallBackBase.cpp ../public/wwtiny.cpp ../public/mktdata.pb.cpp ../public/d31data.pb.cpp)
+ExampleG_OBJS=$(patsubst %.cpp, %.o, $(ExampleG_SRC))
 
 
 #所有目标文件
-OBJS= $(Example_OBJS) $(ExampleB_OBJS) $(ExampleC_OBJS) $(ExampleD_OBJS) $(ExampleE_OBJS) $(ExampleF_OBJS)
-TARGETS=$(TARGET_A) $(TARGET_B) $(TARGET_C) $(TARGET_D) $(TARGET_E) $(TARGET_F)
+OBJS= $(Example_OBJS) $(ExampleB_OBJS) $(ExampleC_OBJS) $(ExampleD_OBJS) $(ExampleE_OBJS) $(ExampleF_OBJS) $(ExampleG_OBJS)
+TARGETS=$(TARGET_A) $(TARGET_B) $(TARGET_C) $(TARGET_D) $(TARGET_E) $(TARGET_F) $(TARGET_G)
 
 .PHONY: debug release clean
 
@@ -68,6 +70,9 @@ $(TARGET_D): $(ExampleD_OBJS)
 $(TARGET_E): $(ExampleE_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
 $(TARGET_F): $(ExampleF_OBJS)
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
+
+$(TARGET_G): $(ExampleG_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
 
 %.o: %.cpp

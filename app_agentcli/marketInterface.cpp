@@ -47,6 +47,7 @@ int16_t m_connect(char *errmsg)
 	{
 		this_thread::sleep_for(chrono::seconds(1));
 	} while (createIos == false);
+
 	TcpClient *tcpclient = new TcpClient(*io_ser);
 	tcpclient->m_ip = g_strServer.ip;
 	tcpclient->m_port = g_iPort;

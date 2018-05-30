@@ -24,6 +24,7 @@ enum SubscribeType {
 	proto_sub_SZ_ORDER = 15;
 	proto_sub_INDEX_SH = 16;
 	proto_sub_INDEX_SZ = 17;
+	proto_sub_D31 = 18;
 }
 
 enum BizCode {

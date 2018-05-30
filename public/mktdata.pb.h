@@ -161,12 +161,13 @@ enum SubscribeType {
   proto_sub_SZ_ORDER = 15,
   proto_sub_INDEX_SH = 16,
   proto_sub_INDEX_SZ = 17,
+  proto_sub_D31 = 18,
   SubscribeType_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
   SubscribeType_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
 };
 bool SubscribeType_IsValid(int value);
 const SubscribeType SubscribeType_MIN = proto_DEFAULT;
-const SubscribeType SubscribeType_MAX = proto_sub_INDEX_SZ;
+const SubscribeType SubscribeType_MAX = proto_sub_D31;
 const int SubscribeType_ARRAYSIZE = SubscribeType_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* SubscribeType_descriptor();

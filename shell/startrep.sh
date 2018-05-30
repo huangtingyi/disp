@@ -107,7 +107,7 @@ fi
 [ ! -f $moni_bin ] && echo "$moni_bin is not exist" && exit 1;
 [ ! -f $pidof_bin ] && echo "$pidof_bin is not exist" && exit 1;
 
-my_name=`who am i | awk '{print $1}'`
+my_name=`whoami`
 my_name=${my_name:-$USER}
 my_flag=""
 
@@ -144,7 +144,7 @@ cd $HOME/bin
 ##./replay_gta -d20180412 -r/home/hty/bin/disp.json -w0 -t200 -s/data/20180412
 
 if [ $sysflag = "gta" ]; then
-	nohup $replay_gta_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti 1>$replay_gta_log 2>&1 &
+	nohup stdbuf --output=L --error=L $replay_gta_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti 1>$replay_gta_log 2>&1 &
 	sleep 1
 	$pidof_bin -x replay_gta
 	if [ $? -ne 0 ]; then
@@ -155,7 +155,7 @@ if [ $sysflag = "gta" ]; then
 	
 	echo "`date '+%Y/%m/%d %k:%M:%S'` replay_gta is startREPLAY SUCESS.."
 else
-	nohup $replay_tdf_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti 1>$replay_tdf_log 2>&1 &
+	nohup stdbuf --output=L --error=L $replay_tdf_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti 1>$replay_tdf_log 2>&1 &
 	sleep 1
 	$pidof_bin -x replay_tdf
 	if [ $? -ne 0 ]; then

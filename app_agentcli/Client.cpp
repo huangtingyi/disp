@@ -17,7 +17,8 @@ int getTodayYyyymmdd()
 	return atoi(sHostTime);
 }
 Client::Client() :
-		yyyymmddReplay(getTodayYyyymmdd()), m_tcpClient(nullptr)
+	yyyymmddReplay(getTodayYyyymmdd()),
+	m_tcpClient(nullptr)
 {
 	m_loginSuccess = M_SUCCESS;
 	m_codesReady = false;
@@ -36,53 +37,6 @@ void Client::async_send(const google::protobuf::Message &msg, BizCode bizCode)
 	string msgBody;
 	addBizcode(msgBody, msg, bizCode);
 	m_tcpClient->writeThreadSafe(msgBody);
-}
-
-int GetStockCodeFromProtoBuf(BizCode iBizCode,string &msgProtobuf)
-{
-	int iStockCode=0;
-	
-	switch(iBizCode){
-	case MKT_DATA_LV2:
-	{
-		MktData 	t;
-		t.ParseFromString(msgProtobuf);
-		iStockCode=	t.szcode();
-	}
-	break;
-	case MKT_DATA_DEAL:
-	{
-		Transaction 	t;
-		t.ParseFromString(msgProtobuf);
-		iStockCode=	t.szcode();
-	}
-	break;
-	case SZ_ORDER:
-	{
-		Order 		t;
-		t.ParseFromString(msgProtobuf);
-		iStockCode=	t.szcode();
-	}
-	break;
-	case MKT_DATA_ORDERQUEUE:
-	{
-		Order_queue	t;
-		t.ParseFromString(msgProtobuf);
-		iStockCode=	t.szcode();
-	}
-	break;
-	case D31_ITEM:
-	{
-		D31Item         t;
-		t.ParseFromString(msgProtobuf);
-		iStockCode=	t.nstockcode();
-	}
-	break;
-	default:
-	break;
-	}
-	
-	return iStockCode;
 }
 
 void Client::recv(string &msg)

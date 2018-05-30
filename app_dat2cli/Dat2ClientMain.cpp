@@ -838,7 +838,7 @@ bool Dat2Client::setSubscrible(const SubscribeRequest &req)
 			}
 		}
 
-		m_Subscribed.insert(FOR_TEST);
+//		m_Subscribed.insert(FOR_TEST);
 		writeDispJson();
 	}
 	return true;

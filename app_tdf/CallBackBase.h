@@ -52,8 +52,6 @@ public:
 	void Deal_Message_TdfQue(MySubData *d);
 	void Deal_Message_D31Item(MySubData *d);
 
-
-
 	IoService	*m_ios;
 private:
 	FileNameSet m_fileSet;

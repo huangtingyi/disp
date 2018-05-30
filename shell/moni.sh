@@ -8,6 +8,42 @@ export TERM=${TERM:-xterm}
 
 ethn=$1
 
+pid_str=""
+pnd_str="ints_gta|ints_tdf|replay_gta|replay_tdf|agentcli|dat2cli|COMMAND"
+
+#限制只取前20个进程ID号
+#避免top: pid limit (20) exceeded 错误
+get_pid_str()
+{
+	my_str="`$pidof_bin ints_gta ints_tdf replay_gta replay_tdf agentcli dat2cli`"
+	
+	j=0
+	new_str=""
+
+	for i in $my_str
+	do
+		if [ $j -eq 0 ];then
+			new_str="$i"
+		else
+			new_str="$new_str $i"
+		fi
+
+		j=`echo $j+1|bc`
+
+		if [ $j -ge 20 ];then
+			break;
+		fi	
+	done
+	
+	new_str=${new_str:-0}
+	
+	new_str=`echo $new_str | sed 's/[0-9]*/-p&/g'`
+	echo "$new_str"
+}
+
+RX_cmd="cat /proc/net/dev |  awk '\$1==\"$ethn:\"{print \$2}'"
+TX_cmd="cat /proc/net/dev |  awk '\$1==\"$ethn:\"{print \$10}'"
+
 while true
 do
 	##09点15分之前，15点15分之后，11点45分到12点45分布监控
@@ -20,11 +56,11 @@ do
 		continue;
 	fi
 
-	RX_pre=$(cat /proc/net/dev | grep $ethn | sed 's/:/ /g' | awk '{print $2}')
-	TX_pre=$(cat /proc/net/dev | grep $ethn | sed 's/:/ /g' | awk '{print $10}')
+	RX_pre=$(eval $RX_cmd)
+	TX_pre=$(eval $TX_cmd)
 	sleep 1
-	RX_next=$(cat /proc/net/dev | grep $ethn | sed 's/:/ /g' | awk '{print $2}')
-	TX_next=$(cat /proc/net/dev | grep $ethn | sed 's/:/ /g' | awk '{print $10}')
+	RX_next=$(eval $RX_cmd)
+	TX_next=$(eval $TX_cmd)
 
 	RX=$((${RX_next}-${RX_pre}))
 	TX=$((${TX_next}-${TX_pre}))
@@ -50,9 +86,8 @@ do
 	sudo netstat -nap | egrep "ints_gta|ints_tdf|dat2cli|Address"
 	
 	##增加进程占用的cpu监控
-	pid_str="`$pidof_bin ints_gta ints_tdf replay_gta replay_tdf agentcli dat2cli | sed 's/[0-9]*/-p&/g'`"
-	pnd_str="ints_gta|ints_tdf|replay_gta|replay_tdf|agentcli|dat2cli|COMMAND"
-	
+
+	pid_str=`get_pid_str`
 	top -b -n1 -H `echo $pid_str` | egrep `echo $pnd_str` | head -12
 	##增加消息队列监控
 	ipcs -q
