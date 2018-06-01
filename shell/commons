@@ -36,7 +36,18 @@ belong_ppid_mypid()
 {
 	mypid=$1
 
-	pscmd="ps -ef | awk '\$2==$mypid{print \$3}"
+	pscmd="ps -ef | awk '\$2==$mypid{print \$3}'"
+	res_str=`eval $pscmd`
+
+	echo "${res_str:-0}"
+}
+
+##找到pid对应的启动时间
+belong_stime_mypid()
+{
+	mypid=$1
+
+	pscmd="ps -ef | awk '\$2==$mypid{print \$5}'"
 	res_str=`eval $pscmd`
 
 	echo "${res_str:-0}"

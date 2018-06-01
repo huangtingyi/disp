@@ -27,14 +27,14 @@ CallBackBase *pCallBase;
 
 int main(int argc, char *argv[])
 {
-	int iPort=0,iMaxCnt=3000,iSleepSec=3;
+	int iPort=0,iMaxCnt=3000,iSleepSec=3,iTimeOutSec=3;
 	char sIp[32],sUserName[32],sPassword[32];	
 	
 	strcpy(sIp,"");
 	strcpy(sUserName,"");
 	strcpy(sPassword,"");
 
-	for (int c; (c = getopt(argc, argv, "I:P:u:p:c:s:?:")) != EOF;){
+	for (int c; (c = getopt(argc, argv, "I:P:u:p:c:s:m:?:")) != EOF;){
 		switch (c){
 		case 'I':
 			strncpy(sIp, optarg,sizeof(sIp)-1);
@@ -57,6 +57,10 @@ int main(int argc, char *argv[])
 		case 's':
 			iSleepSec=atoi(optarg);
 			break;
+		case 'm':
+			iTimeOutSec=atoi(optarg);
+			if(iTimeOutSec<=0) iTimeOutSec=3;
+			break;
 		case '?':
 		default:
 			printf("Usage: %s \n", argv[0]);
@@ -66,6 +70,7 @@ int main(int argc, char *argv[])
 			printf("   [-p password ]\n");
 			printf("   [-c maxcnt ]\n");
 			printf("   [-s sleepsec ]\n");
+			printf("   [-m timeoutsec ]\n");
 			exit(1);
 			break;
 		}
@@ -93,8 +98,21 @@ int main(int argc, char *argv[])
 	pCallBase->SubscribeAll();
 	
 	//等待退出标志，如果为真则退出
+	//做一个最大等待时间控制，如果超过最大等待时间则退出
+	time_t tBgnTime,tCurTime;
+	
+	tBgnTime=tGetHostTime();
+
 	while(pCallBase->m_exit==false){
 		usleep(10*1000);
+		tCurTime=tGetHostTime();
+		
+		//超时,打印信息就直接退出了
+		if((tCurTime-tBgnTime)>=iTimeOutSec){
+			printf("TIME OUT T=%d RecCnt=%d GetCnt=%d EXIT.\n",
+				iTimeOutSec,iMaxCnt,pCallBase->m_iTotalCnt);
+			return 1;
+		}
 	}
 	
 	printf("CATCH EXIT SIGNAL.\n");

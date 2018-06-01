@@ -96,6 +96,7 @@ installdir()
 			cp shell/commons	../bin
 			cp shell/startup.sh	../bin/startdf.sh
 			cp shell/startrep.sh	../bin/startrep_tdf.sh
+			cp shell/shedrep.sh	../bin
 			;;
 		conf)   
 			cp conf/cfg.json	../conf
