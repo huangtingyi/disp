@@ -42,7 +42,7 @@ struct Privalige
 	string m_sUser;
 	int m_iMqID;
 	string password;
-	set<BizCode> privl;
+	set<int> privl;
 };
 class Dat2Client
 {
@@ -72,6 +72,7 @@ private:
 	int m_iSemLockKey;
 	char m_sUserPrivJsonPath[MAX_PATH];
 	char m_sOutDispJsonPath[MAX_PATH];
+	char m_sOutDispLogPath[MAX_PATH];
 	char m_sCfgJsonPath[MAX_PATH];
 	char m_sWorkRootPath[MAX_PATH];
 	char m_sWriteUser[MAX_PATH];
@@ -96,7 +97,7 @@ private:
 
 	vector<uint32_t> m_allCodes; //这个得其他模块同步过来
 
-	set<BizCode> m_Subscribed;
+	set<int> m_Subscribed;
 
 	//每个客户端连接所对应的超时检测器
 	////TimerHeartbeat m_Timer;
@@ -117,18 +118,20 @@ private:
 
 private:
 	bool isValidHost(const char *sIp); //判断接入的远程主机是否是受信任的主机IP
-	int RecvCliSockRequestAndProcess();
-	int RecvMqAndDisp2Cli();
+	int RecvCliSockRequestAndProcess(char sDestIp[],int iPort);
+	int RecvMqAndDisp2Cli(char sDestIp[],int iPort);;
 
 	MessageQueue *m_poSysMQ; //总控队列
 	MessageQueue *m_poDataMQ; //数据队列
 
-	bool dealCommand(string &msg);
+	bool dealCommand(string &msg,char sDestIp[],int iPort);
 
 	bool setSubscrible(const SubscribeRequest &req);
 	bool addReduceCodes(const vector<uint32_t> &codes, const bool addReduce);
 	bool writeDispJson();
 	
+	bool LogDispJson(char sInfo[],char sMsg[],char sErrMsg[]);
+
 	void logout();
 	bool isLogined(string sUserName);
 	void handleTimeOut();

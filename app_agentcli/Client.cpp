@@ -105,6 +105,10 @@ void Client::recv(string &msg)
 		D31Item         t;
 		t.ParseFromString(msgProtobuf);
 		iStockCode=	t.nstockcode();
+
+		//设置callsupp.cpp中定义的全局变量，供D31TradeTimeValid使用
+		nD31TradeTime=	t.ntradetime();
+
 		SendMsg2Cli(iStockCode,'D',msgProtobuf);
 	}
 	break;

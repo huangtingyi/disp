@@ -26,7 +26,7 @@ workroot=${workroot:-/stock/work}
 dataroot=${dataroot:-/data}
 
 [ ! -d $workroot ] && echo "directory $workroot is not exist" && exit 1;
-[ ! -d $dataroot ] && echo "dataroot $workroot is not exist" && exit 1;
+[ ! -d $dataroot ] && echo "directory $dataroot is not exist" && exit 1;
 
 bakpath="$dataroot/$bakdate"
 

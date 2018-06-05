@@ -10,7 +10,7 @@ commons_file="$HOME/bin/commons"
 
 . $commons_file
 
-pids=`$pidof_bin -x dat2cli ints_gta ints_tdf replay_gta replay_tdf agentcli moni.sh`
+pids=`$pidof_bin -x dat2cli ints_gta ints_tdf replay_gta replay_tdf index_gta index_tdf agentcli moni.sh`
 
 if [ -z "$pids" ]; then
 	echo "`date '+%Y/%m/%d %k:%M:%S'` system is not start..,exit";

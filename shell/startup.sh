@@ -26,7 +26,8 @@ gta_file="$HOME/conf/ints_gta.json"
 tdf_file="$HOME/conf/ints_tdf.json"
 ints_gta_bin="$HOME/bin/ints_gta"
 ints_tdf_bin="$HOME/bin/ints_tdf"
-
+index_gta_bin="$HOME/bin/index_gta"
+index_tdf_bin="$HOME/bin/index_tdf"
 
 disp_file="$HOME/conf/disp.json"
 user_file="$HOME/conf/user_privilege.json"
@@ -38,16 +39,29 @@ pidof_bin="/usr/sbin/pidof"
 
 ints_gta_log="$HOME/bin/log/ints_gta`date '+%Y%m%d'`.log"
 ints_tdf_log="$HOME/bin/log/ints_tdf`date '+%Y%m%d'`.log"
+index_gta_log="$HOME/bin/log/index_gta`date '+%Y%m%d'`.log"
+index_tdf_log="$HOME/bin/log/index_tdf`date '+%Y%m%d'`.log"
+
 dat2cli_log="$HOME/bin/log/dat2cli_`date '+%Y%m%d'`.log"
 moni_log="$HOME/bin/log/moni_`date '+%Y%m%d'`.log"
 
 if [ $sysflag = "gta" ]; then
-	[ ! -f $gta_file ] && echo "$gta_file is not exist" && exit 1;
-	[ ! -f $ints_gta_bin ] && echo "$ints_gta_bin is not exist" && exit 1;
+	ints_file=$gta_file
+	ints_bin=$ints_gta_bin
+	ints_log=$ints_gta_log
+	index_bin=$index_gta_bin
+	index_log=$index_gta_log
 else
-	[ ! -f $tdf_file ] && echo "$tdf_file is not exist" && exit 1;
-	[ ! -f $ints_tdf_bin ] && echo "$ints_tdf_bin is not exist" && exit 1;
+	ints_file=$tdf_file
+	ints_bin=$ints_tdf_bin
+	ints_log=$ints_tdf_log
+	index_bin=$index_tdf_bin
+	index_log=$index_tdf_log
 fi
+
+[ ! -f $ints_file ] && echo "$ints_file is not exist" && exit 1;
+[ ! -f $ints_bin ] && echo "$ints_bin is not exist" && exit 1;
+[ ! -f $index_bin ] && echo "$index_bin is not exist" && exit 1;
 
 [ ! -f $cfg_file ] && echo "$cfg_file is not exist" && exit 1;
 [ ! -f $disp_file ] && echo "$disp_file is not exist" && exit 1;
@@ -57,15 +71,24 @@ fi
 [ ! -f $moni_bin ] && echo "$moni_bin is not exist" && exit 1;
 [ ! -f $pidof_bin ] && echo "$pidof_bin is not exist" && exit 1;
 
+workd31=${workd31:-"/data/work"}
+etflist=${etflist:-"510050,510180,510300,510500"}
+etfpath=${etfpath:-$HOME/conf/etf}
+
+[ ! -d $workroot ] && echo "dir $workroot is not exist" && exit 1;
+[ ! -d $workd31 ] && echo "dir $workd31 is not exist" && exit 1;
+[ ! -d $etfpath ] && echo "dir $etfpath is not exist" && exit 1;
+
+
+
 my_name=`whoami`
 my_name=${my_name:-$USER}
 my_flag=""
-               
-if [ $sysflag = "gta" ]; then
-	pids=`$pidof_bin -x ints_gta dat2cli moni.sh`
-else
-	pids=`$pidof_bin -x ints_tdf dat2cli moni.sh`
-fi
+
+ints_bin_base=`basename $ints_bin`
+index_bin_base=`basename $index_bin`
+
+pids=`$pidof_bin -x $ints_bin_base $index_bin_base dat2cli moni.sh`
 
 ##如果有指定进程在运行，则检查是否有本用户的进程存在，如果有则提示退出
 mypid=`check_mypid_exist $pids`
@@ -92,28 +115,27 @@ cd $HOME/bin
 
 if [ $sysflag = "gta" ]; then
 	
-	nohup $ints_gta_bin -w$writeflag -o$workroot -c$gta_file -r$disp_file -u$user_file 1>$ints_gta_log 2>&1 &
-	sleep 1
-	$pidof_bin -x ints_gta
-	if [ $? -ne 0 ]; then
-		echo "`date '+%Y/%m/%d %k:%M:%S'` ints_gta is startup FAIL..";
-		echo "$ints_gta_bin -w$writeflag -o$workroot -c$gta_file -r$disp_file -u$user_file"
-		exit 3;
-	fi
-	
-	echo "`date '+%Y/%m/%d %k:%M:%S'` ints_gta is startup SUCESS.."         
-else
-	nohup $ints_tdf_bin -w$writeflag -o$workroot -c$tdf_file -r$disp_file -u$user_file 1>$ints_tdf_log 2>&1 &
-	sleep 1
-	$pidof_bin -x ints_tdf
-	if [ $? -ne 0 ]; then
-		echo "`date '+%Y/%m/%d %k:%M:%S'` ints_tdf is startup FAIL..";
-		echo "$ints_tdf_bin -w$writeflag -o$workroot -c$tdf_file -r$disp_file -u$user_file"
-		exit 3;
-	fi
+nohup $ints_bin -w$writeflag -o$workroot -c$ints_file -r$disp_file -d$workd31 1>$ints_log 2>&1 &
+sleep 1
+$pidof_bin -x $ints_bin_base
 
-	echo "`date '+%Y/%m/%d %k:%M:%S'` ints_tdf is startup SUCESS.."
+if [ $? -ne 0 ]; then
+	echo "`date '+%Y/%m/%d %k:%M:%S'` $ints_bin_base is startup FAIL..";
+	echo "$ints_bin -w$writeflag -o$workroot -c$ints_file -r$disp_file -d$workd31"
+	exit 3;
 fi
+echo "`date '+%Y/%m/%d %k:%M:%S'` $ints_bin_base is startup SUCESS.."
+	
+##启动D31统计程序
+nohup $index_bin -w3 -s$workroot -o$workd31 -L$etflist -E$etfpath 1>$index_log 2>&1 &
+sleep 1
+$pidof_bin -x $index_bin_base
+if [ $? -ne 0 ]; then
+	echo "`date '+%Y/%m/%d %k:%M:%S'` $index_bin_base is startup FAIL..";
+	echo "$index_bin -w3 -s$workroot -o$workd31 -L$etflist -E$etfpath"
+	exit 3;
+fi
+echo "`date '+%Y/%m/%d %k:%M:%S'` $index_bin_base is startup SUCESS.."
 
 nohup $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
 sleep 1

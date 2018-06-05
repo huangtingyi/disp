@@ -9,13 +9,13 @@ export TERM=${TERM:-xterm}
 ethn=$1
 
 pid_str=""
-pnd_str="ints_gta|ints_tdf|replay_gta|replay_tdf|agentcli|dat2cli|COMMAND"
+pnd_str="ints_gta|ints_tdf|replay_gta|replay_tdf|index_gta|index_tdf|agentcli|dat2cli|COMMAND"
 
 #限制只取前20个进程ID号
 #避免top: pid limit (20) exceeded 错误
 get_pid_str()
 {
-	my_str="`$pidof_bin ints_gta ints_tdf replay_gta replay_tdf agentcli dat2cli`"
+	my_str="`$pidof_bin ints_gta ints_tdf replay_gta replay_tdf index_gta index_tdf agentcli dat2cli`"
 	
 	j=0
 	new_str=""

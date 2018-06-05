@@ -10,6 +10,8 @@ using namespace std;
 extern int errno;
 static TcpSocket *g_pTcpSocket = NULL; //Tcp传输器
 
+int iMyPid=0;
+
 //将bizCode和pbmsg信息打包成为串 格式：2字节长度+1字节bizCode+pb->SerializeToString结果，长度为 1字节+序列化串
 void addBizcode(string &output, const google::protobuf::Message &pbmsg, BizCode bizCode)
 {
@@ -45,16 +47,47 @@ void startIosThread(boost::asio::io_service *pio)
 void disp_buf2(char *buf, int size)
 {
 	int i;
-	printf("buf [%d] start:\n", size);
-	for (i = 0; i < size; i++)
-	{
-		if (i % 16 == 0)
-			printf("\n");
+
+	printf("buf [%d] start:", size);
+	for (i = 0; i < size; i++){
+		if (i % 16 == 0) printf("\n");
 		printf("%02X ", buf[i] & 0xff);
 	}
 	printf("\nbuf end\n\n");
 }
-;
+void MyBin2HexStr(char *buf,int len,char sTemp[])
+{
+	int l=0;
+	
+	for(int i=0;i<len;i++){
+		if(l==0)
+			l+=sprintf(sTemp,"%02X",buf[i] & 0xff);
+		else	l+=sprintf(sTemp+l," %02X",buf[i] & 0xff);
+		if(l>=253) break;
+	}
+}
+
+char sLogTime[15],sMSec[4];
+
+int GetHostTimeX(char sHostTime[15],char sMiniSec[4])
+{
+	struct tm *tm;
+	struct timeval t;
+	time_t tHostTime;
+
+	strcpy(sMiniSec,"");
+
+	if(gettimeofday(&t,NULL)==-1) return -1;
+
+	tHostTime=(time_t)(t.tv_sec);
+	if((tm=(struct tm*)localtime(&tHostTime))==NULL) return -1;
+
+	if(strftime(sHostTime,15,"%Y%m%d%H%M%S",tm)==(size_t)0)	return -1;
+
+	sprintf(sMiniSec,"%03ld",t.tv_usec/1000);
+
+	return 0;
+}
 
 bool Dat2Client::m_bReadSysMq = true;
 bool Dat2Client::m_bExitFlag = false;
@@ -65,7 +98,15 @@ void signalProcess(int isignal)
 		Dat2Client::m_bReadSysMq = true;
 		return;
 	}
-	Dat2Client::m_bExitFlag = true;
+
+	if (isignal == SIGINT||isignal==SIGTERM){
+		Dat2Client::m_bExitFlag = true;
+		printf("%s.%s pid=%d(%d) CATCH SIG=%d.\n",
+			sLogTime,sMSec,getpid(),iMyPid,isignal);
+		
+	//只有是子进程的情况下才退出，如果是首要进程，则不直接下去exit
+		if(getpid()!=iMyPid) return;
+	}
 	exit(0);
 }
 
@@ -199,7 +240,7 @@ int Dat2Client::Init()
 		ptreePrivl = each.get_child("privl");
 
 		for (auto it2 = ptreePrivl.begin(); it2 != ptreePrivl.end(); ++it2)
-			prl.privl.insert(BizCode(it2->second.get_value<int>()));
+			prl.privl.insert(it2->second.get_value<int>());
 
 		m_mapPrivl.insert( { prl.m_sUser, prl });
 		prl.privl.clear();
@@ -249,6 +290,7 @@ int Dat2Client::run(int argc, char *argv[])
 			break;
 		case 'r':
 			strcpy(m_sOutDispJsonPath, optarg);
+			sprintf(m_sOutDispLogPath,"%s.log",m_sOutDispJsonPath);
 			break;
 		case 'u':
 			strcpy(m_sUserPrivJsonPath, optarg);
@@ -277,10 +319,9 @@ int Dat2Client::run(int argc, char *argv[])
 
 	Init();
 
-	int ret;
+	int ret,iPort;
 	long iDat2CliPid, iCliReqProcPid;
-
-	char sDestIp[31] = { 0 },sSysDate[15] = {0};
+	char sDestIp[31] = { 0 };
 
 
 	if (signal(SIGCHLD, SIG_DFL) != SIG_ERR)
@@ -298,18 +339,21 @@ int Dat2Client::run(int argc, char *argv[])
 		g_pTcpSocket->CloseListenSocket();
 
 		//校验接入IP是否合法
+		iPort=ntohs(remoteaddr.sin_port);
 		strcpy(sDestIp, inet_ntoa(remoteaddr.sin_addr));
 
-		GetSysDate(sSysDate);
+		GetHostTimeX(sLogTime,sMSec);
 
 		if (m_iCheckIp)	{
 			if (!isValidHost(sDestIp)){
-				cout << "["<<sSysDate<<"]:"<<"未知IP:"<<sDestIp<<";拒绝接入"<<endl;
+
+				printf("%s.%s 未知IP:%s;拒绝接入.\n",sLogTime,sMSec,sDestIp);
+
 				g_pTcpSocket->Close();
 				continue;
 			}
 		}
-		cout << "["<<sSysDate<<"]:"<<"IP:"<<sDestIp<<";成功接入"<<endl;
+		printf("%s.%s IP:%s;接入成功.\n",sLogTime,sMSec,sDestIp);
 
 		if (m_iSetSocketFlag){
 			if (m_iSocketSendLen > 0)
@@ -320,14 +364,16 @@ int Dat2Client::run(int argc, char *argv[])
 		}
 
 		//int m_iPid; //收发进程记录与它配对应的PID 主进程记录为0
-		switch (fork())
-		{
+		switch (fork()){
 		case -1://fork失败情况
 			exit(1);
 			break;
 		case 0:
 			iDat2CliPid = getpid();
-			cout << "["<<sSysDate<<"]:"<<"连接成功%s:"<<inet_ntoa(remoteaddr.sin_addr)<<":"<<ntohs(remoteaddr.sin_port)<<"connected"<<endl;
+//			cout << "["<<sSysDate<<"]:"<<"连接成功%s:"<<inet_ntoa(remoteaddr.sin_addr)<<":"<<ntohs(remoteaddr.sin_port)<<"connected"<<endl;
+
+			GetHostTimeX(sLogTime,sMSec);
+			printf("%s.%s IP:连接成功%s:%dconnected.\n",sLogTime,sMSec,sDestIp,iPort);
 
 			iCliReqProcPid = fork();
 			switch (iCliReqProcPid)
@@ -338,23 +384,27 @@ int Dat2Client::run(int argc, char *argv[])
 			case 0:
 				//处理客户端发送的订阅请求进程
 				m_iPid = iDat2CliPid;
-				RecvCliSockRequestAndProcess();
+				ret=RecvCliSockRequestAndProcess(sDestIp,iPort);
 				g_pTcpSocket->Close();
 				kill(iDat2CliPid, SIGINT);
 				logout();
-				GetSysDate(sSysDate);
-				cout << "["<<sSysDate<<"]:"<<"receiveMsg-IP:"<<sDestIp<<" 断开链接"<<endl;
+				
+				GetHostTimeX(sLogTime,sMSec);
+				printf("%s.%s CLICMD EXIT user=%s(%s:%d-p-%d) code=%d.\n",
+					sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid(),ret);
+					
 				break;
 			default://转发MQ数据到客户端SOCK连接进程
 
 				m_iPid = iCliReqProcPid;
 
-				RecvMqAndDisp2Cli();
+				ret=RecvMqAndDisp2Cli(sDestIp,iPort);
 				g_pTcpSocket->Close();
 				kill(iCliReqProcPid, SIGINT);
 
-				GetSysDate(sSysDate);
-				cout << "["<<sSysDate<<"]:"<<"sendMsg-IP:"<<sDestIp<<" 断开链接"<<endl;
+				GetHostTimeX(sLogTime,sMSec);
+				printf("%s.%s RECVMQ EXIT user=%s(%s:%d-p-%d) code=%d.\n",
+					sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid(),ret);
 				break;
 			}
 
@@ -377,17 +427,16 @@ int Dat2Client::run(int argc, char *argv[])
 	return 0;
 }
 
-int Dat2Client::RecvCliSockRequestAndProcess()
+int Dat2Client::RecvCliSockRequestAndProcess(char sDestIp[],int iPort)
 {
-#ifdef DEBUG_ONE
-	char sSysDate[15] = {0};
-	GetSysDate(sSysDate);
-	cout << "["<<sSysDate<<"]:"<<"receiveMsg--------start----pid=" << getpid() << endl;
-#endif
-
 	string msg;
 	int recv_len, msg_len, ret;
 	unsigned char *data = (unsigned char*)m_sRecvBuffer;
+
+
+	GetHostTimeX(sLogTime,sMSec);
+	printf("%s.%s CLICMD process start user=%s(%s:%d-p-%d).\n",
+		sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
 
 	memset(m_sRecvBuffer, 0, sizeof(m_sRecvBuffer));
 
@@ -399,6 +448,9 @@ int Dat2Client::RecvCliSockRequestAndProcess()
 		//做一个循环，从客户端socket中读取消息长度data中
 		while(recv_len < msg_len){
 			if ((ret = g_pTcpSocket->read((data + recv_len), msg_len - recv_len)) <= 0){
+				printf("%s.%s user=%s(%s:%d-p-%d) READ ERROR code=%d.\n",
+					sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid(),ret);
+
 				return ERROR_TRANSPORT;
 			}
 			recv_len += ret;
@@ -407,29 +459,26 @@ int Dat2Client::RecvCliSockRequestAndProcess()
 		msg_len = data[0] * 256 + data[1];
 
 		//校验消息长度的合法性，如果非法则断开
-		if (msg_len <= 0){ //消息长度有误
-			printf("消息长度有误，msg_len：%d!\n", msg_len);
+		if (msg_len <= 0||msg_len > (SOCKET_DATALEN - 2)){ //消息长度有误
+			printf("%s.%s 消息长度有误，msg_len：%d!\n",sLogTime,sMSec,msg_len);
 			return ERROR_TRANSPORT;
 		}
 
-		if (msg_len > (SOCKET_DATALEN - 2)){
-			//这里做一下打印
-			printf("%s:%d msg_len=%d\n", __FILE__, __LINE__, msg_len);
-			return ERROR_TRANSPORT;
-		}
 
 #ifdef DEBUG_ONE
-		char sSysDate[15] = {0};
-		GetSysDate(sSysDate);
-		cout << "["<<sSysDate<<"]:"<<"Recv BizCode["<<(int)data[3]<<"] Msg_Len["<<msg_len<<"]"<<endl;
+		GetHostTimeX(sLogTime,sMSec);
+		printf("%s.%s user=%s(%s:%d-p-%d) Recv BizCode[%d]Msg_Len[%d].\n",
+			sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid(),(int)data[3],msg_len);
 #endif
 
 		//得到有效的消息长度后，则读取整个消息
 		while(recv_len - 2 < msg_len){
 			if ((ret = g_pTcpSocket->read((unsigned char *) (data + recv_len), msg_len)) <= 0){
-				char sSysDate[15] = {0};
-				GetSysDate(sSysDate);
-				cout << "["<<sSysDate<<"]:"<<"g_pTcpSocket读取失败"<<__FILE__<<":"<<__LINE__<<" g_pTcpSocket->read fail"<<endl;
+				
+				GetHostTimeX(sLogTime,sMSec);
+				
+				printf("%s.%s g_pTcpSocket读取失败.\n",sLogTime,sMSec);
+				
 				return ERROR_TRANSPORT;
 			}
 			recv_len += ret;
@@ -437,8 +486,10 @@ int Dat2Client::RecvCliSockRequestAndProcess()
 
 		msg.assign((char*)data+2, msg_len);
 
-		if(false == dealCommand(msg))
-		{
+		if(dealCommand(msg,sDestIp,iPort)==false){
+			printf("%s.%s user=%s(%s:%d-p-%d) PROCESS CMD ERROR.\n",
+				sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
+
 			return ERROR_TRANSPORT;
 		}
 	}
@@ -476,25 +527,6 @@ int UserInWriteUser(char sUserName[],char sWriteUser[])
 FILE *fpOut;
 char sOutFileName[MAX_PATH];
 
-int GetHostTimeX(char sHostTime[15],char sMiniSec[4])
-{
-	struct tm *tm;
-	struct timeval t;
-	time_t tHostTime;
-
-	strcpy(sMiniSec,"");
-
-	if(gettimeofday(&t,NULL)==-1) return -1;
-
-	tHostTime=(time_t)(t.tv_sec);
-	if((tm=(struct tm*)localtime(&tHostTime))==NULL) return -1;
-
-	if(strftime(sHostTime,15,"%Y%m%d%H%M%S",tm)==(size_t)0)	return -1;
-
-	sprintf(sMiniSec,"%03ld",t.tv_usec/1000);
-
-	return 0;
-}
 int MyWrite2CliFile(char sWorkRoot[],char sUserName[],string &str)
 {
 	//只考虑linux了，long long 太难看了
@@ -536,21 +568,19 @@ int MyWrite2CliFile(char sWorkRoot[],char sUserName[],string &str)
 }
 int (*Write2CliFile)(char sWorkRoot[],char sUserName[],string &str);
 
-int Dat2Client::RecvMqAndDisp2Cli()
+int Dat2Client::RecvMqAndDisp2Cli(char sDestIp[],int iPort)
 {
-#ifdef DEBUG_ONE
-	char sSysDate[15] = {0};
-	GetSysDate(sSysDate);
-	cout << "["<<sSysDate<<"]:"<< "sendMsg--------start----pid=" << getpid() << endl;
-#endif
 	int iRet = 0,iDataMqID = 0,iCount=0;
 	string strRecv;
+
+	GetHostTimeX(sLogTime,sMSec);
+	printf("%s.%s RECVMQ process user=%s(%s:%d-p-%d).\n",
+		sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
 
 	while (!Dat2Client::m_bExitFlag){
 
 		if (m_bReadSysMq){ //总控队列用于接收MQID，通过信号触发
 
-//			printf("hello world .-----------------------------------------3.\n");
 			//接收登录的MQ信号，得到MQID
 			if((iRet = m_poSysMQ->receive(strRecv, m_iPid))!=0){
 				m_bReadSysMq = false;
@@ -559,8 +589,6 @@ int Dat2Client::RecvMqAndDisp2Cli()
 
 				if (!m_poDataMQ)
 					throw "error";
-
-//				printf("hello world .-----------------------------------------4,%d,%d.\n",iDataMqID,m_iPid);
 
 				m_poDataMQ->open(false, true, m_iSysMqMaxLen, m_iSysMqMaxNum);
 
@@ -588,33 +616,31 @@ int Dat2Client::RecvMqAndDisp2Cli()
 			continue;
 		}
 
-#ifdef DEBUG_ONE
-		{
-			m_lRecvNum++;
-			BizCode bizCode = BizCode((unsigned char) (strRecv[2]));
-			m_mapBizStat[bizCode]++;
-			string strStat="";
+		//做一个统计信息输出到终端
+		m_lRecvNum++;
+		BizCode bizCode = BizCode((unsigned char) (strRecv[2]));
+		m_mapBizStat[bizCode]++;
 
-			if(m_lRecvNum%100==0){
-				map<BizCode,long>::iterator iter;//定义一个迭代指针iter
-				char sSysDate[15] = {0};
-				GetSysDate(sSysDate);
+		if(m_lRecvNum%3000==0){
 
-				strStat+="Stat BizCode Recv:[";
-				strStat+=sSysDate;
-				strStat+="]\n";
-				strStat = "BizCode\t\tNum\n";
-				strStat +="----------------\n";
+			int l=0;
+			char sTmp[256];
 
-				for(iter=m_mapBizStat.begin(); iter!=m_mapBizStat.end(); iter++){
-					char sTmp[256] = {0};
-					sprintf(sTmp,"[%d]\t\t%d\n",iter->first,iter->second);
-					strStat+=sTmp;
-				}
-				cout<<strStat<<endl;
+			map<BizCode,long>::iterator iter;//定义一个迭代指针iter
+				
+			strcpy(sTmp,"");
+
+			GetHostTimeX(sLogTime,sMSec);
+
+			for(iter=m_mapBizStat.begin(); iter!=m_mapBizStat.end(); iter++){
+				if(l==0)
+					l+=sprintf(sTmp,"[%d:%d]",(int)iter->first,(int)iter->second);
+				else	l+=sprintf(sTmp+l,"\t[%d:%d]",(int)iter->first,(int)iter->second);
 			}
+
+			printf("%s.%s pid=%d user=%s(%s:%d-p-%d)sendcnt=%ld{%s}\n",
+				sLogTime,sMSec,getpid(),m_sUserName.c_str(),sDestIp,iPort,getpid(),m_lRecvNum,sTmp);
 		}
-#endif
 
 		unsigned char *data = (unsigned char*)m_sSendBuffer;
 		int msg_len = strRecv.size(),num = 0;
@@ -654,7 +680,7 @@ void Dat2Client::SetProcessSignal()
 	signal(SIGUSR1, signalProcess);
 }
 
-bool Dat2Client::dealCommand(string &msg)
+bool Dat2Client::dealCommand(string &msg,char sDestIp[],int iPort)
 {
 	bool bret = true;
 	BizCode iBizCode;
@@ -678,12 +704,11 @@ bool Dat2Client::dealCommand(string &msg)
 		const auto itPrivl = m_mapPrivl.find(req.name());
 
 		m_sUserName = req.name();
-#ifdef DEBUG_ONE
-		char sSysDate[15] = {0};
-		GetSysDate(sSysDate);
-		cout << "["<<sSysDate<<"]:"<<"Recv LOGIN_REQ Msg:UserName["<<m_sUserName<<"],Passwd["<<pswdInput<<"]"<<endl;
+
+		GetHostTimeX(sLogTime,sMSec);
+		printf("%s.%s Recv LOGIN_REQ user=%s(%s:%d-p-%d) passwd=%s.\n",
+			sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid(),pswdInput.c_str());
 		disp_buf2((char*)(msg.c_str()),msg.size());
-#endif
 
 		m_iMqID = itPrivl->second.m_iMqID;
 
@@ -694,6 +719,9 @@ bool Dat2Client::dealCommand(string &msg)
 			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
 			g_pTcpSocket->send((unsigned char *) msgBody.data(), msgBody.size());
 			bret = false;
+			printf("%s.%s LOGIN_REP invalid user=%s(%s:%d-p-%d).\n",
+				sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
+
 			break;
 		}
 		//如果已经登录则，回复已经登录信息
@@ -702,6 +730,8 @@ bool Dat2Client::dealCommand(string &msg)
 			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
 			g_pTcpSocket->send((unsigned char *) msgBody.data(), msgBody.size());
 			bret = false;
+			printf("%s.%s LOGIN_REP user logined user=%s(%s:%d-p-%d).\n",
+				sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
 			break;
 		}
 		//密码错误，则将密码错误信息返回客户端
@@ -710,6 +740,9 @@ bool Dat2Client::dealCommand(string &msg)
 			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
 			g_pTcpSocket->send((unsigned char *) msgBody.data(), msgBody.size());
 			bret = false;
+
+			printf("%s.%s LOGIN_REP passwd error user=%s(%s:%d-p-%d).\n",
+				sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
 			break;
 		}
 
@@ -752,27 +785,46 @@ bool Dat2Client::dealCommand(string &msg)
 
 		addBizcode(pbMsg2, pbCodesBroadcast, BizCode::CODES_BROADCAST);
 		g_pTcpSocket->send((unsigned char *) pbMsg2.data(), pbMsg2.size());
+		
+		printf("%s.%s LOGIN_REP login SUCCESS user=%s(%s:%d-p-%d).\n",
+			sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
 	}
 	break;
 	case SUBSCRIBLE:
 	{
+		char sInfo[256],sMsg[256],sErrMsg[256];
+	
 		SubscribeRequest req;
 		req.ParseFromString(msgProtobuf);
 		bret = setSubscrible(req);
-#ifdef DEBUG_ONE
-		char sSysDate[15] = {0};
-		GetSysDate(sSysDate);
-		cout << "["<<sSysDate<<"]:"<<"Recv SUBSCRIBLE Msg:Sub_Size["<<req.sub_size()<<"]"<<endl;
+
+		GetHostTimeX(sLogTime,sMSec);
+
+		sprintf(sInfo,"Recv SUBSCRIBLE user=%s(%s:%d-p-%d) Msg:Sub_Size=%d",
+			m_sUserName.c_str(),sDestIp,iPort,getpid(),req.sub_size());
+
+		printf("%s.%s %s.\n",sLogTime,sMSec,sInfo);
+
 		disp_buf2((char*)(msg.c_str()),msg.size());
-#endif
+		
+		//这里将改变之后的文件，全量写入到 disp.json.log文件中
+		MyBin2HexStr((char*)(msg.c_str()),msg.size(),sMsg);
+		if(LogDispJson(sInfo,sMsg,sErrMsg)==false){
+			GetHostTimeX(sLogTime,sMSec);
+			printf("%s.%s SUBSCRIBLE %s user=%s(%s:%d-p-%d).\n",
+				sLogTime,sMSec,sErrMsg,m_sUserName.c_str(),sDestIp,iPort,getpid());
+			bret = false;
+		}
 	}
 		break;
 	case HEART_BEAT:
 	{
 #ifdef DEBUG_ONE
-		char sSysDate[15] = {0};
-		GetSysDate(sSysDate);
-		cout << "["<<sSysDate<<"]:"<<"Recv HEART_BEAT Msg"<<endl;
+
+		GetHostTimeX(sLogTime,sMSec);
+		printf("%s.%s Recv HEART_BEAT MSG user=%s(%s:%d-p-%d).\n",
+			sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
+
 		disp_buf2((char*)(msg.c_str()),msg.size());
 #endif
 		m_pTimerController->resetTimer(m_secHeartbeat*2);
@@ -780,12 +832,13 @@ bool Dat2Client::dealCommand(string &msg)
 		break;
 	case CODES_SUB:
 	{
+		
+		char sInfo[256],sMsg[256],sErrMsg[256];
+
 		PbCodesSub req;
 
 		req.ParseFromString(msgProtobuf);
 		const int sz = req.codes_size();
-
-		cout << "CODES_SUB " << sz << ' ' << endl;
 
 		vector<uint32_t> codes(sz);
 		const auto reqCodes = req.codes();
@@ -794,29 +847,87 @@ bool Dat2Client::dealCommand(string &msg)
 			codes[i] = reqCodes.operator[](i);
 		}
 		bret = addReduceCodes(codes, req.add_red());
-#ifdef DEBUG_ONE
-		char sSysDate[15] = {0};
-		GetSysDate(sSysDate);
-		cout << "["<<sSysDate<<"]:"<<"Recv CODES_SUB Msg:codes_size["<<sz<<"]"<<endl;
+
+		GetHostTimeX(sLogTime,sMSec);
+		sprintf(sInfo,"Recv CODES_SUB user=%s(%s:%d-p-%d) Msg:codes_size=%d",
+			m_sUserName.c_str(),sDestIp,iPort,getpid(),sz);
+
+		printf("%s.%s %s.\n",sLogTime,sMSec,sInfo);
+
 		disp_buf2((char*)(msg.c_str()),msg.size());
-#endif
+		
+		//这里将改变之后的文件，全量写入到 disp.json.log文件中
+		MyBin2HexStr((char*)(msg.c_str()),msg.size(),sMsg);
+		if(LogDispJson(sInfo,sMsg,sErrMsg)==false){
+			GetHostTimeX(sLogTime,sMSec);
+			printf("%s.%s CODES_SUB %s user=%s(%s:%d-p-%d).\n",
+				sLogTime,sMSec,sErrMsg,m_sUserName.c_str(),sDestIp,iPort,getpid());
+			bret = false;
+		}
 	}
 		break;
 	default:
 	{
 		bret = false;
-#ifdef DEBUG_ONE
-		char sSysDate[15] = {0};
-		GetSysDate(sSysDate);
-		cout << "["<<sSysDate<<"]:"<<"Recv Unknow Msg"<<endl;
+		
+		GetHostTimeX(sLogTime,sMSec);
+		printf("%s.%s Unknow Msg user=%s(%s:%d-p-%d).\n",
+			sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
 		disp_buf2((char*)(msg.c_str()),msg.size());
-#endif
+
 		break;
 	}
 	}
 	return bret;
 }
+#define MY_MAX_JSON_LEN	16*1024
+long lFileSize(char sFileName[])//获取文件名为filename的文件大小。
+{
+	struct stat statbuf;
+	int ret;
+	ret = stat(sFileName,&statbuf);//调用stat函数
+	if(ret != 0) return -1;//获取失败。
+	return statbuf.st_size;//返回文件大小。
+}
+bool Dat2Client::LogDispJson(char sInfo[],char sMsg[],char sErrInfo[])
+{
+	FILE *fpOut,*fpIn;
+	long lSize;
+	char sBuffer[MY_MAX_JSON_LEN];
 
+	strcpy(sErrInfo,"");
+
+	lSize=lFileSize(m_sOutDispJsonPath);
+	if(lSize>=MY_MAX_JSON_LEN){
+		sprintf(sErrInfo,"FILE %s LEN GT %d",m_sOutDispJsonPath,MY_MAX_JSON_LEN);
+		return false;
+	}
+	if((fpIn= fopen(m_sOutDispJsonPath,"r"))==NULL){
+		sprintf(sErrInfo,"OPEN %s FILE FOR READ ERROR",m_sOutDispJsonPath);
+		return false;
+	}
+
+	if(fread((void*)sBuffer,lSize,1,fpIn)!=1){
+		fclose(fpIn);
+		sprintf(sErrInfo,"READ %s FILE ERROR",m_sOutDispJsonPath);
+		return false;
+	}
+	fclose(fpIn);
+	
+	if((fpOut= fopen(m_sOutDispLogPath,"ab+"))==NULL){
+		sprintf(sErrInfo,"OPEN %s FILE FOR WRITE ERROR",m_sOutDispLogPath);
+		return false;
+	}
+
+	//拿到系统时间，并将信息写到DISPLOG文件中
+	GetHostTimeX(sLogTime,sMSec);
+	fprintf(fpOut,"%s.%s INFO:%s MSG:%s\nDISPJSON=%s ::------------END-----------\n",
+		sLogTime,sMSec,sInfo,sMsg,sBuffer);
+	
+	fclose(fpOut);
+	
+	return true;
+}
 bool Dat2Client::setSubscrible(const SubscribeRequest &req)
 {
 	if(m_sUserName.size() == 0)
@@ -832,10 +943,23 @@ bool Dat2Client::setSubscrible(const SubscribeRequest &req)
 
 		for (int i = 0; i < numSub; ++i){
 
+			auto t=pri->second.privl;
+
 			bizCodeTmp = BizCode(req.sub(i));
-			if (pri->second.privl.find(bizCodeTmp) != pri->second.privl.cend()){
-				m_Subscribed.insert(bizCodeTmp); //note去掉了4个subcode的insert
+			
+			//如果权限找到,对于D31的订购，分别找各个子项目
+			if(bizCodeTmp==D31_ITEM){
+				if(t.find(180)!=t.cend())	m_Subscribed.insert(180);
+				if(t.find(183)!=t.cend())	m_Subscribed.insert(183);
+				if(t.find(185)!=t.cend())	m_Subscribed.insert(185);
+				if(t.find(18)!=t.cend())	m_Subscribed.insert(18);
 			}
+			else
+				m_Subscribed.insert((int)bizCodeTmp);
+
+//			if (pri->second.privl.find(bizCodeTmp) != pri->second.privl.cend()){
+//				m_Subscribed.insert(bizCodeTmp); //note去掉了4个subcode的insert
+//			}
 		}
 
 //		m_Subscribed.insert(FOR_TEST);
@@ -890,7 +1014,7 @@ bool Dat2Client::writeDispJson()
 				userparam.put<int>("mqid", m_iMqID);
 				userparam.put<int>("pid", getpid());
 
-				for (set<BizCode>::iterator iter = m_Subscribed.begin(); iter != m_Subscribed.end(); ++iter)
+				for (set<int>::iterator iter = m_Subscribed.begin(); iter != m_Subscribed.end(); ++iter)
 				{
 					sprintf(sTmp, "%u", *iter);
 					str = sTmp;
@@ -915,7 +1039,7 @@ bool Dat2Client::writeDispJson()
 			userparam.put<int>("mqid", m_iMqID);
 			userparam.put<int>("pid", getpid());
 
-			for (set<BizCode>::iterator iter = m_Subscribed.begin(); iter != m_Subscribed.end(); ++iter)
+			for (set<int>::iterator iter = m_Subscribed.begin(); iter != m_Subscribed.end(); ++iter)
 			{
 				sprintf(sTmp, "%u", *iter);
 				str = sTmp;
@@ -942,7 +1066,7 @@ bool Dat2Client::writeDispJson()
 		userparam.put<int>("mqid", m_iMqID);
 		userparam.put<int>("pid", getpid());
 
-		for (set<BizCode>::iterator iter = m_Subscribed.begin(); iter != m_Subscribed.end(); ++iter)
+		for (set<int>::iterator iter = m_Subscribed.begin(); iter != m_Subscribed.end(); ++iter)
 		{
 			sprintf(sTmp, "%u", *iter);
 			str = sTmp;
@@ -1029,9 +1153,10 @@ bool Dat2Client::isLogined(string sUserName)
 }
 void Dat2Client::handleTimeOut()
 {
-	char sSysDate[15] = {0};
-	GetSysDate(sSysDate);
-	cout << "["<<sSysDate<<"]:"<<"Client TimeOut! Pid["<<getpid()<<"] will exit!"<<endl;
+	GetHostTimeX(sLogTime,sMSec);
+	
+	printf("%s.%s Client TimeOut! Pid[%d] will exit!",sLogTime,sMSec,getpid());
+
 	kill(m_iPid, SIGINT);
 	logout();
 	exit(0);
@@ -1108,6 +1233,8 @@ void Dat2Client::startMonitorMq()
 
 int main(int argc, char *argv[])
 {
+	iMyPid=getpid();
+
 	Dat2Client oTransMgr;
 	oTransMgr.run(argc, argv);
 }

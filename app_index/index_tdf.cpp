@@ -467,7 +467,9 @@ int main(int argc, char *argv[])
 	sprintf(sTraName,"%s/tdf_tr_%s.dat",sSourcePath,sCalcDate);
 	sprintf(sOrdName,"%s/tdf_or_%s.dat",sSourcePath,sCalcDate);
 
-	sprintf(sD31Name,"%s/d31_t%d_%s.txt",sWorkRoot,iWriteFlag,sCalcDate);
+	if(iWriteFlag==3)
+		sprintf(sD31Name,"%s/d31_t%d_%s.dat",sWorkRoot,iWriteFlag,sCalcDate);
+	else	sprintf(sD31Name,"%s/d31_t%d_%s.txt",sWorkRoot,iWriteFlag,sCalcDate);
 
         if((fpD31=fopen(sD31Name,"w"))==NULL){
                 printf("error open file %s to write.\n",sD31Name);

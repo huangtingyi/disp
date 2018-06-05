@@ -184,13 +184,13 @@ check_net()
 			mycmd=`belong_cmd_mypid $mypid`
 			myppid=`belong_ppid_mypid $mypid`
 			mystime=`belong_stime_mypid $mypid`
-			
+
 			#如果进程是dat2cli进程，则通过其子进程找到相应的客户端账户名CLI和MQ
 			if [ `basename $mycmd` -eq "dat2cli" ];then
 
 				disp_file="$HOME/conf/disp.json"
 				[ ! -f $disp_file ] && echo "$disp_file is not exist" && exit 1;
-				
+
 				user_list=`cat $disp_file | awk -F":" '$1~"user"&&$1!~"users"{print $2}'`
 				user_list=`echo $user_list | sed 's/[\"\n\r ]//g;s/,$//;s/,/ /g'`
 
@@ -199,7 +199,7 @@ check_net()
 
 				pid_list=`cat $disp_file | awk -F":" '$1~"pid"{print $2}'`
 				pid_list=`echo $pid_list | sed 's/[\"\n\r ]//g;s/,$//;s/,/ /g'`
-				
+
 				j=1
 				for pidstr in `echo $pid_list`
 				do
@@ -209,14 +209,14 @@ check_net()
 
 						new_usercmd="echo $user_list | awk '{print \$$j}'"
 						new_mqidcmd="echo $mqid_list | awk '{print \$$j}'"
-						
+
 						mymsg="$mymsg CLI=`eval new_usercmd` MQ=`eval new_mqidcmd`"
 						break;
 					fi
 					((j++))
 				done
 			fi
-		
+
 			echo "`date '+%Y/%m/%d %k:%M:%S.%N'` OPP=$myopp ALERT $mymsg USR=$myuser APP=$mycmd PID=$mypid PPID=$myppid STIME=$mystime"
 		else
 			echo "`date '+%Y/%m/%d %k:%M:%S.%N'` OPP=$myopp ALERT $mymsg"
@@ -405,12 +405,12 @@ check_app_pid_exist()
 	done
 }
 #myparam=mqjam
-check_app_mq_jam()
+check_app_mq_jam1()
 {
 	echo "hello world"
 }
-check_app_mq_jam1()
-{	
+check_app_mq_jam()
+{
 	max_mq_mb=${max_mq_mb:-10}
 
 	my_name=`whoami`
@@ -418,31 +418,35 @@ check_app_mq_jam1()
 
 	IFS_old=$IFS
 	IFS=$'\n'
-	
+
 	ipcscmd="ipcs -q | awk '\$3==\"$my_name\"'"
-	
+
 	#取归属当前用户的消息队列信息
 	for ipcsstr in `eval $ipcscmd`
 	do
 		mybytes=`echo $ipcsstr | awk '{print $5}'`
 		myMb=$(($mybytes/(1024*1024)))
-		
+
+		#为了模拟数据，引入一个随机变量
+		#这种随机数的取法，会出现0开头的数字，%N内包含8或9的数，则报告类似错误
+		#value too great for base (error token is "045807647")
+#		myMb=$((`date +%N`%30))
 #		echo "$myMb($max_mq_mb) ipcsstr=$ipcsstr"
 
 		##如果MQ队列都小于指定的数值，则跳过此记录
 		if [ $myMb -lt $max_mq_mb ];then
 			continue;
 		fi
-		
+
 		disp_file="$HOME/conf/disp.json"
 		[ ! -f $disp_file ] && echo "$disp_file is not exist" && exit 1;
 
 		##得到MQID，将前导字符串去掉
 		mymqid=`echo $ipcsstr | awk '{print $1}' | sed 's/^0x//;s/^0*//g'`
-		
+
 		##这个字段么什么用，要去处理问题也需要登录后台通过key找到这个ID清理
 ##		mymsqid=`echo $ipcsstr | awk '{print $2}'`
-		
+
 		user_list=`cat $disp_file | awk -F":" '$1~"user"&&$1!~"users"{print $2}'`
 		user_list=`echo $user_list | sed 's/[\"\n\r ]//g;s/,$//;s/,/ /g'`
 
@@ -451,30 +455,40 @@ check_app_mq_jam1()
 
 		pid_list=`cat $disp_file | awk -F":" '$1~"pid"{print $2}'`
 		pid_list=`echo $pid_list | sed 's/[\"\n\r ]//g;s/,$//;s/,/ /g'`
-		
+
+#		pricmd="echo $mqid_list"
+
 		mymsg=""
 		j=1
+
+		#外层循环将IFS修改为了 $'\n' 这里需要临时为内层循环设置空格为分隔符
+		IFS_pre=$IFS
+		IFS=$' '
 		for mqidstr in `echo $mqid_list`
 		do
+#			echo "mymqid=$mymqid mqidstr=$mqidstr"
+
 			##如果根据mqid找到了相关cliname和mypid，则获取到相关信息
 			if [ $mymqid -eq $mqidstr ];then
 
 				new_usercmd="echo $user_list | awk '{print \$$j}'"
 				new_pidcmd="echo $pid_list | awk '{print \$$j}'"
-				
-				mypid=`eval new_pidcmd`
-				myppid=`belong_ppid_mypid`
-				
+
+				mypid=`eval $new_pidcmd`
+				myppid=`belong_ppid_mypid $mypid`
+
 				netcmd="netstat -nap 2>/dev/null| grep ^tcp | grep ESTABLISHED| awk '\$7~\"dat2cli\"&&\$7~\"$myppid\"'"
 				myopp=`eval $netcmd | awk '{print $5}'`
 				mystime=`belong_stime_mypid $myppid`
 
-				mymsg="$CLI=`eval new_usercmd` ADDR=$myopp CTIME=$mystime PID=($mypid,$myppid)"
+				mymsg="CLI=`eval $new_usercmd` ADDR=$myopp CTIME=$mystime PID=($mypid,$myppid)"
 				break;
 			fi
 			((j++))
 		done
-		
+
+		IFS=$IFS_pre
+
 		echo "`date '+%Y/%m/%d %k:%M:%S.%N'` MQ OVERLOAD MQ=$mymqid JAM(Mb)=$myMb($max_mq_mb) $mymsg"
 
 	done
@@ -550,38 +564,43 @@ check_app_conn_cnt()
 #	echo "hello world conncnt=$conncnt max_conn_cnt=$max_conn_cnt pscmd=$pscmd"
 }
 #myparam=gendata
-check_app_gen_data()
+check_app_gen_data1()
 {
 	echo "hello world"
 }
-check_app_gen_data1()
+check_app_gen_data()
 {
 	moni_serv_list=${moni_serv_list:-"192.168.1.224:8896:moni_user:moni!%#"}
 	moni_serv_list=${moni_serv_list//,/ }
 
 	agentcli_t="$HOME/bin/agentcli_t"
 	[ ! -f $agentcli_t ] && echo "$agentcli_t is not exist" && exit 1;
-	
+
 	for servstr in `echo $moni_serv_list`
 	do
 		myip=`echo $servstr | awk -F":" '{print $1}'`
 		myport=`echo $servstr | awk -F":" '{print $2}'`
 		myuser=`echo $servstr | awk -F":" '{print $3}'`
 		mypass=`echo $servstr | awk -F":" '{print $4}'`
-		echo "IP=$myip PORT=$myport CLI=$myuser PASS=$mypass servstr=$servstr"
-		
+
+#		echo "IP=$myip PORT=$myport CLI=$myuser PASS=$mypass servstr=$servstr"
+
 		gen_rec_cnt=${gen_rec_cnt:-1000}
 		gen_sleep_sec=${gen_sleep_sec:-2}
 		gen_time_out_sec=${gen_time_out_sec:-4}
 
 		tmpcmd="$agentcli_t -I$myip -P$myport -u$myuser -p$mypass -c$gen_rec_cnt -s$gen_sleep_sec -m$gen_time_out_sec"
 		tmpstr=`eval $tmpcmd`
-		
+
 		if [ $? -ne 0 ];then
 			cmdinfo=`echo $tmpstr | tail -l`
 			echo "`date '+%Y/%m/%d %k:%M:%S.%N'` APP IP=$myip PORT=$myport NO-DATA INFO=$cmdinfo"
 			echo "`date '+%Y/%m/%d %k:%M:%S.%N'` cmd=$tmpcmd"
+		else
+			:
+#			echo "`date '+%Y/%m/%d %k:%M:%S.%N'` CMD=$tmpcmd"
 		fi
+
 	done
 }
 
@@ -624,7 +643,7 @@ app)
 		check_res=`check_app_pid_exist`
 	;;
 	mqjam)
-		check_app_mq_jam1
+#		check_app_mq_jam1
 		check_res=`check_app_mq_jam`
 	;;
 	conncnt)
@@ -632,7 +651,7 @@ app)
 		check_res=`check_app_conn_cnt`
 	;;
 	gendata)
-		check_app_gen_data1
+#		check_app_gen_data1
 		check_res=`check_app_gen_data`
 	;;
 	*)

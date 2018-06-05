@@ -31,7 +31,7 @@
 CallBackBase *pCallBack;
 
 int iDebugFlag=0,iWriteFlag=0;
-char sCfgJsonName[1024],sDispName[1024],sPrivilegeName[1024],sWorkRoot[1024];
+char sCfgJsonName[1024],sDispName[1024],sPrivilegeName[1024],sWorkRoot[1024],sWorkD31[1024];
 
 void *MainD31Transfer(void *);
 
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 
 		switch (c){
 		case 'd':
-			iDebugFlag = atoi(optarg);
+			strcpy(sWorkD31, optarg);
 			break;
 		case 'c':
 			strcpy(sCfgJsonName, optarg);
@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 			printf("   [-r disp-name ]\n");
 			printf("   [-u user-privilege-name ]\n");
 			printf("   [-o work-root-name ]\n");
-			printf("   [-d DebugFlag ]\n");
+			printf("   [-d work-d31-home ]\n");
 			printf("   [-w (1,writegta,2 writetdf,3,write gta&tdf, other nowrite) ]\n");
 			exit(1);
 			break;
@@ -375,7 +375,7 @@ void *MainD31Transfer(void *)
 	GetHostTime(sHostTime);
 	sHostTime[8]=0;
 
-	sprintf(sInFileName,"%s/d31_g3_%s.dat",sWorkRoot,sHostTime);
+	sprintf(sInFileName,"%s/d31_g3_%s.dat",sWorkD31,sHostTime);
 	
 	while(1){
 		ReadD31FileAndSend(sInFileName,&lCurPos);

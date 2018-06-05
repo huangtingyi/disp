@@ -98,11 +98,16 @@ moni_log="$HOME/bin/log/moni_`date '+%Y%m%d'`.log"
 [ ! -f $user_file ] && echo "$user_file is not exist" && exit 1;
 
 if [ $sysflag = "gta" ]; then
-	[ ! -f $replay_gta_bin ] && echo "$replay_gta_bin is not exist" && exit 1;
+	replay_bin=$replay_gta_bin
+	replay_log=$replay_gta_log
 else
-	[ ! -f $replay_tdf_bin ] && echo "$replay_tdf_bin is not exist" && exit 1;
+	replay_bin=$replay_tdf_bin
+	replay_log=$replay_tdf_log
 fi
 
+replay_bin_base=`basename $replay_bin`
+
+[ ! -f $replay_bin ] && echo "$replay_bin is not exist" && exit 1;
 [ ! -f $dat2cli_bin ] && echo "$dat2cli_bin is not exist" && exit 1;
 [ ! -f $moni_bin ] && echo "$moni_bin is not exist" && exit 1;
 [ ! -f $pidof_bin ] && echo "$pidof_bin is not exist" && exit 1;
@@ -111,11 +116,8 @@ my_name=`whoami`
 my_name=${my_name:-$USER}
 my_flag=""
 
-if [ $sysflag = "gta" ]; then
-	pids=`$pidof_bin -x replay_gta dat2cli moni.sh`
-else
-	pids=`$pidof_bin -x replay_tdf dat2cli moni.sh`
-fi
+
+pids=`$pidof_bin -x $replay_bin_base dat2cli moni.sh`
 
 ##如果有指定进程在运行，则检查是否有本用户的进程存在，如果有则提示退出
 mypid=`check_mypid_exist $pids`
@@ -143,29 +145,16 @@ cd $HOME/bin
 
 ##./replay_gta -d20180412 -r/home/hty/bin/disp.json -w0 -t200 -s/data/20180412
 
-if [ $sysflag = "gta" ]; then
-	nohup stdbuf --output=L --error=L $replay_gta_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti 1>$replay_gta_log 2>&1 &
-	sleep 1
-	$pidof_bin -x replay_gta
-	if [ $? -ne 0 ]; then
-		echo "`date '+%Y/%m/%d %k:%M:%S'` $replay_gta_bin is startup FAIL..";
-		echo "$replay_gta_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti"
-		exit 3;
-	fi
-	
-	echo "`date '+%Y/%m/%d %k:%M:%S'` replay_gta is startREPLAY SUCESS.."
-else
-	nohup stdbuf --output=L --error=L $replay_tdf_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti 1>$replay_tdf_log 2>&1 &
-	sleep 1
-	$pidof_bin -x replay_tdf
-	if [ $? -ne 0 ]; then
-		echo "`date '+%Y/%m/%d %k:%M:%S'` $replay_tdf_bin is startup FAIL..";
-		echo "$replay_tdf_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti"
-		exit 3;
-	fi
-	
-	echo "`date '+%Y/%m/%d %k:%M:%S'` replay_tdf is startREPLAY SUCESS.."
+nohup stdbuf --output=L --error=L $replay_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti 1>$replay_log 2>&1 &
+sleep 1
+$pidof_bin -x $replay_bin_base
+if [ $? -ne 0 ]; then
+	echo "`date '+%Y/%m/%d %k:%M:%S'` $replay_bin_base is startup FAIL..";
+	echo "$replay_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti"
+	exit 3;
 fi
+
+echo "`date '+%Y/%m/%d %k:%M:%S'` $replay_bin_base is startREPLAY SUCESS.."
 
 nohup $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
 sleep 1

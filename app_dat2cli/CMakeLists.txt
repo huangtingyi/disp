@@ -58,10 +58,9 @@ ADD_DEFINITIONS(
         -Wunused-variable -Wunused-parameter -Wunused-function -Wunused
         -Wno-deprecated -Woverloaded-virtual -Wwrite-strings
         -DLINUX
-        -DDEF_LINUX 
+        -DDEF_LINUX
         -DSYSTEM_V
+        -DDEBUG_ONE
 )
 
 TARGET_LINK_LIBRARIES(${TARGET_BIN} ${LIBRARIES})
-
-

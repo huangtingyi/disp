@@ -26,6 +26,28 @@ char sRefreshDispName[1024];
 int iMaxMqCnt=0,iSendCnt=0;;
 MessageQueue *ARRAY_MQ[MAX_CLIENT_CNT];
 
+//D31业务时间
+
+unsigned int    nD31TradeTime=0;
+
+int D31TradeTimeValid(int iParam)
+{
+	unsigned int nTradeSec;
+	
+	//万一程序没做这个操作，测全部下发，做为默认
+	if(nD31TradeTime==0) return true;
+	
+	nTradeSec=nD31TradeTime%60;
+
+	switch(iParam){
+	case 60:if(nTradeSec==0) 	return true;	break;
+	case 3:	if((nTradeSec%3)==0)	return true;	break;
+	case 5:	if((nTradeSec%5)==0)	return true;	break;
+	case 1:	return true;	break;
+	default:break;
+	}
+	return false;
+}
 
 void InsertFreeList(struct UserStruct **pptHead,struct UserStruct *pTemp)
 {
@@ -198,7 +220,8 @@ void AssignDispRule(struct DispRuleStruct *p,struct DispRuleStruct *pi)
 			case 13:p->ATUSER[i]=NULL;break;
 			case 14:p->AQUSER[i]=NULL;break;
 			case 15:p->AOUSER[i]=NULL;break;
-			case 18:p->ADUSER[i]=NULL;break;
+			case 18:case 180:case 185:case 183:
+				p->ADUSER[i]=NULL;break;
 			default:p->AMUSER[i]=NULL;break;
 			}
 		}
@@ -221,7 +244,8 @@ void AssignDispRule(struct DispRuleStruct *p,struct DispRuleStruct *pi)
 			case 13:p->ATUSER[i]=pi->ATUSER[i];break;
 			case 14:p->AQUSER[i]=pi->AQUSER[i];break;
 			case 15:p->AOUSER[i]=pi->AOUSER[i];break;
-			case 18:p->ADUSER[i]=pi->ADUSER[i];break;
+			case 18:case 180:case 185:case 183:
+				p->ADUSER[i]=pi->ADUSER[i];break;
 			default:p->AMUSER[i]=NULL;break;
 			}
 		}		
@@ -248,6 +272,20 @@ void FreeDispRule(struct DispRuleStruct *p)
 	DeleteUserList(p->POALL);  p->POALL=NULL;
 	DeleteUserList(p->PDALL);  p->PDALL=NULL;
 
+}
+int GetSubscribedParam(int iSubscribed)
+{
+	int iParam=-1;
+	
+	switch(iSubscribed){
+	case 18: iParam=1;break;
+	case 180:iParam=60;break;
+	case 185:iParam=5;break;
+	case 183:iParam=3;break;
+	default:
+	break;
+	}
+	return iParam;
 }
 void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 {
@@ -316,7 +354,8 @@ void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 				case 13:AUSER=&T.ATUSER[0];break;
 				case 14:AUSER=&T.AQUSER[0];break;
 				case 15:AUSER=&T.AOUSER[0];break;
-				case 18:AUSER=&T.ADUSER[0];break;
+				case 18:case 180:case 185:case 183:
+					AUSER=&T.ADUSER[0];break;
 				default:AUSER=NULL;
 				break;
 				}
@@ -330,6 +369,8 @@ void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 					exit(1);
 				}
 
+				pTemp->iParam=GetSubscribedParam(iSubscribed);
+				
 				pTemp->pNext=NULL;
 				strncpy(pTemp->sUserName,user.c_str(),sizeof(pTemp->sUserName)-1);
 				pTemp->sUserName[sizeof(pTemp->sUserName)-1]=0;
@@ -365,7 +406,8 @@ void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 				case 13:PPALL=&T.PTALL;break;
 				case 14:PPALL=&T.PQALL;break;
 				case 15:PPALL=&T.POALL;break;
-				case 18:PPALL=&T.PDALL;break;
+				case 18:case 180:case 185:case 183:
+					PPALL=&T.PDALL;break;
 				default:PPALL=NULL;
 				}
 				//过滤无效订购代码
@@ -377,6 +419,8 @@ void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 					printf("error new struct UserStruct.\n");
 					exit(1);
 				}
+
+				pTemp->iParam=GetSubscribedParam(iSubscribed);
 
 				pTemp->pNext=NULL;
 				strncpy(pTemp->sUserName,user.c_str(),sizeof(pTemp->sUserName)-1);
@@ -484,12 +528,28 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 //	strncpy(sBuffer+3,str.c_str(),str.length());
 
 	while(pUser!=NULL){
-		SendMsg2Mq(str1,pUser);
+		
+		//对D31类型的数据，做特殊处理，只有交易时间满足订购要求才发
+		if(cType=='D'){
+			if(D31TradeTimeValid(pUser->iParam)==true)
+				SendMsg2Mq(str1,pUser);
+				
+		}
+		else	SendMsg2Mq(str1,pUser);
+			
 		pUser=pUser->pNext;
 	}
 
 	while(pAll!=NULL){
-		SendMsg2Mq(str1,pAll);
+
+		//对D31类型的数据，做特殊处理，只有交易时间满足订购要求才发
+		if(cType=='D'){
+			if(D31TradeTimeValid(pAll->iParam)==true)
+				SendMsg2Mq(str1,pAll);
+				
+		}
+		else	SendMsg2Mq(str1,pAll);
+
 		pAll=pAll->pNext;
 	}
 }

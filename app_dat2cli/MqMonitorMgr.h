@@ -57,7 +57,6 @@ bool MqMonitorMgr::existMq()
 
 void MqMonitorMgr::startMqmonitor()
 {
-	int iMode = 1;
 	int iMsgNum = 0;
 	char sBuf[5120] = { 0 };
 	int iMsqTotal = 0;

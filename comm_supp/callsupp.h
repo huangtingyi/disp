@@ -14,6 +14,7 @@ struct UserStruct
 {
 	struct UserStruct *pNext;
 	char sUserName[MAX_USER_NAME_LEN];
+	int iParam;	//订购参数
 	int iMqId;
 	int iMqPos;
 	int iStockCode;
@@ -80,5 +81,7 @@ int nGetReplayTimeByCur(int nCurTime,int nStartTime,int nEndTime,
 	int iCostMSec,int iDayLeftMSec);
 
 long lFileSize(char sFileName[]);//获取文件名为filename的文件大小。
+
+extern unsigned int    nD31TradeTime;
 
 #endif  //__CALLSUPP_H__

@@ -593,7 +593,9 @@ int main(int argc, char *argv[])
 	sprintf(sGtaQhName,"%s/gta_qh_%s.dat",sSourcePath,sCalcDate);
 	sprintf(sGtaQzName,"%s/gta_qz_%s.dat",sSourcePath,sCalcDate);
 
-	sprintf(sD31Name,"%s/d31_g%d_%s.txt",sWorkRoot,iWriteFlag,sCalcDate);
+	if(iWriteFlag==3)
+		sprintf(sD31Name,"%s/d31_t%d_%s.dat",sWorkRoot,iWriteFlag,sCalcDate);
+	else	sprintf(sD31Name,"%s/d31_t%d_%s.txt",sWorkRoot,iWriteFlag,sCalcDate);
 
         if((fpD31=fopen(sD31Name,"w"))==NULL){
                 printf("error open file %s to write.\n",sD31Name);

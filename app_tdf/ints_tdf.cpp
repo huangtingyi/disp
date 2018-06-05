@@ -37,7 +37,7 @@ using namespace std;
 int MY_INFO_CNT=3000;
 
 int iDebugFlag=0,iWriteFlag=0;
-char sCfgJsonName[1024],sDispName[1024],sPrivilegeName[1024],sWorkRoot[1024];
+char sCfgJsonName[1024],sDispName[1024],sPrivilegeName[1024],sWorkRoot[1024],sWorkD31[1024];
 
 FileNameSet m_m_fileSet;
 
@@ -76,18 +76,17 @@ void signalProcess(int signal)
 
 int main(int argc, char** argv)
 {
-
-
 	strcpy(sCfgJsonName,	"./tdf_ints.json");
 	strcpy(sDispName,	"./disp.json");
 	strcpy(sPrivilegeName,	"./user_privilege.json");
 	strcpy(sWorkRoot,	"/stock/work");
+	strcpy(sWorkD31,	"/data/work");
 
 	for (int c; (c = getopt(argc, argv, "d:c:r:u:o:w:?:")) != EOF;){
 
 		switch (c){
 		case 'd':
-			iDebugFlag = atoi(optarg);
+			strcpy(sWorkD31, optarg);
 			break;
 		case 'c':
 			strcpy(sCfgJsonName, optarg);
@@ -112,7 +111,7 @@ int main(int argc, char** argv)
 			printf("   [-r disp-name ]\n");
 			printf("   [-u user-privilege-name ]\n");
 			printf("   [-o work-root-name ]\n");
-			printf("   [-d DebugFlag ]\n");
+			printf("   [-d work-d31-root ]\n");
 			printf("   [-w (2 writetdf,other nowrite) ]\n");
 			exit(1);
 			break;
@@ -283,7 +282,7 @@ void *MainD31Transfer(void *)
 	GetHostTime(sHostTime);
 	sHostTime[8]=0;
 
-	sprintf(sInFileName,"%s/d31_t3_%s.dat",sWorkRoot,sHostTime);
+	sprintf(sInFileName,"%s/d31_t3_%s.dat",sWorkD31,sHostTime);
 	
 	while(1){
 		ReadD31FileAndSend(sInFileName,&lCurPos);

@@ -535,6 +535,9 @@ void CallBackBase::Deal_Message_D31Item(SubData *subdata)
 		//校验代码合法性
 	if(iStockCode>0&&iStockCode<MAX_STOCK_CODE){
 
+		//设置callsupp.cpp中定义的全局变量，供D31TradeTimeValid使用
+		nD31TradeTime=p->nTradeTime;
+
 		SendMsg2Cli(iStockCode,'D',strDi);
 	}
 }

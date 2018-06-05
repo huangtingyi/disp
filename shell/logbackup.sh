@@ -41,16 +41,16 @@ if [ ! -d "$logroot" ]; then
 fi
 
 ##用zip将日志文件打包备份到指定文件中
-echo "`date '+%Y/%m/%d %k:%M:%S'` backup log to $logroot/log_$bakdate.zip BEGIN..."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` backup log to $logroot/log_$bakdate.zip BEGIN..."
 
 find  $logpath -name "*$bakdate*" | xargs zip -r $logroot/log_$bakdate.zip
 
 if [ $? -ne 0 ]; then
 	echo 'cmd=find  $logpath -name "*$bakdate*" | xargs zip -r $logroot/log_$bakdate.zip'
-	echo "`date '+%Y/%m/%d %k:%M:%S'` backup log $logpath $bakdate to $logroot FAIL..."
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` backup log $logpath $bakdate to $logroot FAIL..."
 	exit 1;
 fi
 
-echo "`date '+%Y/%m/%d %k:%M:%S'` backup log to $logroot/log_$bakdate.zip OK..."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` backup log to $logroot/log_$bakdate.zip OK..."
 
 exit 0
