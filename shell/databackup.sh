@@ -24,6 +24,10 @@ conf_file="$HOME/conf/config.ini"
 
 workroot=${workroot:-/stock/work}
 dataroot=${dataroot:-/data}
+replaydir=${replaydir:-/data/work}
+workd31=${workd31:-/data/work}
+
+
 
 [ ! -d $workroot ] && echo "directory $workroot is not exist" && exit 1;
 [ ! -d $dataroot ] && echo "directory $dataroot is not exist" && exit 1;
@@ -56,13 +60,8 @@ tdf_qu_file="tdf_qu_$bakdate.dat";
 tdf_or_file="tdf_or_$bakdate.dat";
 tdf_tr_file="tdf_tr_$bakdate.dat";
 
+d31_w3_file="d31_w3_$bakdate.dat";
 
-#[ ! -f $workroot/$gta_ah_file ] && echo "$workroot/$gta_ah_file is not exist" && exit 1;
-#[ ! -f $workroot/$gta_qh_file ] && echo "$workroot/$gta_qh_file is not exist" && exit 1;
-#[ ! -f $workroot/$gta_th_file ] && echo "$workroot/$gta_th_file is not exist" && exit 1;
-#[ ! -f $workroot/$gta_oz_file ] && echo "$workroot/$gta_oz_file is not exist" && exit 1;
-#[ ! -f $workroot/$gta_qz_file ] && echo "$workroot/$gta_qz_file is not exist" && exit 1;
-#[ ! -f $workroot/$gta_tz_file ] && echo "$workroot/$gta_tz_file is not exist" && exit 1;
 
 ###定义备份函数
 backup_file()
@@ -75,13 +74,32 @@ backup_file()
 		return 0;		
 	fi
 
-	echo "`date '+%Y/%m/%d %k:%M:%S'` backup $source_file BEGIN..."
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` backup $source_file BEGIN..."
 	gzip -c $source_file > $target_file
 	if [ $? -ne 0 ]; then
-		echo "backup $source_file fail"
+		echo "`date '+%Y/%m/%d %k:%M:%S.%N'` backup $source_file FAIL"
 		return 1;
 	fi
-	echo "`date '+%Y/%m/%d %k:%M:%S'` backup $source_file to $bakpath OK..."
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` backup $source_file to $bakpath OK..."
+
+	##替换文件名为replaydir下的，非压缩文件名
+	target_file="$replaydir/`basename $target_file`"
+	target_file=${target_file/".gz"/}
+	
+	if [ $source_file = $target_file ]; then
+		echo "`date '+%Y/%m/%d %k:%M:%S.%N'` file $source_file in $replaydir IGNORE."
+		return 0;		
+	fi
+
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` move $source_file BEGIN..."
+	
+	mv $source_file $target_file
+	if [ $? -ne 0 ]; then
+		echo "`date '+%Y/%m/%d %k:%M:%S.%N'` move $source_file to $target_file FAIL"
+		return 1;
+	fi
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` move $source_file to $path OK..."
+
 }
 
 backup_file $workroot/$gta_ah_file $bakpath/$gta_ah_file.gz || exit 1;
@@ -101,6 +119,9 @@ backup_file $workroot/$tdf_qu_file $bakpath/$tdf_qu_file.gz || exit 1;
 backup_file $workroot/$tdf_or_file $bakpath/$tdf_or_file.gz || exit 1;
 backup_file $workroot/$tdf_tr_file $bakpath/$tdf_tr_file.gz || exit 1;
 
-echo "`date '+%Y/%m/%d %k:%M:%S'` backup $bakdate file All OK..."
+backup_file $workd31/$d31_w3_file $replaydir/$d31_w3_file.gz || exit 1;
+
+
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` backup $bakdate file All OK..."
 
 exit 0

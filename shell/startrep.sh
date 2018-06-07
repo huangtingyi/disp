@@ -55,7 +55,7 @@ if [ ${#replaytime} -eq 5 -o ${#replaytime} -eq 6 ];then
 fi
 
 
-echo "`date '+%Y/%m/%d %k:%M:%S'` system startupREPLAY  BEGIN..."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` system startupREPLAY  BEGIN..."
 
 conf_file="$HOME/conf/config.ini"
 [ ! -f $conf_file ] && echo "$conf_file is not exist" && exit 1;
@@ -116,6 +116,11 @@ my_name=`whoami`
 my_name=${my_name:-$USER}
 my_flag=""
 
+max_mq_msg_len=`grep "SysMqMaxLen" $cfg_file | sed 's/[^0-9]//g'`
+if [ -z $max_mq_msg ];then
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` file $cfg_file SysMqMaxLen config error"
+	exit 4;
+fi
 
 pids=`$pidof_bin -x $replay_bin_base dat2cli moni.sh`
 
@@ -123,7 +128,7 @@ pids=`$pidof_bin -x $replay_bin_base dat2cli moni.sh`
 mypid=`check_mypid_exist $pids`
 if [ $mypid -ne 0 ];then
 	belong_cmd=`belong_cmd_mypid $mypid`
-	echo "`date '+%Y/%m/%d %k:%M:%S'` pid $mypid cmd=$belong_cmd user=$my_name is running"
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` pid $mypid cmd=$belong_cmd user=$my_name is running"
 	exit 2
 fi
 
@@ -145,41 +150,41 @@ cd $HOME/bin
 
 ##./replay_gta -d20180412 -r/home/hty/bin/disp.json -w0 -t200 -s/data/20180412
 
-nohup stdbuf --output=L --error=L $replay_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti 1>$replay_log 2>&1 &
+nohup stdbuf --output=L --error=L $replay_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -lmax_mq_msg_len -m$replaymulti 1>$replay_log 2>&1 &
 sleep 1
 $pidof_bin -x $replay_bin_base
 if [ $? -ne 0 ]; then
-	echo "`date '+%Y/%m/%d %k:%M:%S'` $replay_bin_base is startup FAIL..";
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` $replay_bin_base is startup FAIL..";
 	echo "$replay_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti"
 	exit 3;
 fi
 
-echo "`date '+%Y/%m/%d %k:%M:%S'` $replay_bin_base is startREPLAY SUCESS.."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` $replay_bin_base is startREPLAY SUCESS.."
 
 nohup $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
 sleep 1
 $pidof_bin -x dat2cli
 if [ $? -ne 0 ]; then
-	echo "`date '+%Y/%m/%d %k:%M:%S'` dat2cli is startup FAIL..";
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` dat2cli is startup FAIL..";
 	echo "$dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file"
 	exit 3;
 fi
 
-echo "`date '+%Y/%m/%d %k:%M:%S'` dat2cli is startup SUCESS.."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` dat2cli is startup SUCESS.."
 
 nohup $moni_bin $ethdev 1>$moni_log 2>&1 &
 
 sleep 1
 $pidof_bin -x moni.sh
 if [ $? -ne 0 ]; then
-	echo "`date '+%Y/%m/%d %k:%M:%S'` moni.sh startup FAIL..";
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` moni.sh startup FAIL..";
 	echo "$moni_bin $ethdev"
 	exit 3;
 fi
 
-echo "`date '+%Y/%m/%d %k:%M:%S'` moni.sh is startup SUCESS.."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` moni.sh is startup SUCESS.."
 
 sleep 1;
-echo "`date '+%Y/%m/%d %k:%M:%S'` system startup  OK..."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` system startup  OK..."
 
 exit 0

@@ -84,4 +84,7 @@ long lFileSize(char sFileName[]);//获取文件名为filename的文件大小。
 
 extern unsigned int    nD31TradeTime;
 
+void SetMaxMqMsgLen(int iMaxLen);
+void SetD31TradeTime(unsigned int nTradeTime);
+
 #endif  //__CALLSUPP_H__

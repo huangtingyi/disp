@@ -51,7 +51,7 @@ do
 	if [ $my_date -gt "153000" ] ||
 		[ "$my_date" -lt "090000" ] ||
 		[ "$my_date" -gt "114500" -a "$my_date" -lt "124500" ]; then
-		echo -e "`date '+%Y/%m/%d %k:%M:%S'` this time no monitor"
+		echo -e "`date '+%Y/%m/%d %k:%M:%S.%N'` this time no monitor"
 		sleep 30
 		continue;
 	fi
@@ -81,7 +81,7 @@ do
 		TX=$(echo $TX | awk '{print $1/1024 "KB/s"}')
 	fi
 
-	echo -e " `date '+%Y/%m/%d %k:%M:%S'`	RX=$RX \t TX=$TX"
+	echo -e "`date '+%Y/%m/%d %k:%M:%S.%N'` RX=$RX \t TX=$TX"
 
 	sudo netstat -nap | egrep "ints_gta|ints_tdf|dat2cli|Address"
 	

@@ -954,9 +954,9 @@ bool Dat2Client::setSubscrible(const SubscribeRequest &req)
 				if(t.find(185)!=t.cend())	m_Subscribed.insert(185);
 				if(t.find(18)!=t.cend())	m_Subscribed.insert(18);
 			}
-			else
-				m_Subscribed.insert((int)bizCodeTmp);
-
+			else{
+				if(t.find(bizCodeTmp)!=t.cend())m_Subscribed.insert((int)bizCodeTmp);
+			}
 //			if (pri->second.privl.find(bizCodeTmp) != pri->second.privl.cend()){
 //				m_Subscribed.insert(bizCodeTmp); //note去掉了4个subcode的insert
 //			}
@@ -1193,6 +1193,23 @@ void Dat2Client::logout()
 		}
 		root.put_child("users", root_1);
 		write_json(m_sOutDispJsonPath, root);
+	}
+
+
+	//LOGOUT时，将文件备份一下
+	char sInfo[256],sErrMsg[256];
+
+	GetHostTimeX(sLogTime,sMSec);
+
+	sprintf(sInfo,"Recv LOGOUT user=%s(p-%d)",m_sUserName.c_str(),getpid());
+
+	printf("%s.%s %s.\n",sLogTime,sMSec,sInfo);
+
+	if(LogDispJson(sInfo,(char*)"NULL",sErrMsg)==false){
+		GetHostTimeX(sLogTime,sMSec);
+		printf("%s.%s LOGOUT %s user=%s(p-%d).\n",
+		sLogTime,sMSec,sErrMsg,m_sUserName.c_str(),getpid());
+		exit(1);
 	}
 
 	m_poDataLock->V();

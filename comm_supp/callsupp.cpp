@@ -23,13 +23,21 @@ struct DispRuleStruct R,T;
 struct UserStruct *pRAll=NULL,*pTAll=NULL;
 char sRefreshDispName[1024];
 
-int iMaxMqCnt=0,iSendCnt=0;;
+int iMaxMqCnt=0,iSendCnt=0,iMaxMqMsgLen=1024;
 MessageQueue *ARRAY_MQ[MAX_CLIENT_CNT];
 
 //D31业务时间
 
 unsigned int    nD31TradeTime=0;
 
+void SetMaxMqMsgLen(int iMaxLen)
+{
+	iMaxMqMsgLen=iMaxLen;
+}
+void SetD31TradeTime(unsigned int nTradeTime)
+{
+	nD31TradeTime=nTradeTime;
+}
 int D31TradeTimeValid(int iParam)
 {
 	unsigned int nTradeSec;
@@ -518,7 +526,18 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 	case 'T': pUser=R.ATUSER[iStockCode];pAll=R.PTALL;sBuffer[2]=13;break;
 	case 'Q': pUser=R.AQUSER[iStockCode];pAll=R.PQALL;sBuffer[2]=14;break;
 	case 'O': pUser=R.AOUSER[iStockCode];pAll=R.POALL;sBuffer[2]=15;break;
-	case 'D': pUser=R.ADUSER[iStockCode];pAll=R.PDALL;sBuffer[2]=18;break;
+	case 'D': 
+		//对于长度超长的D31串，则直接写告警信息忽略
+		if(len>(iMaxMqMsgLen-2)){
+			char sHostTime[15],sMSec[4];
+			
+			GetHostTime(sHostTime,sMSec);
+			
+			printf("%s.%s stockcode=%d,len=%d,maxlen=%d.\n",
+				sHostTime,sMSec,iStockCode,len,iMaxMqMsgLen-2);
+			return;
+		}
+		  pUser=R.ADUSER[iStockCode];pAll=R.PDALL;sBuffer[2]=18;break;
 	default:  pUser=R.AQUSER[iStockCode];pAll=R.PQALL;sBuffer[2]=14;break;
 	break;
 	}
@@ -544,9 +563,15 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 
 		//对D31类型的数据，做特殊处理，只有交易时间满足订购要求才发
 		if(cType=='D'){
-			if(D31TradeTimeValid(pAll->iParam)==true)
-				SendMsg2Mq(str1,pAll);
+			if(D31TradeTimeValid(pAll->iParam)==true){
+//				static int iMyCnt1=0;
 				
+//				iMyCnt1++;
+
+//				printf("iCnt1=%d.\n",iMyCnt1);
+				
+				SendMsg2Mq(str1,pAll);
+			}	
 		}
 		else	SendMsg2Mq(str1,pAll);
 

@@ -28,13 +28,14 @@ CallBackBase *pCallBase;
 int main(int argc, char *argv[])
 {
 	int iPort=0,iMaxCnt=3000,iSleepSec=3,iTimeOutSec=3;
-	char sIp[32],sUserName[32],sPassword[32];	
+	char sIp[32],sUserName[32],sPassword[32],sTypeList[32];	
 	
 	strcpy(sIp,"");
 	strcpy(sUserName,"");
 	strcpy(sPassword,"");
+	strcpy(sTypeList,"");
 
-	for (int c; (c = getopt(argc, argv, "I:P:u:p:c:s:m:?:")) != EOF;){
+	for (int c; (c = getopt(argc, argv, "I:P:u:p:c:s:m:l:?:")) != EOF;){
 		switch (c){
 		case 'I':
 			strncpy(sIp, optarg,sizeof(sIp)-1);
@@ -61,6 +62,10 @@ int main(int argc, char *argv[])
 			iTimeOutSec=atoi(optarg);
 			if(iTimeOutSec<=0) iTimeOutSec=3;
 			break;
+		case 'l':
+			strncpy(sTypeList, optarg,sizeof(sTypeList)-1);
+			sTypeList[sizeof(sTypeList)-1]=0;
+			break;
 		case '?':
 		default:
 			printf("Usage: %s \n", argv[0]);
@@ -71,6 +76,7 @@ int main(int argc, char *argv[])
 			printf("   [-c maxcnt ]\n");
 			printf("   [-s sleepsec ]\n");
 			printf("   [-m timeoutsec ]\n");
+			printf("   [-l typelist (MTOQ,D) ]\n");
 			exit(1);
 			break;
 		}
@@ -81,7 +87,7 @@ int main(int argc, char *argv[])
 
 	SetProcessSignal();
 	
-	pCallBase=new CallBackBase(sIp,iPort,sUserName,sPassword,iMaxCnt);
+	pCallBase=new CallBackBase(sIp,iPort,sUserName,sPassword,iMaxCnt,sTypeList);
 	
 	//连接服务器
 	if(pCallBase->Connect()==false){

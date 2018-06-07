@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 	strcpy(sSourcePath,	"/stock/work");
 	strcpy(sWorkRoot,	"/stock/work");
 
-	for (int c; (c = getopt(argc, argv, "d:r:w:t:m:s:o:i:b:?:")) != EOF;){
+	for (int c; (c = getopt(argc, argv, "d:r:w:t:m:s:o:i:f:b:l:?:")) != EOF;){
 
 		switch (c){
 		case 'd':
@@ -82,6 +82,9 @@ int main(int argc, char *argv[])
 		case 'f':
 			iFlag=atoi(optarg);
 			break;
+		case 'l':
+			SetMaxMqMsgLen(atoi(optarg));
+			break;
 		case 'b':
 			lBgnTime=atoi(optarg);
 			if(lBgnTime>=90000000L&&lBgnTime<153000000L)
@@ -100,6 +103,7 @@ int main(int argc, char *argv[])
 			printf("   [-i (infosec def=3) ]\n");
 			printf("   [-f (flag  def=1 mk,or,tr,qu; 2 mkt,ord,tra,que) ]\n");
 			printf("   [-b (begintime def=9:15:00:000,format hhmmssNNN) ]\n");
+			printf("   [-l max length of mq msg ]\n");
 			exit(1);
 			break;
 		}

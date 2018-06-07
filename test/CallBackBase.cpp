@@ -9,9 +9,9 @@ void Domain2Ip(char sDomain[],char sIp[])
 	BIP::tcp::resolver::iterator it = r.resolve(q);
 
 	BIP::tcp::endpoint ep = *it;
-	
+
 	ios.stop();
-	
+
 	strcpy(sIp,ep.address().to_string().c_str());
 
 }
@@ -45,13 +45,14 @@ void MainCliSocketRun(BIO::io_service *m_ios)
 {
 
 	BIO::io_service::work wk(*m_ios);
-	
+
 	m_ios->run();
 
 	m_ios->stop();
 }
 
-CallBackBase::CallBackBase(char sIp[],int iPort,char sUserName[],char sPassword[],int iMaxCnt)
+CallBackBase::CallBackBase(char sIp[],int iPort,char sUserName[],char sPassword[],
+	int iMaxCnt,char sTypeList[])
 {
 	char sRealIp[32];
 
@@ -65,11 +66,11 @@ CallBackBase::CallBackBase(char sIp[],int iPort,char sUserName[],char sPassword[
 
 	m_username=	string(sUserName);
 	m_password=	string(sPassword);
-	
+
 	m_loginSuccess= false;
 	m_exit=		false;
 	m_connect=	false;
-	
+
 	m_readHeader=	true;
 	m_lenBody=	0;
 	m_secHeartbeat= 20;
@@ -77,7 +78,7 @@ CallBackBase::CallBackBase(char sIp[],int iPort,char sUserName[],char sPassword[
 	m_ios=		new BIO::io_service();
 	m_socket=	new BIP::tcp::socket(*m_ios);
 	m_timerHeartbeat= new BIO::deadline_timer(*m_ios, boost::posix_time::seconds(20));
-	
+
 	m_iMktCnt=	0;
 	m_iTraCnt=	0;
 	m_iQueCnt=	0;
@@ -85,6 +86,8 @@ CallBackBase::CallBackBase(char sIp[],int iPort,char sUserName[],char sPassword[
 	m_iD31Cnt=	0;
 	m_iTotalCnt=	0;
 	m_maxcnt=	iMaxCnt;
+
+	strcpy(m_sTypeList,	sTypeList);
 }
 void CallBackBase::toHeartbeat(const BSYS::error_code& errcode)
 {
@@ -119,7 +122,7 @@ void CallBackBase::Recv(string &msg)
 		Reply rep;
 
 		rep.ParseFromString(msgProtobuf);
-				
+
 		if(rep.err()!=SUCCESS){
 			printf("login ERROR exist code=%d msg=%s.\n",
 				rep.err(),rep.desc().c_str());
@@ -146,7 +149,10 @@ void CallBackBase::Recv(string &msg)
 		t.ParseFromString(msgProtobuf);
 //		iStockCode=	t.szcode();
 //		SendMsg2Cli(iStockCode,'M',msgProtobuf);
-		m_iMktCnt++;m_iTotalCnt++;
+		if(m_sTypeList[0]==0||
+			strchr(m_sTypeList,'M')!=NULL){
+			m_iMktCnt++;m_iTotalCnt++;
+		}
 	}
 	break;
 	case MKT_DATA_DEAL:
@@ -155,7 +161,11 @@ void CallBackBase::Recv(string &msg)
 		t.ParseFromString(msgProtobuf);
 //		iStockCode=	t.szcode();
 //		SendMsg2Cli(iStockCode,'T',msgProtobuf);
-		m_iTraCnt++;m_iTotalCnt++;
+		if(m_sTypeList[0]==0||
+			strchr(m_sTypeList,'T')!=NULL){
+
+			m_iTraCnt++;m_iTotalCnt++;
+		}
 	}
 	break;
 	case SZ_ORDER:
@@ -164,7 +174,11 @@ void CallBackBase::Recv(string &msg)
 		t.ParseFromString(msgProtobuf);
 //		iStockCode=	t.szcode();
 //		SendMsg2Cli(iStockCode,'O',msgProtobuf);
-		m_iOrdCnt++;m_iTotalCnt++;
+		if(m_sTypeList[0]==0||
+			strchr(m_sTypeList,'O')!=NULL){
+
+			m_iOrdCnt++;m_iTotalCnt++;
+		}
 	}
 	break;
 	case MKT_DATA_ORDERQUEUE:
@@ -173,7 +187,11 @@ void CallBackBase::Recv(string &msg)
 		t.ParseFromString(msgProtobuf);
 //		iStockCode=	t.szcode();
 //		SendMsg2Cli(iStockCode,'Q',msgProtobuf);
-		m_iQueCnt++;m_iTotalCnt++;
+		if(m_sTypeList[0]==0||
+			strchr(m_sTypeList,'Q')!=NULL){
+
+			m_iQueCnt++;m_iTotalCnt++;
+		}
 	}
 	break;
 	case D31_ITEM:
@@ -182,22 +200,34 @@ void CallBackBase::Recv(string &msg)
 		t.ParseFromString(msgProtobuf);
 //		iStockCode=	t.nstockcode();
 //		SendMsg2Cli(iStockCode,'D',msgProtobuf);
-		m_iD31Cnt++;m_iTotalCnt++;
+		if(m_sTypeList[0]==0||
+			strchr(m_sTypeList,'D')!=NULL){
+
+			m_iD31Cnt++;m_iTotalCnt++;
+		}
 	}
 	break;
 	default:
 	break;
 	}
-	
+
 	if(m_iTotalCnt>=m_maxcnt)	m_exit=true;
 
-	if((m_iTotalCnt%300)==0)	DisplayStat(iBizCode);	
-	
+	//加了一个逻辑判断，只有总数变化了才打印
+	if((m_iTotalCnt%300)==0){
+		static int iPreTol=0;
+
+		if(iPreTol!=m_iTotalCnt){
+			iPreTol=m_iTotalCnt;
+			DisplayStat(iBizCode);
+		}
+	}
+
 }
 void CallBackBase::DisplayStat(BizCode iBizCode)
 {
 	char sHostTime[15],sMSec[4];
-	
+
 	GetHostTimeX(sHostTime,sMSec);
 
 	printf("%s:%s --mkt=%-6d\ttra=%-6d\tque=%-6d\tord=%-6d\td31=%-6d\tall=%-6d\tbiz=%-6d\n",
@@ -209,14 +239,14 @@ void CallBackBase::handle_read(const BSYS::error_code& err, size_t bytes_transfe
 		handle_error(err);
 		return;
 	}
-	
+
 	m_rbuf.commit(bytes_transferred);
 	stringstream ss;
 
 	if (m_readHeader){
-	
+
 		if (m_rbuf.size() >= 2){
-	
+
 			ss << &m_rbuf;
 			std::string strHeader = ss.str();
 
@@ -225,9 +255,9 @@ void CallBackBase::handle_read(const BSYS::error_code& err, size_t bytes_transfe
 			m_rbuf.consume(2);
 			m_readHeader = false;
 
-			async_read(*m_socket, m_rbuf, BIO::transfer_exactly(m_lenBody), 
+			async_read(*m_socket, m_rbuf, BIO::transfer_exactly(m_lenBody),
 				boost::bind(&CallBackBase::handle_read, this,
-				BIO::placeholders::error, 
+				BIO::placeholders::error,
 				BIO::placeholders::bytes_transferred));
 
 		}
@@ -238,24 +268,24 @@ void CallBackBase::handle_read(const BSYS::error_code& err, size_t bytes_transfe
 			ss << &m_rbuf;
 			string msg = ss.str();
 			msg.resize(m_lenBody);
-			
+
 			Recv(msg);
-			
+
 			m_rbuf.consume(m_lenBody);
 			m_readHeader = true;
 
-			async_read(*m_socket, m_rbuf, BIO::transfer_exactly(2), 
-				boost::bind(&CallBackBase::handle_read, this, 
-				BIO::placeholders::error, 
+			async_read(*m_socket, m_rbuf, BIO::transfer_exactly(2),
+				boost::bind(&CallBackBase::handle_read, this,
+				BIO::placeholders::error,
 				BIO::placeholders::bytes_transferred));
-				
-		}	
+
+		}
 	}
 }
 void CallBackBase::handle_error(const BSYS::error_code& err)
 {
 	char sHostTime[15],sMSec[4];
-	
+
 	GetHostTimeX(sHostTime,sMSec);
 
 	printf("ERROR  msg %s:%s --%s\n",sHostTime,sMSec,err.message().c_str());
@@ -281,7 +311,7 @@ void CallBackBase::Login()
 	req.set_password(m_password);
 
 	AsyncSend(req, BizCode::LOGIN_REQ);
-	
+
 	//如果没有成功返回登录成功则等待
 	while(m_loginSuccess==false){
 		usleep(100*000);
@@ -296,9 +326,9 @@ void CallBackBase::AsyncSend(const PB::Message &msg, BizCode bizCode)
 
 	m_que_wbuf.push(strTmp);
 
-	async_write(*m_socket, BIO::buffer(strTmp,strTmp.size()), 
+	async_write(*m_socket, BIO::buffer(strTmp,strTmp.size()),
 		boost::bind(&CallBackBase::handle_write, this,
-		BIO::placeholders::error, 
+		BIO::placeholders::error,
 		BIO::placeholders::bytes_transferred));
 }
 
@@ -317,8 +347,8 @@ int CallBackBase::Connect()
 	}
 
 	m_readHeader = true;
-	
-	async_read(*m_socket,m_rbuf,BIO::transfer_exactly(2), 
+
+	async_read(*m_socket,m_rbuf,BIO::transfer_exactly(2),
 		boost::bind(&CallBackBase::handle_read,this,
 		BIO::placeholders::error,
 		BIO::placeholders::bytes_transferred));

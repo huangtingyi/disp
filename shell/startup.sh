@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "`date '+%Y/%m/%d %k:%M:%S'` system startup  BEGIN..."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` system startup  BEGIN..."
 
 conf_file="$HOME/conf/config.ini"
 [ ! -f $conf_file ] && echo "$conf_file is not exist" && exit 1;
@@ -79,11 +79,16 @@ etfpath=${etfpath:-$HOME/conf/etf}
 [ ! -d $workd31 ] && echo "dir $workd31 is not exist" && exit 1;
 [ ! -d $etfpath ] && echo "dir $etfpath is not exist" && exit 1;
 
-
-
 my_name=`whoami`
 my_name=${my_name:-$USER}
 my_flag=""
+
+max_mq_msg_len=`grep "SysMqMaxLen" $cfg_file | sed 's/[^0-9]//g'`
+if [ -z $max_mq_msg ];then
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` file $cfg_file SysMqMaxLen config error"
+	exit 4;
+fi
+
 
 ints_bin_base=`basename $ints_bin`
 index_bin_base=`basename $index_bin`
@@ -94,7 +99,7 @@ pids=`$pidof_bin -x $ints_bin_base $index_bin_base dat2cli moni.sh`
 mypid=`check_mypid_exist $pids`
 if [ $mypid -ne 0 ];then
 	belong_cmd=`belong_cmd_mypid $mypid`
-	echo "`date '+%Y/%m/%d %k:%M:%S'` pid $mypid cmd=$belong_cmd user=$my_name is running"
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` pid $mypid cmd=$belong_cmd user=$my_name is running"
 	exit 2
 fi
 
@@ -112,55 +117,52 @@ cat > $disp_file << 'EOF'
 EOF
 
 cd $HOME/bin
-
-if [ $sysflag = "gta" ]; then
 	
-nohup $ints_bin -w$writeflag -o$workroot -c$ints_file -r$disp_file -d$workd31 1>$ints_log 2>&1 &
+nohup $ints_bin -w$writeflag -o$workroot -c$ints_file -r$disp_file -d$workd31 -lmax_mq_msg_len 1>$ints_log 2>&1 &
 sleep 1
 $pidof_bin -x $ints_bin_base
 
 if [ $? -ne 0 ]; then
-	echo "`date '+%Y/%m/%d %k:%M:%S'` $ints_bin_base is startup FAIL..";
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` $ints_bin_base is startup FAIL..";
 	echo "$ints_bin -w$writeflag -o$workroot -c$ints_file -r$disp_file -d$workd31"
 	exit 3;
 fi
-echo "`date '+%Y/%m/%d %k:%M:%S'` $ints_bin_base is startup SUCESS.."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` $ints_bin_base is startup SUCESS.."
 	
 ##启动D31统计程序
 nohup $index_bin -w3 -s$workroot -o$workd31 -L$etflist -E$etfpath 1>$index_log 2>&1 &
 sleep 1
 $pidof_bin -x $index_bin_base
 if [ $? -ne 0 ]; then
-	echo "`date '+%Y/%m/%d %k:%M:%S'` $index_bin_base is startup FAIL..";
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` $index_bin_base is startup FAIL..";
 	echo "$index_bin -w3 -s$workroot -o$workd31 -L$etflist -E$etfpath"
 	exit 3;
 fi
-echo "`date '+%Y/%m/%d %k:%M:%S'` $index_bin_base is startup SUCESS.."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` $index_bin_base is startup SUCESS.."
 
 nohup $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
 sleep 1
 $pidof_bin -x dat2cli
 if [ $? -ne 0 ]; then
-	echo "`date '+%Y/%m/%d %k:%M:%S'` dat2cli is startup FAIL..";
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` dat2cli is startup FAIL..";
 	echo "$dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file"
 	exit 3;
 fi
 
-echo "`date '+%Y/%m/%d %k:%M:%S'` dat2cli is startup SUCESS.."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` dat2cli is startup SUCESS.."
 
 nohup $moni_bin $ethdev 1>$moni_log 2>&1 &
 
 sleep 1
 $pidof_bin -x moni.sh
 if [ $? -ne 0 ]; then
-	echo "`date '+%Y/%m/%d %k:%M:%S'` moni.sh startup FAIL..";
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` moni.sh startup FAIL..";
 	echo "$moni_bin $ethdev"
 	exit 3;
 fi
 
-echo "`date '+%Y/%m/%d %k:%M:%S'` moni.sh is startup SUCESS.."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` moni.sh is startup SUCESS.."
 
-sleep 1;
-echo "`date '+%Y/%m/%d %k:%M:%S'` system startup  OK..."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` system startup  OK..."
 
 exit 0

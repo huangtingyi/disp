@@ -339,8 +339,9 @@ void CallBackBase::Deal_Message_TdfQue(MySubData *d)
 
 void CallBackBase::Deal_Message_D31Item(MySubData *d)
 {
+	static int iMyCnt=0;
 	//智能指针，会自动释放指针指向的对象，释放内存空间
-	std::unique_ptr<MySubData> subdataptr(d);
+	std::unique_ptr<MySubData> mysubdataptr(d);
 
 	struct D31ItemStruct *p = (struct D31ItemStruct *)&d->data[0];
 
@@ -352,9 +353,17 @@ void CallBackBase::Deal_Message_D31Item(MySubData *d)
 	di.SerializeToString(&strDi);
 
 	int iStockCode=p->nStockCode;
+	
 		//校验代码合法性
 	if(iStockCode>0&&iStockCode<MAX_STOCK_CODE){
 
+		printf("stock_code=%d,time=%d.\n",iStockCode,p->nTradeTime);
+
+		iMyCnt++;
+
+		if(iStockCode==673&&p->nTradeTime==1527039000){
+			printf("stock_code=%d,time=%d cnt=%d.\n",iStockCode,p->nTradeTime,iMyCnt);
+		}		
 		//设置callsupp.cpp中定义的全局变量，供D31TradeTimeValid使用
 		nD31TradeTime=p->nTradeTime;
 		SendMsg2Cli(iStockCode,'D',strDi);

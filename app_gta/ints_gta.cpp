@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 	strcpy(sPrivilegeName,	"./user_privilege.json");
 	strcpy(sWorkRoot,	"/stock/work");
 
-	for (int c; (c = getopt(argc, argv, "d:c:r:u:o:w:?:")) != EOF;){
+	for (int c; (c = getopt(argc, argv, "d:c:r:u:o:w:l:?:")) != EOF;){
 
 		switch (c){
 		case 'd':
@@ -74,6 +74,9 @@ int main(int argc, char *argv[])
 			iWriteFlag=atoi(optarg);
 			if(iWriteFlag!=1&&iWriteFlag!=2&&iWriteFlag!=3) iWriteFlag=0;
 			break;
+		case 'l':
+			SetMaxMqMsgLen(atoi(optarg));
+			break;
 		case '?':
 		default:
 			printf("Usage: %s \n", argv[0]);
@@ -83,6 +86,7 @@ int main(int argc, char *argv[])
 			printf("   [-o work-root-name ]\n");
 			printf("   [-d work-d31-home ]\n");
 			printf("   [-w (1,writegta,2 writetdf,3,write gta&tdf, other nowrite) ]\n");
+			printf("   [-l max length of mq msg ]\n");
 			exit(1);
 			break;
 		}

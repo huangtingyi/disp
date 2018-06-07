@@ -36,7 +36,8 @@ namespace BSYS = boost::system;
 class CallBackBase
 {
 public:
-	CallBackBase(char sIp[],int iPort,char sUserName[],char sPassword[],int iMaxCnt);
+	CallBackBase(char sIp[],int iPort,char sUserName[],char sPassword[],
+		int iMaxCnt,char sTypeList[]);
 	~CallBackBase(){};
 	void Login();
 	int Connect();
@@ -55,6 +56,8 @@ private:
 	void toHeartbeat(const BSYS::error_code& errcode);
 	void beginHeartbeat();
 	thread *	m_pThread;
+	
+	char   m_sTypeList[32];
 	string m_username;
 	string m_password;
 	string m_ip;
