@@ -572,7 +572,7 @@ int WriteD31Stat(FILE *fp,struct IndexStatStruct *p)
 }
 int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p,int iWriteFlag)
 {
-	int i;
+	int i,j=0;
 //	fprintf(fp,"code=%06d,t=%09d,zd,zb\n",p->iStockCode,p->nT0);
 //	$sz_code $prefix $tmp_time ${arr_level[i]} $bid_amnt $bid_volume $bid_num $ask_amnt $ask_volume $ask_num
 
@@ -584,6 +584,7 @@ int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p,int iWriteFlag)
 				p->iStockCode,"z",p->nT0/100000,(int)(alAmntLevel[i]/1000000),
 				pD31->alBidAmount[i],pD31->aiBidVolume[i],pD31->aiBidOrderNum[i],
 				pD31->alAskAmount[i],pD31->aiAskVolume[i],pD31->aiAskOrderNum[i]);
+			j++;
 		}
 		pD31=&p->Zd;
 		for(i=0;i<MAX_LEVEL_CNT;i++){
@@ -591,6 +592,7 @@ int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p,int iWriteFlag)
 				p->iStockCode,"w",p->nT0/100000,(int)(alAmntLevel[i]/1000000),
 				pD31->alBidAmount[i],pD31->aiBidVolume[i],pD31->aiBidOrderNum[i],
 				pD31->alAskAmount[i],pD31->aiAskVolume[i],pD31->aiAskOrderNum[i]);
+			j++;
 
 		}
 	}
@@ -620,6 +622,7 @@ int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p,int iWriteFlag)
 			pEx->alBidAmount[2],	//跳买额度100w，单位（分）
 			pEx->alAskAmount[2]	//跳卖额度100w，单位（分）
 			);
+		j++;
 
 	}
 
@@ -683,11 +686,14 @@ int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p,int iWriteFlag)
 		fwrite((const void*)&lTime,sizeof(lTime),1,fp);
 		fwrite((const void*)&t,sizeof(t),1,fp);
 		fflush(fp);
+		
+		j++;
 	}
 	bzero((void*)&p->Zb,sizeof(struct D31IndexItemStruct));
 	bzero((void*)&p->Zd,sizeof(struct D31IndexItemStruct));
 	bzero((void*)&p->Ex,sizeof(struct D31IndexExtStruct));
-	return 0;
+
+	return j;
 }
 
 struct IndexStatStruct *GetIndexStat(int iStockCode,char sFileName[],long lCurPos,
@@ -829,7 +835,7 @@ int MoveS1T2S0T(struct IndexStatStruct *p,int nPreT0,int nT0)
 
 	//如果是第一秒开始，则释放S0T
 
-	if((nT0%10000)/1000==1) Destroy2List(pS0T);
+	if((nT0%100000)/1000==1) Destroy2List(pS0T);
 
 	ptHead=(struct TinyTransactionStruct *)pS1T->pHead;
 
@@ -1027,6 +1033,8 @@ int GenD31StatAll()
 int WriteD31StatList(FILE *fpD31,char sCodeStr[],int iWriteFlag,
 	struct IndexStatStruct *pIndexStat)
 {
+	int j=0,r;
+
 	char sTempCode[8];
 	while(pIndexStat!=NULL){
 
@@ -1035,15 +1043,17 @@ int WriteD31StatList(FILE *fpD31,char sCodeStr[],int iWriteFlag,
 		if(strlen(sCodeStr)==0||
 			strstr(sCodeStr,sTempCode)!=NULL){
 
-			if(WriteD31Stat1(fpD31,pIndexStat,iWriteFlag)<0){
+			if((r=WriteD31Stat1(fpD31,pIndexStat,iWriteFlag))<0){
 				printf("write d31 error.\n");
 				return -1;
 			}
+			j+=r;
 		}
 
 		pIndexStat=pIndexStat->pNext;
 	}
-	return 0;
+
+	return j;
 }
 int CodeInCodeStr(char szCode[],char sCodeStr[])
 {
@@ -1071,10 +1081,17 @@ int IntCodeInCodeStr(int iStockCode,char sCodeStr[])
 }
 int WriteD31StatAll(FILE *fpD31,char sCodeStr[],int iWriteFlag)
 {
-	if(WriteD31StatList(fpD31,sCodeStr,iWriteFlag,INDEX_HEAD)<0) return -1;
-	if(WriteD31StatList(fpD31,sCodeStr,iWriteFlag,INDEX_ETF)<0) return -1;
+	int j=0,r;
 
-	return 0;
+	if((r=WriteD31StatList(fpD31,sCodeStr,iWriteFlag,INDEX_HEAD))<0) return -1;
+	
+	j+=r;
+	
+	if((r=WriteD31StatList(fpD31,sCodeStr,iWriteFlag,INDEX_ETF))<0) return -1;
+	
+	j+=r;
+
+	return j;
 }
 //将所有预加载的T0之前的数据，放到统计缓存中
 int AddPreT0Data2Ready(int nPreT0,int nT0)

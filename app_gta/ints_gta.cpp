@@ -44,6 +44,18 @@ void signalProcess(int signal)
 	exit(0);
 }
 
+void PrintUsage(char *argv[])
+{
+	printf("Usage: %s \n", argv[0]);
+	printf("   [-c cfg-name ]\n");
+	printf("   [-r disp-name ]\n");
+	printf("   [-u user-privilege-name ]\n");
+	printf("   [-o work-root-name ]\n");
+	printf("   [-d work-d31-home ]\n");
+	printf("   [-w (1,writegta,2 writetdf,3,write gta&tdf, other nowrite) ]\n");
+	printf("   [-l max length of mq msg ]\n");
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -79,17 +91,15 @@ int main(int argc, char *argv[])
 			break;
 		case '?':
 		default:
-			printf("Usage: %s \n", argv[0]);
-			printf("   [-c cfg-name ]\n");
-			printf("   [-r disp-name ]\n");
-			printf("   [-u user-privilege-name ]\n");
-			printf("   [-o work-root-name ]\n");
-			printf("   [-d work-d31-home ]\n");
-			printf("   [-w (1,writegta,2 writetdf,3,write gta&tdf, other nowrite) ]\n");
-			printf("   [-l max length of mq msg ]\n");
+			PrintUsage(argv);
 			exit(1);
 			break;
 		}
+	}
+
+	if(argc==1){
+		PrintUsage(argv);
+		exit(1);
 	}
 
 	signal(SIGINT, signalProcess);
@@ -285,7 +295,7 @@ int main(int argc, char *argv[])
 	//加载d31回放线程
 	pthread_attr_init(&attr_d31);
 	pthread_attr_setdetachstate(&attr_d31, PTHREAD_CREATE_DETACHED);
-	pthread_attr_setstacksize(&attr_d31, 1024*512);
+	pthread_attr_setstacksize(&attr_d31, 1024*1024*512);
 	pthread_create(&pthd_d31, NULL, MainD31Transfer, NULL);
 
 
@@ -313,10 +323,16 @@ int main(int argc, char *argv[])
 
 int ReadD31FileAndSend(char sFileName[],long *plCurPos)
 {
+	static int iCount=0,iFlag=0;
+	static time_t tStartTime=0;
 	FILE *fp;
 	char sBuffer[10240];
 	long lCurPos=*plCurPos,lSize,lCnt,lItemLen;
 	struct D31ItemStruct *p=(struct D31ItemStruct*)(sBuffer+sizeof(long long));
+
+	if(tStartTime==0){
+		tStartTime=tGetHostTime();
+	}
 
 	lSize=lFileSize(sFileName);
 	
@@ -344,7 +360,9 @@ int ReadD31FileAndSend(char sFileName[],long *plCurPos)
 			printf("error end of file break.\n");
 			return -1;
 		}
-		{
+
+		//只取时间时间大于启动时间之前1分钟的数据
+		if(p->nTradeTime>(tStartTime-60)){
 
 			UTIL_Time stTime;
 			PUTIL_GetLocalTime(&stTime);
@@ -355,10 +373,21 @@ int ReadD31FileAndSend(char sFileName[],long *plCurPos)
 			subdata->cur_time = lCurTime;
 			subdata->data.assign((const char*)p, sizeof(struct D31ItemStruct));
 
+if(iCount++%3000==0){
+	char sTradeTime[15];
+	
+	iFlag=1;
+	sFormatTime((time_t)p->nTradeTime,sTradeTime);
+	
+	printf("cnt=%d,stoct_code=%d,tradetime=%d stdtime=%s.\n",
+		iCount,p->nStockCode,p->nTradeTime,sTradeTime);
+}
+
 			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_D31Item,pCallBack, subdata)));
 
 			pCallBack->m_ios->Post(task);
-
+if(iFlag==1)
+	printf("post end.------------------------------------.\n");
 		}
 		
 		lCnt--;
@@ -380,6 +409,8 @@ void *MainD31Transfer(void *)
 	sHostTime[8]=0;
 
 	sprintf(sInFileName,"%s/d31_g3_%s.dat",sWorkD31,sHostTime);
+
+printf("the file name=%s.\n",sInFileName);
 	
 	while(1){
 		ReadD31FileAndSend(sInFileName,&lCurPos);

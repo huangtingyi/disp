@@ -286,7 +286,13 @@ int WriteSZSEL2_Transaction2TDF(int nEndTime,FILE *fpIn,FILE *fpTra)
 	}
 	return iCount;
 }
-
+void PrintUsage(char *argv[])
+{
+	printf("Usage: %s \n", argv[0]);
+	printf("   [-i source-path ]\n");
+	printf("   [-o work-root-name ]\n");
+	printf("   [-d data-date (def=today fmt yyyymmdd) ]\n");
+}
 
 int main(int argc, char *argv[])
 {
@@ -314,15 +320,16 @@ int main(int argc, char *argv[])
 			break;
 		case '?':
 		default:
-			printf("Usage: %s \n", argv[0]);
-			printf("   [-i source-path ]\n");
-			printf("   [-o work-root-name ]\n");
-			printf("   [-d data-date (def=today fmt yyyymmdd) ]\n");
+			PrintUsage(argv);
 			exit(1);
 			break;
 		}
 	}
-	
+
+	if(argc==1){
+		PrintUsage(argv);
+		exit(1);
+	}
 	
 	//将输入和输出文件打开
 	if(OpenFileReadWrite(sSourcePath,sWorkRoot,sDataDate)<0) return -1;

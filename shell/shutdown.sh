@@ -60,7 +60,8 @@ if [ -n "$pids" ]; then
 		
 			belong_ppid=`belong_ppid_mypid $i`
 
-			kill -SIGTERM $i
+			##这里就直接-9杀掉，避免意外情况
+			kill -9 $i
 			echo "`date '+%Y/%m/%d %k:%M:%S'` send SIGTERM to $i (reconn=dat2cli ppid=$belong_ppid) and it is stopped.."
 		fi
 	done

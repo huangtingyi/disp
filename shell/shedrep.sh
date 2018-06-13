@@ -5,10 +5,17 @@ if [ $# -ne 4 ];then
 	exit 1
 fi
 
+conf_file="$HOME/conf/config.ini"
+[ ! -f $conf_file ] && echo "$conf_file is not exist" && exit 1;
+
+. $conf_file
+
 cmdfile=$1
 cmdres=$2
 startcmd=$3
 stopcmd=$4
+
+replaydir=${replaydir:-"/data/work"}
 
 cmd=""
 
@@ -21,15 +28,15 @@ do
 	echo "`date '+%Y/%m/%d %k:%M:%S'` cmd=$cmd "
 
 	if [ $cmd = "start" ];then
-		datapath=`head -1 $cmdfile | awk '{print $2}'`
+#		datapath=`head -1 $cmdfile | awk '{print $2}'`
 		datadate=`head -1 $cmdfile | awk '{print $3}'`
 		starttime=`head -1 $cmdfile | awk '{print $4}'`
 		starttime=${starttime:-091500}
 
-		$startcmd $datapath $datadate $starttime > $cmdres
+		$startcmd $replaydir $datadate $starttime > $cmdres
 		echo "started" > $cmdfile
 
-		echo "$startcmd $datapath $datadate $starttime"
+		echo "$startcmd $replaydir $datadate $starttime"
 		cat $cmdres
 	elif [ $cmd = "stop" ];then
 		$stopcmd > $cmdres

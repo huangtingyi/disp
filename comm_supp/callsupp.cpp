@@ -139,21 +139,21 @@ int WatchFileCloseWriteAndLock(char sFileName[])
 	buf[sizeof(buf) - 1] = 0;
 	while( (len = read(fd, buf, sizeof(buf) - 1)) > 0 ){
 
-		printf("-----------------------------3 l=%d.\n",len);
+//		printf("-----------------------------3 l=%d.\n",len);
 
 		for(i=0;i<len;i+=sizeof(struct inotify_event)){
 
 			event = (struct inotify_event *)&buf[i];
 
-			GetHostTimeX(sHostTime,sMilli);
-			printf("%s:%s %s --- %s\ti=%d,m=%d,mi=%s l=%d\n",sHostTime,sMilli," ", "",
-				i,event->mask,GetEventStrInfo(event->mask),len);
-
 			//如果不是WRITE_CLOSE事件则继续
 			if((event->mask & 0x8)==0) continue;
 
-			printf("catch WRITE-ON-CLOSE EVENT.\n");
-
+			GetHostTimeX(sHostTime,sMilli);
+			printf("%s:%s CATCH WRITE-ON-CLOSE EVENT\ti=%d,m=%d,mi=%s l=%d\n",
+				sHostTime,sMilli,i,event->mask,GetEventStrInfo(event->mask),len);
+//			printf("catch WRITE-ON-CLOSE EVENT.\n");
+			//等10毫秒后再加载内存
+			usleep(10000);
 			//锁定变量
 			LockWorkThread();
 		}
@@ -334,7 +334,7 @@ void RefreshUserArray(char sDispName[],struct DispRuleStruct *p)
 		catch (...){
 			//如果某个用户信息不全，则认为这个用户为没有订购
 			GetHostTimeX(sHostTime,sMilli);
-			printf("%s:%s watch exception",sHostTime,sMilli);
+			printf("%s:%s watch exception pid=%d\n",sHostTime,sMilli,getpid());
 			continue;
 		}
 
@@ -473,14 +473,19 @@ int SendMsg2Mq(string &str,struct UserStruct *pCli)
 				printf("new MessageQueue error.\n");
 				exit(1);
 			}
-			mq->open(false,false,512,15000);
+			mq->open(false,false,iMaxMqMsgLen,15000);
 			pCli->iMqPos=AddMqArray(mq);
 		}
 	}
 	else
 		mq=	ARRAY_MQ[pCli->iMqPos];
 
-	if(mq->send(str,0)==(int)(str.length())) iSendCnt++;
+	if(mq->send(str,0)==(int)(str.length())){
+		iSendCnt++;
+//		GetHostTimeX(sHostTime,sMilli);
+//		printf("%s:%s send ok user=%s pos =%d.\n",
+//			sHostTime,sMilli,pCli->sUserName,iSendCnt);
+	}
 	else{
 		GetHostTimeX(sHostTime,sMilli);
 		printf("%s:%s send error user=%s pos =%d.\n",
@@ -528,10 +533,10 @@ void SendMsg2Cli(int iStockCode,char cType,string& str)
 	case 'O': pUser=R.AOUSER[iStockCode];pAll=R.POALL;sBuffer[2]=15;break;
 	case 'D': 
 		//对于长度超长的D31串，则直接写告警信息忽略
-		if(len>(iMaxMqMsgLen-2)){
+		if((int)len>(iMaxMqMsgLen-2)){
 			char sHostTime[15],sMSec[4];
 			
-			GetHostTime(sHostTime,sMSec);
+			GetHostTimeX(sHostTime,sMSec);
 			
 			printf("%s.%s stockcode=%d,len=%d,maxlen=%d.\n",
 				sHostTime,sMSec,iStockCode,len,iMaxMqMsgLen-2);
@@ -713,9 +718,7 @@ int nGetReplayTimeByCur(int nCurTime,int nStartTime,int nEndTime,
 
 long lFileSize(char sFileName[])//获取文件名为filename的文件大小。
 {
-	struct stat statbuf;
-	int ret;
-	ret = stat(sFileName,&statbuf);//调用stat函数
-	if(ret != 0) return -1;//获取失败。
-	return statbuf.st_size;//返回文件大小。
+	struct stat t;
+	if(stat(sFileName,&t)!=0) return -1;//调用stat函数
+	return t.st_size;//返回文件大小。
 }

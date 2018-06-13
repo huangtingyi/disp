@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 		printf("please input msg:\n");
 
 		fgets(buf,MAXLINE,stdin);
-		  
+
 		write(connfd, buf, strlen(buf));  
 		close(connfd);
     	}  

@@ -33,6 +33,19 @@ IGTAQTSApiBase*pGtaApiBase;
 void *MainQryRunSz(void *);
 void *MainQryRunSh(void *);
 
+void PrintUsage(char *argv[])
+{
+	printf("Usage: %s \n", argv[0]);
+	printf("   [-c cfg-name ]\n");
+	printf("   [-r disp-name ]\n");
+	printf("   [-u privilege-name ]\n");
+	printf("   [-o work-root-name ]\n");
+	printf("   [-d DebugFlag ]\n");
+	printf("   [-w (1,writegta,2 writetdf,other nowrite) ]\n");
+	printf("   [-t (query delay mil sec def=100ms) ]\n");
+	printf("   [-m (multi_times) ]\n");
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -72,18 +85,15 @@ int main(int argc, char *argv[])
 			break;
 		case '?':
 		default:
-			printf("Usage: %s \n", argv[0]);
-			printf("   [-c cfg-name ]\n");
-			printf("   [-r disp-name ]\n");
-			printf("   [-u privilege-name ]\n");
-			printf("   [-o work-root-name ]\n");
-			printf("   [-d DebugFlag ]\n");
-			printf("   [-w (1,writegta,2 writetdf,other nowrite) ]\n");
-			printf("   [-t (query delay mil sec def=100ms) ]\n");
-			printf("   [-m (multi_times) ]\n");
+			PrintUsage(argv);
 			exit(1);
 			break;
 		}
+	}
+
+	if(argc==1){
+		PrintUsage(argv);
+		exit(1);
 	}
 
 	//初始化刷新数组，以及刷新文件名的全局变量

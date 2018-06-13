@@ -6,7 +6,8 @@ pidof_bin="/usr/sbin/pidof"
 
 export TERM=${TERM:-xterm}
 
-ethn=$1
+#直接获取第一个运行中的网卡信息
+ethn=`ifconfig | grep RUNNING | grep -v LOOPBACK | awk -F":" '{print $1}' | head -1`
 
 pid_str=""
 pnd_str="ints_gta|ints_tdf|replay_gta|replay_tdf|index_gta|index_tdf|agentcli|dat2cli|COMMAND"

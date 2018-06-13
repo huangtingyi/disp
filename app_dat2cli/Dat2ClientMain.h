@@ -36,7 +36,7 @@ using namespace boost;
 #define SOCKET_DATALEN 8192
 #define MAX_PATH 512
 
-struct Privalige
+struct Privilege
 {
 	string m_sIp;
 	string m_sUser;
@@ -60,7 +60,7 @@ public:
 
 private:
 
-	char m_sRecvBuffer[SOCKET_DATALEN]; //发送接收缓冲区
+	char m_sRecvBuffer[SOCKET_DATALEN]; //接收缓冲区
 	char m_sSendBuffer[SOCKET_DATALEN]; //发送缓冲区
 
 	int m_iPid; //收发进程记录与它配对应的PID 主进程记录为0
@@ -91,7 +91,7 @@ private:
 
 	//OperationLoad m_cOperationLoad;
 private:
-	map<string, Privalige> m_mapPrivl; //key:用户名
+	map<string, Privilege> m_mapPrivl; //key:用户名
 	unsigned int m_secHeartbeat;
 	string m_sUserName;
 

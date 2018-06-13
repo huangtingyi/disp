@@ -109,6 +109,7 @@ void CallBackBase::beginHeartbeat()
 void CallBackBase::Recv(string &msg)
 {
 //	int iStockCode=0;
+	static int iCount=0;
 
 	string msgProtobuf; //剥离了bizcode序列化了的pb数据
 	BizCode iBizCode;
@@ -203,7 +204,14 @@ void CallBackBase::Recv(string &msg)
 		if(m_sTypeList[0]==0||
 			strchr(m_sTypeList,'D')!=NULL){
 
-			m_iD31Cnt++;m_iTotalCnt++;
+			char sTmpTime[15];
+
+			sFormatTime((time_t)t.ntradetime(),sTmpTime);
+
+			if(t.nstockcode()==1){		
+				printf("d31 stock=%d\ttime=%s\n",t.nstockcode(),sTmpTime);
+				m_iD31Cnt++;m_iTotalCnt++;
+			}
 		}
 	}
 	break;
@@ -222,6 +230,8 @@ void CallBackBase::Recv(string &msg)
 			DisplayStat(iBizCode);
 		}
 	}
+
+	if((iCount++%10000)==0) DisplayStat(iBizCode);
 
 }
 void CallBackBase::DisplayStat(BizCode iBizCode)

@@ -150,18 +150,18 @@ cd $HOME/bin
 
 ##./replay_gta -d20180412 -r/home/hty/bin/disp.json -w0 -t200 -s/data/20180412
 
-nohup stdbuf --output=L --error=L $replay_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -lmax_mq_msg_len -m$replaymulti 1>$replay_log 2>&1 &
+nohup stdbuf --output=L --error=L $replay_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -l$max_mq_msg_len -m$replaymulti 1>$replay_log 2>&1 &
 sleep 1
 $pidof_bin -x $replay_bin_base
 if [ $? -ne 0 ]; then
 	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` $replay_bin_base is startup FAIL..";
-	echo "$replay_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -m$replaymulti"
+	echo "$replay_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -l$max_mq_msg_len -m$replaymulti"
 	exit 3;
 fi
 
 echo "`date '+%Y/%m/%d %k:%M:%S.%N'` $replay_bin_base is startREPLAY SUCESS.."
 
-nohup $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
+nohup stdbuf --output=L --error=L $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
 sleep 1
 $pidof_bin -x dat2cli
 if [ $? -ne 0 ]; then
@@ -184,7 +184,6 @@ fi
 
 echo "`date '+%Y/%m/%d %k:%M:%S.%N'` moni.sh is startup SUCESS.."
 
-sleep 1;
 echo "`date '+%Y/%m/%d %k:%M:%S.%N'` system startup  OK..."
 
 exit 0

@@ -41,7 +41,21 @@ void *MainReplayRunD31(void *);
 
 void *MainReplayRunInfo(void *);
 
-
+void PrintUsage(char *argv[])
+{
+	printf("Usage: %s \n", argv[0]);
+	printf("   [-d replay-date (yyyymmdd) ]\n");
+	printf("   [-r disp-name ]\n");
+	printf("   [-w (2 writetdf,other nowrite) ]\n");
+	printf("   [-t (query delay mil sec def=100ms) ]\n");
+	printf("   [-m (multi_times) ]\n");
+	printf("   [-s (source-path) ]\n");
+	printf("   [-o work-root-name ]\n");
+	printf("   [-i (infosec def=3) ]\n");
+	printf("   [-f (flag  def=1 mk,or,tr,qu; 2 mkt,ord,tra,que) ]\n");
+	printf("   [-b (begintime def=9:15:00:000,format hhmmssNNN) ]\n");
+	printf("   [-l max length of mq msg ]\n");
+}
 int main(int argc, char *argv[])
 {
 
@@ -92,23 +106,16 @@ int main(int argc, char *argv[])
 			printf("please input correct format -b .\n");
 		case '?':
 		default:
-			printf("Usage: %s \n", argv[0]);
-			printf("   [-d replay-date (yyyymmdd) ]\n");
-			printf("   [-r disp-name ]\n");
-			printf("   [-w (2 writetdf,other nowrite) ]\n");
-			printf("   [-t (query delay mil sec def=100ms) ]\n");
-			printf("   [-m (multi_times) ]\n");
-			printf("   [-s (source-path) ]\n");
-			printf("   [-o work-root-name ]\n");
-			printf("   [-i (infosec def=3) ]\n");
-			printf("   [-f (flag  def=1 mk,or,tr,qu; 2 mkt,ord,tra,que) ]\n");
-			printf("   [-b (begintime def=9:15:00:000,format hhmmssNNN) ]\n");
-			printf("   [-l max length of mq msg ]\n");
+			PrintUsage(argv);
 			exit(1);
 			break;
 		}
 	}
 
+	if(argc==1){
+		PrintUsage(argv);
+		exit(1);
+	}
 	strWork=string(sWorkRoot);
 
 	//初始化刷新数组，以及刷新文件名的全局变量

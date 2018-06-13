@@ -183,6 +183,7 @@ struct IndexStatStruct
 #define MY_DATE_CEIL_LONG 1000000000L
 #define MY_CLOSE_MARKET_TIME 150000000
 #define MY_OPEN_MARKET_TIME  93000000
+#define MY_PRE_OPEN_TIME     92500000
 
 
 void TDF_TRANSACTION2TinyTransaction(struct TDF_TRANSACTION *pi,struct TinyTransactionStruct *po);

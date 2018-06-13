@@ -77,6 +77,21 @@ void InitFunctionFromType(int iType,long *plItemLen)
 	}
 	*plItemLen=lItemLen;
 }
+void PrintUsage(char *argv[])
+{
+
+	printf("Usage: %s \n", argv[0]);
+	printf("   [-i infile-name ]\n");
+	printf("   [-s skipcnt (def=0)]\n");
+	printf("   [-c count (def=100,-1=all) ]\n");
+	printf("   [-b begin-time (def=0) ]\n");
+	printf("   [-e end-time (def=99999999999) ]\n");
+	printf("   [-t type (1-qh,2-th,3-ah,4-qz,5-tz,6-oz,7-dstd,8-dext,mtoq|MTOQ=>mkt,trs,ord,que) ]\n");
+	printf("   [-d delay sec (-e,-l multi-code effect) ]\n");
+	printf("   [-l codelist (e.g \"000001,603912,002415\") ]\n");
+	printf("   [-f time_flag (def=1,1-createtime,2-picktime,3-localtime,4-packtime) ]\n");
+}
+
 int main(int argc, char *argv[])
 {
 	int iType=1,ret,i=0,iSkipCnt=0,iFilterCnt=0,iMaxCount=100;
@@ -110,21 +125,16 @@ int main(int argc, char *argv[])
 		case 'd':iDelaySec=atoi(optarg);	break;
 		case 'f':iTimeFlag=atoi(optarg);	break;
 		default:
-			printf("Usage: %s \n", argv[0]);
-			printf("   [-i infile-name ]\n");
-			printf("   [-s skipcnt (def=0)]\n");
-			printf("   [-c count (def=100,-1=all) ]\n");
-			printf("   [-b begin-time (def=0) ]\n");
-			printf("   [-e end-time (def=99999999999) ]\n");
-			printf("   [-t type (1-qh,2-th,3-ah,4-qz,5-tz,6-oz,7-dstd,8-dext,mtoq|MTOQ=>mkt,trs,ord,que) ]\n");
-			printf("   [-d delay sec (-e,-l multi-code effect) ]\n");
-			printf("   [-l codelist (e.g \"000001,603912,002415\") ]\n");
-			printf("   [-f time_flag (def=1,1-createtime,2-picktime,3-localtime,4-packtime) ]\n");
+			PrintUsage(argv);
 			exit(1);
 			break;
 		}
 	}
 
+	if(argc==1){
+		PrintUsage(argv);
+		exit(1);
+	}
 
 	if((fpIn=fopen(sInFileName,"r"))==NULL){
 		printf("error open file %s to read.\n",sInFileName);

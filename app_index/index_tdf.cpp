@@ -382,20 +382,35 @@ int IsStopTime(int iTime)
 	if((iTime>113500000&&iTime<125900000)) return true;
 	return false;
 }
+void PrintUsage(char *argv[])
+{
+	printf("Usage: %s \n", argv[0]);
+	printf("   [-d calc-date (yyyymmdd =8Bytes def=curdate) ]\n");
+	printf("   [-b begin-time (HH24MISS =6Bytes def=curtime) ]\n");
+	printf("   [-m max-delay-sec (def=20) ]\n");
+	printf("   [-s source-path (def=/stock/work) ]\n");
+	printf("   [-o work-root-name (def=/stock/work) ]\n");
+	printf("   [-e delay str 'b,i:b:i' ]\n");
+	printf("   [-t idlewaitmilli \n");
+	printf("   [-w writeflag (1,zbzd 2,ext 3,bin info) \n");
+	printf("   [-l codelist (e.g \"000001,603912,002415\") ]\n");
+	printf("   [-L etflist (e.g \"510050,510180,510300,510500\") ]\n");
+	printf("   [-E etfpath (e.g ../conf/etf) ]\n");
+}
 
 int main(int argc, char *argv[])
 {
 	FILE *fpD31;
-	int iIdleWaitMilli=10,iWriteFlag=1;//,iContinueFlag=false;
-	int iShBusyDelay=12000,iShDelay=3000;//,iSzBusyDelay=12000,iSzDelay=2000;
+	int iIdleWaitMilli=10,iWriteFlag=1;
+	int iBusyDelay=12000,iDelay=3000;
 	int nBgnActionDay,nBgnTime,nPreT0,nT0,nEndTime0;
-	int iMktRes,iTraRes,iOrdRes;
+	int iMktRes,iTraRes,iOrdRes,iCnt=0,iTotalCnt=0;
 
-	char sCurTime[15],sCalcDate[15],sCalcBgn[15];
+	char sCurTime[15],sCalcDate[15],sCalcBgn[15],sMSec[4];
 	char sDelayStr[256],sCodeStr[512],sD31Name[512],sSourcePath[512],sWorkRoot[512];
 	char sMktName[512],sTraName[512],sOrdName[512],sEtfList[512],sEtfPath[512];
 
-	time_t tBeginTime,tEndTime,tDelTime;
+	time_t tBeginTime,tEndTime;
 	//当前文件处理位置
 	long lMktCurPos=0,lTraCurPos=0,lOrdCurPos=0;
 
@@ -405,7 +420,6 @@ int main(int argc, char *argv[])
 	strncpy(sCalcDate,sCurTime,8);sCalcDate[8]=0;
 	strcpy(sCalcBgn,sCurTime+8);
 	strcpy(sSourcePath,	"/stock/work");
-//	iMaxWaitSec=20;
 	strcpy(sWorkRoot,	"/stock/work");
 	strcpy(sCodeStr,"");
 	strcpy(sDelayStr,"");
@@ -429,34 +443,27 @@ int main(int argc, char *argv[])
 		case 'E':strcpy(sEtfPath, optarg);	break;
 		case '?':
 		default:
-			printf("Usage: %s \n", argv[0]);
-			printf("   [-d calc-date (yyyymmdd =8Bytes def=curdate) ]\n");
-			printf("   [-b begin-time (HH24MISS =6Bytes def=curtime) ]\n");
-			printf("   [-m max-delay-sec (def=20) ]\n");
-			printf("   [-s source-path (def=/stock/work) ]\n");
-			printf("   [-o work-root-name (def=/stock/work) ]\n");
-			printf("   [-e delay str 'b,i:b:i' ]\n");
-			printf("   [-t idlewaitmilli \n");
-			printf("   [-w writeflag (1,zbzd 2,ext 3,bin info) \n");
-			printf("   [-l codelist (e.g \"000001,603912,002415\") ]\n");
-			printf("   [-L etflist (e.g \"510050,510180,510300,510500\") ]\n");
-			printf("   [-E etfpath (e.g ../conf/etf) ]\n");
+			PrintUsage(argv);
 			exit(1);
 			break;
 		}
 	}
 
+	if(argc==1){
+		PrintUsage(argv);
+		exit(1);
+	}
 	//解析delay串，生成上海和深圳总的时延参数
 	if(strlen(sDelayStr)!=0){
 		char *p0;
 
-		if((p0=strchr(sDelayStr,','))==NULL){
-			printf("-e =%s 格式非法,正确格式如 '12000,1000:6000,900'.\n",sDelayStr);
+		if((p0=strchr(sDelayStr,':'))==NULL){
+			printf("-e =%s 格式非法,正确格式如 '12000:1000'.\n",sDelayStr);
 			return -1;
 		}
 		p0++;
-		iShBusyDelay=	atoi(sDelayStr);
-		iShDelay=	atoi(p0);
+		iBusyDelay=	atoi(sDelayStr);
+		iDelay=		atoi(p0);
 	}
 	
 	//加载ETF参数数据到内存中
@@ -491,10 +498,12 @@ int main(int argc, char *argv[])
 
 		//为了避免订单数据迟到,订单超前取20秒，在收盘最后一笔，手工设置时延
 		if(IsBusyTime(nT0)){
-			nEndTime0=iAddMilliSec(nT0,iShBusyDelay+20000);
-			if(nT0==MY_CLOSE_MARKET_TIME) nEndTime0=MY_CLOSE_MARKET_TIME+1000000;
+			nEndTime0=iAddMilliSec(nT0,iBusyDelay+20000);
+			if(nT0==MY_CLOSE_MARKET_TIME)	nEndTime0=MY_CLOSE_MARKET_TIME+1000000;
+			if(nT0==MY_OPEN_MARKET_TIME)	nEndTime0=iAddMilliSec(MY_PRE_OPEN_TIME,iBusyDelay);
+			
 		}
-		else	nEndTime0=iAddMilliSec(nT0,iShDelay+20000);
+		else	nEndTime0=iAddMilliSec(nT0,iDelay+20000);
 
 			
 		//加载深圳订单数据
@@ -502,9 +511,11 @@ int main(int argc, char *argv[])
 			nEndTime0,sizeof(long long)+sizeof(TDF_ORDER),sCodeStr,&lOrdCurPos);
 		if(iOrdRes<0) return -1;
 
-		if(IsBusyTime(nT0))
-			nEndTime0=iAddMilliSec(nT0,iShBusyDelay);
-		else	nEndTime0=iAddMilliSec(nT0,iShDelay);
+		if(IsBusyTime(nT0)){
+			nEndTime0=iAddMilliSec(nT0,iBusyDelay);
+			if(nT0==MY_OPEN_MARKET_TIME)	nEndTime0=iAddMilliSec(MY_PRE_OPEN_TIME,iBusyDelay);
+		}
+		else	nEndTime0=iAddMilliSec(nT0,iDelay);
 			
 		//加载深圳、和上海的交易数据
 		iTraRes=MountTrsData2IndexStatArray(sTraName,nBgnActionDay,nPreT0,nT0,
@@ -512,16 +523,17 @@ int main(int argc, char *argv[])
 		if(iTraRes<0) return -1;
                           
 		
-		if(IsBusyTime(nT0))
-			nEndTime0=iAddMilliSec(nT0,iShBusyDelay);
-		else	nEndTime0=iAddMilliSec(nT0,iShDelay);
+		if(IsBusyTime(nT0)){
+			nEndTime0=iAddMilliSec(nT0,iBusyDelay);
+			if(nT0==MY_OPEN_MARKET_TIME)	nEndTime0=iAddMilliSec(MY_PRE_OPEN_TIME,iBusyDelay);
+		}
+		else	nEndTime0=iAddMilliSec(nT0,iDelay);
 
 
 		iMktRes=MountQuotation2IndexStatArray(sMktName,nBgnActionDay,nPreT0,nT0,
 			nEndTime0,sizeof(long long)+sizeof(TDF_MARKET_DATA),sCodeStr,&lMktCurPos);
 		if(iMktRes<0) return -1;
 
-//next_step_all:
 		//如果两个成交时间都未达到统计点，
 		//死等数据到来，没到来扫描数据一下；
 		if(iTraRes!=MY_WANT_STAT){
@@ -548,18 +560,14 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		int nCur=nGetHostCurTime();
-		
-		printf("hello world trar=%d,trap=%ld,ordr=%d,ordp=%ld,\tcur=%d,ms=%d.\n",
-			iTraRes,lTraCurPos,iOrdRes,lOrdCurPos,nCur/1000,nCur%1000);
-
 		//做一个循环将D31的数据统计出来
 		if(GenD31StatAll()<0) return -1;
 
 		//将D31的数据生成文件
-		if(WriteD31StatAll(fpD31,sCodeStr,iWriteFlag)<0) return -1;
+		if((iCnt=WriteD31StatAll(fpD31,sCodeStr,iWriteFlag))<0) return -1;
 
-//		printf("hello world tp=%d,tc=%d.\n",nPreT0,nT0);
+		//做一个输出记录数统计
+		iTotalCnt+=iCnt;
 
 		nPreT0=nT0;
 
@@ -572,56 +580,22 @@ int main(int argc, char *argv[])
 		else	//正常时段1秒扫描一次
 			nT0=iAddMilliSec(nT0,1000);
 
-		//将下一个时间端的ORDER合并到当前树和链表中，
-		//如果订单时间超过nT0则将订单保留在原链表中
-//		if(MoveS1O2M_ORDERAll(nT0)<0) return -1;
-
-		//将下一个时间段的Transaction合并到当前链表中
-		//如果Transaction时间大于nT0则，继续保留在原链表里
-		//将下一个时间段的Quotation合并到当前链表中
-//		MoveS1X2S0XAll(nPreT0,nT0);
-
+		//将所有预加载的T0之前的数据，放到统计缓存中
 		if(AddPreT0Data2Ready(nPreT0,nT0)<0) return -1;
 
-
-		//将肯定关闭的ORDER清出内存
-		//设置为保留三分钟,只有非忙时的情况再处理
-
-		tDelTime=tGetHostTime();
-
-		int iAskMaxCnt=0,iCnt=0;	//ASK_MAX树的节点数
-		int iBidMaxCnt=0;		//BID_MAX树的节点数
-		int iS0OCnt=0;			//M_ORDER树的节点数
-		int iFreeS0OCnt=0;		//释放掉的S0O数据
-/*
-		if(!IsBusyTime(nT0)){
-			nLastTime=iAddMilliSec(nT0,-1000*60*5);
-			pIndexStat=INDEX_HEAD;
-			while(pIndexStat!=NULL){
-
-				if(IsStopTime(nT0))
-					DeleteCloseOrder(pIndexStat,nLastTime);
-
-				iAskMaxCnt+=	pIndexStat->iAskMaxCnt;
-				iBidMaxCnt+=	pIndexStat->iBidMaxCnt;
-				iS0OCnt+=	pIndexStat->iS0OCnt;
-				iFreeS0OCnt+=	pIndexStat->iFreeS0OCnt;
-				iCnt++;
-
-				pIndexStat=pIndexStat->pNext;
-			}
-		}
-*/
 		tEndTime=tGetHostTime();
 
-		printf("hello world tp=%d,tc=%d.cost=%ld,%ld\t%d\t%d\t%d\t%d\t%d\n",
-			nPreT0,nT0,tEndTime-tBeginTime,tEndTime-tDelTime,
-			iCnt,iAskMaxCnt,iBidMaxCnt,iS0OCnt,iFreeS0OCnt);
-
+		GetHostTimeX(sCurTime,sMSec);
+		printf("%s.%s tp=%d,tc=%d.cost=%ld count=%d\n",
+			sCurTime,sMSec,nPreT0,nT0,tEndTime-tBeginTime,iTotalCnt);
 	}
 
 	fclose(fpD31);
 
-	printf("hello world.\n");
+	GetHostTimeX(sCurTime,sMSec);
+	
+	printf("%s.%s tp=%d,tc=%d INDEX STAT COMPLETE allcount=%d\n",
+		sCurTime,sMSec,nPreT0,nT0,iTotalCnt);
+
 	return 0;
 }

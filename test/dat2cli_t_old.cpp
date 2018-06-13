@@ -3,7 +3,7 @@
 #include <time.h>
 #include <errno.h>
 
-#include "Dat2ClientMain.h"
+#include "dat2cli_t_old.h"
 
 using namespace std;
 
@@ -11,87 +11,15 @@ extern int errno;
 static TcpSocket *g_pTcpSocket = NULL; //Tcp传输器
 
 int iMyPid=0;
+char sLogTime[15],sMSec[4];
+int (*Write2CliFile)(char sWorkRoot[],char sUserName[],string &str);
 
-//将bizCode和pbmsg信息打包成为串 格式：2字节长度+1字节bizCode+pb->SerializeToString结果，长度为 1字节+序列化串
-void addBizcode(string &output, const google::protobuf::Message &pbmsg, BizCode bizCode)
-{
-	string msg;
-
-	pbmsg.SerializeToString(&msg);
-
-	char strBizCode[2] = { 0 };
-
-	strBizCode[0] = bizCode;
-	output = string(strBizCode) + msg;
-
-	uint16_t networkLenBody = uint16_t(htons(output.size()));
-
-	char sLen[3]={0};
-
-	sLen[0] = ((char*)&networkLenBody)[0];
-	sLen[1] = ((char*)&networkLenBody)[1];
-	output.insert(0,sLen,2);
-}
-
-//将msgInput的第一个字段取出，作为bizCode后面的串作为pbmsg
-void getBizcode(BizCode &bizCode, string &pbmsg, const string &msgInput)
-{
-	bizCode = BizCode((unsigned char) (msgInput[0]));
-	pbmsg = msgInput.substr(1, string::npos);
-}
+#include "dat2cli_supp.h"
 
 void startIosThread(boost::asio::io_service *pio)
 {
 	pio->run();
 }
-void disp_buf2(char *buf, int size)
-{
-	int i;
-
-	printf("buf [%d] start:", size);
-	for (i = 0; i < size; i++){
-		if (i % 16 == 0) printf("\n");
-		printf("%02X ", buf[i] & 0xff);
-	}
-	printf("\nbuf end\n\n");
-}
-void MyBin2HexStr(char *buf,int len,char sTemp[])
-{
-	int l=0;
-	
-	for(int i=0;i<len;i++){
-		if(l==0)
-			l+=sprintf(sTemp,"%02X",buf[i] & 0xff);
-		else	l+=sprintf(sTemp+l," %02X",buf[i] & 0xff);
-		if(l>=253) break;
-	}
-}
-
-char sLogTime[15],sMSec[4];
-
-int GetHostTimeX(char sHostTime[15],char sMiniSec[4])
-{
-	struct tm *tm;
-	struct timeval t;
-	time_t tHostTime;
-
-	strcpy(sMiniSec,"");
-
-	if(gettimeofday(&t,NULL)==-1) return -1;
-
-	tHostTime=(time_t)(t.tv_sec);
-	if((tm=(struct tm*)localtime(&tHostTime))==NULL) return -1;
-
-	if(strftime(sHostTime,15,"%Y%m%d%H%M%S",tm)==(size_t)0)	return -1;
-
-	sprintf(sMiniSec,"%03ld",t.tv_usec/1000);
-
-	return 0;
-}
-
-bool Dat2Client::m_bReadSysMq = true;
-bool Dat2Client::m_bExitFlag = false;
-
 void signalProcess(int isignal)
 {
 	if (isignal == SIGUSR1){
@@ -109,11 +37,27 @@ void signalProcess(int isignal)
 	}
 	exit(0);
 }
+void SetProcessSignal()
+{
+	// 设置信号处理
+	signal(SIGQUIT, signalProcess);
+	signal(SIGTERM, signalProcess);
+	signal(SIGINT, signalProcess);
+	signal(SIGSEGV, signalProcess);
+	signal(SIGILL, signalProcess);
+	signal(SIGABRT, signalProcess);
+	signal(SIGFPE, signalProcess);
+	signal(SIGPIPE, signalProcess);
+
+	signal(SIGUSR1, signalProcess);
+}
+
+bool Dat2Client::m_bReadSysMq = true;
+bool Dat2Client::m_bExitFlag = false;
+
 
 Dat2Client::Dat2Client()
 {
-	m_iSemLockKey = 0;
-
 	memset(m_sUserPrivJsonPath, 0, sizeof(m_sUserPrivJsonPath));
 	memset(m_sOutDispJsonPath, 0, sizeof(m_sOutDispJsonPath));
 	memset(m_sCfgJsonPath, 0, sizeof(m_sCfgJsonPath));
@@ -124,14 +68,8 @@ Dat2Client::Dat2Client()
 
 	strcpy(m_sWorkRootPath,"/stock/work");
 
-	m_iPort = 0; 		//侦听端口
-	m_iSocketSendLen = 8096;
-	m_iSocketRecvLen = 8096;
-	m_iSysMqKey = 0;
-	m_iSysMqMaxLen = 0;
-	m_iSysMqMaxNum = 0;
+	bzero((void*)&m_Info,sizeof(ServerInfo_t));
 
-	m_iDebugFlag = 0;
 	m_iCheckIp = 0;
 	m_iSetSocketFlag = 0;
 	m_iPid = 0;
@@ -142,34 +80,28 @@ Dat2Client::Dat2Client()
 	m_pTimerController = NULL;
 	m_pThread = NULL;
 
-	m_mapPrivl.clear();
-	m_secHeartbeat = 0;
-	m_sUserName = "";
-	m_allCodes.clear();
-	m_Subscribed.clear();
-	m_iMqID = 0;
-	m_subSomeCodes = false;
-	m_codes.clear();
+	m_mapUserAuth.clear();
 
-#ifdef DEBUG_ONE
-	m_lRecvNum = 0;
-	m_lSendNum = 0;
-	m_mapBizStat.clear();
-#endif
+	m_Conn.setAllSubs.clear();
+	m_Conn.setSubscribed.clear();
+	m_Conn.setSubsCode.clear();
+
+	m_Conn.strUserName = "";
+	m_Conn.iMqId = 0;
+
+	m_Conn.lRecvCnt=0;
+	m_Conn.lSendCnt=0;
+	m_Conn.mapSubsStat.clear();
 }
 
 Dat2Client::~Dat2Client()
 {
 	m_io.stop();
 
-	m_mapPrivl.clear();
+	m_mapUserAuth.clear();
 	if (m_poSysMQ != NULL){
 		delete m_poSysMQ;
 		m_poSysMQ = NULL;
-	}
-	if (m_poDataLock != NULL){
-		delete m_poDataLock;
-		m_poDataLock = NULL;
 	}
 	if (m_pTimerController != NULL){
 		delete m_pTimerController;
@@ -186,8 +118,8 @@ Dat2Client::~Dat2Client()
 bool Dat2Client::isValidHost(const char *sIp)
 {
 	//sIp验证
-	for (auto it = m_mapPrivl.begin(); it != m_mapPrivl.end(); ++it){
-		if (!strcmp(it->second.m_sIp.c_str(), sIp))
+	for (auto it = m_mapUserAuth.begin(); it != m_mapUserAuth.end(); ++it){
+		if (!strcmp(it->second.strIp.c_str(), sIp))
 			return true;
 	}
 	return false;
@@ -195,88 +127,36 @@ bool Dat2Client::isValidHost(const char *sIp)
 
 int Dat2Client::Init()
 {
-	ptree tree;
 
-	//读取系统配置信息
-	read_json(m_sCfgJsonPath, tree);
-	m_iSemLockKey = tree.get<int>("SemLockKey");
+	if(ReadServerInfo(m_sCfgJsonPath,m_Info)<0) return -1;
 
-	m_iPort = 		tree.get<int>("Port");
-	m_iSocketSendLen = 	tree.get<int>("SocketSendLen");
-	m_iSocketRecvLen = 	tree.get<int>("SocketRecvLen");
-	m_iSysMqKey = 		tree.get<int>("SysMqID");
-	m_iSysMqMaxLen = 	tree.get<int>("SysMqMaxLen");
-	m_iSysMqMaxNum = 	tree.get<int>("SysMqMaxNum");
-	m_secHeartbeat = 	tree.get<int>("heartbeat");
 
-	m_poSysMQ = new MessageQueue(m_iSysMqKey);
-	if (!m_poSysMQ)
-		throw "error";
-	m_poSysMQ->open(false, true, m_iSysMqMaxLen, m_iSysMqMaxNum);
+	m_poSysMQ = new MessageQueue(m_Info.iSysMqKey);
+	if (!m_poSysMQ){
+		string msg="error create mq id="+to_string(m_Info.iSysMqKey);
+		throw msg;
+	}
+
+	m_poSysMQ->open(false, true, m_Info.iSysMqMaxLen, m_Info.iSysMqMaxNum);
 
 	char sSemName[32];
 
-	sprintf(sSemName, "%d", m_iSemLockKey);
-	m_poDataLock = new CSemaphore();
-	m_poDataLock->getSem(sSemName, 1, 1);
-
-	read_json(m_sUserPrivJsonPath, tree);
-
-	Privilege prl;
-	ptree ptreePrivl;
-
-	for (auto it = tree.begin(); it != tree.end(); ++it){
-
-		auto each = it->second;
-
-		prl.m_sUser = each.get < string > ("user");
-		prl.m_sIp = each.get < string > ("ip");
-		prl.password = each.get < string > ("pswd");
-		prl.m_iMqID = each.get<int>("mqid");
-		ptreePrivl = each.get_child("privl");
-
-		for (auto it2 = ptreePrivl.begin(); it2 != ptreePrivl.end(); ++it2)
-			prl.privl.insert(it2->second.get_value<int>());
-
-		m_mapPrivl.insert( { prl.m_sUser, prl });
-		prl.privl.clear();
-	}
+	sprintf(sSemName, "%d", m_Info.iSemLockKey);
+	m_semLock.getSem(sSemName, 1, 1);
+	
+	if(ReadUserAuth2Map(m_sUserPrivJsonPath,m_mapUserAuth)<0) return -1;
 
 	return 0;
-}
-
-int Dat2Client::diffTimeStr(char *curr_time_str, const char *last_time_str)
-{
-	int diff_time,curr_fraction, last_fraction;
-	struct tm curr_tm, last_tm;
-	time_t last_time, curr_time;
-
-	sscanf(curr_time_str, "%d-%d-%d %d:%d:%d.%d", &curr_tm.tm_year, &curr_tm.tm_mon, &curr_tm.tm_mday,
-		&curr_tm.tm_hour, &curr_tm.tm_min, &curr_tm.tm_sec, &curr_fraction);
-	curr_tm.tm_year -= 1900;
-	curr_time = mktime(&curr_tm);
-
-	sscanf(last_time_str, "%d-%d-%d %d:%d:%d.%d", &last_tm.tm_year, &last_tm.tm_mon, &last_tm.tm_mday,
-		&last_tm.tm_hour, &last_tm.tm_min, &last_tm.tm_sec, &last_fraction);
-	last_tm.tm_year -= 1900;
-	last_time = mktime(&last_tm);
-
-	diff_time = (curr_time - last_time) * 1000 + (curr_fraction - last_fraction) / 1000;
-
-	return diff_time;
 }
 
 int Dat2Client::run(int argc, char *argv[])
 {
 	SetProcessSignal();
-	for (int c; (c = getopt(argc, argv, "c:p:d:k:r:u:o:w:?:")) != EOF;){
+	for (int c; (c = getopt(argc, argv, "c:p:k:r:u:o:w:?:")) != EOF;){
 		switch (c)
 		{
 		case 'c':
 			m_iCheckIp = atoi(optarg);
-			break;
-		case 'd':
-			m_iDebugFlag = atoi(optarg);
 			break;
 		case 'k':
 			m_iSetSocketFlag = atoi(optarg);
@@ -328,7 +208,7 @@ int Dat2Client::run(int argc, char *argv[])
 
 	while (true){
 
-		ret = g_pTcpSocket->listen(m_iPort, remoteaddr);
+		ret = g_pTcpSocket->listen(m_Info.iPort, remoteaddr);
 		if (ret < 0 && ret != -2) return -1;
 
 		sleep(1);
@@ -352,11 +232,11 @@ int Dat2Client::run(int argc, char *argv[])
 		printf("%s.%s IP:%s;接入成功.\n",sLogTime,sMSec,sDestIp);
 
 		if (m_iSetSocketFlag){
-			if (m_iSocketSendLen > 0)
-				g_pTcpSocket->setSocketBufferLen(true, m_iSocketSendLen);
+			if (m_Info.iSocketSendLen > 0)
+				g_pTcpSocket->setSocketBufferLen(true, (int&)m_Info.iSocketSendLen);
 
-			if (m_iSocketRecvLen > 0)
-				g_pTcpSocket->setSocketBufferLen(false, m_iSocketRecvLen);
+			if (m_Info.iSocketRecvLen > 0)
+				g_pTcpSocket->setSocketBufferLen(false,(int&) m_Info.iSocketRecvLen);
 		}
 
 		//int m_iPid; //收发进程记录与它配对应的PID 主进程记录为0
@@ -387,7 +267,7 @@ int Dat2Client::run(int argc, char *argv[])
 				
 				GetHostTimeX(sLogTime,sMSec);
 				printf("%s.%s CLICMD EXIT user=%s(%s:%d-p-%d) code=%d.\n",
-					sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid(),ret);
+					sLogTime,sMSec,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid(),ret);
 					
 				break;
 			default://转发MQ数据到客户端SOCK连接进程
@@ -400,16 +280,13 @@ int Dat2Client::run(int argc, char *argv[])
 
 				GetHostTimeX(sLogTime,sMSec);
 				printf("%s.%s RECVMQ EXIT user=%s(%s:%d-p-%d) code=%d.\n",
-					sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid(),ret);
+					sLogTime,sMSec,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid(),ret);
 				break;
 			}
 
-			if (m_iDebugFlag)
-				printf("exit child process [%d]\n", getpid());
 			return 0;
 			break;
 		default:
-			//startMonitorMq();
 			g_pTcpSocket->Close();
 			break;
 		}
@@ -432,7 +309,7 @@ int Dat2Client::RecvCliSockRequestAndProcess(char sDestIp[],int iPort)
 
 	GetHostTimeX(sLogTime,sMSec);
 	printf("%s.%s CLICMD process start user=%s(%s:%d-p-%d).\n",
-		sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
+		sLogTime,sMSec,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid());
 
 	memset(m_sRecvBuffer, 0, sizeof(m_sRecvBuffer));
 
@@ -445,7 +322,7 @@ int Dat2Client::RecvCliSockRequestAndProcess(char sDestIp[],int iPort)
 		while(recv_len < msg_len){
 			if ((ret = g_pTcpSocket->read((data + recv_len), msg_len - recv_len)) <= 0){
 				printf("%s.%s user=%s(%s:%d-p-%d) READ ERROR code=%d.\n",
-					sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid(),ret);
+					sLogTime,sMSec,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid(),ret);
 
 				return ERROR_TRANSPORT;
 			}
@@ -464,7 +341,7 @@ int Dat2Client::RecvCliSockRequestAndProcess(char sDestIp[],int iPort)
 #ifdef DEBUG_ONE
 		GetHostTimeX(sLogTime,sMSec);
 		printf("%s.%s user=%s(%s:%d-p-%d) Recv BizCode[%d]Msg_Len[%d].\n",
-			sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid(),(int)data[3],msg_len);
+			sLogTime,sMSec,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid(),(int)data[3],msg_len);
 #endif
 
 		//得到有效的消息长度后，则读取整个消息
@@ -484,86 +361,13 @@ int Dat2Client::RecvCliSockRequestAndProcess(char sDestIp[],int iPort)
 
 		if(dealCommand(msg,sDestIp,iPort)==false){
 			printf("%s.%s user=%s(%s:%d-p-%d) PROCESS CMD ERROR.\n",
-				sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
+				sLogTime,sMSec,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid());
 
 			return ERROR_TRANSPORT;
 		}
 	}
 	return SUCC;
 }
-int UserInWriteUser(char sUserName[],char sWriteUser[])
-{
-	char sTmpUser[MAX_PATH];
-	char *pBgn,*pCur;
-	
-	//如果没有输出列表，则不输出
-	if(sWriteUser[0]==0) return 0;
-
-	strcpy(sTmpUser,sWriteUser);
-	
-	pBgn=sTmpUser;
-	
-	pCur=strchr(pBgn,':');
-	
-	while(1){
-		if(pCur==NULL) break;
-
-		*pCur=0;
-		if(strcmp(sUserName,pBgn)==0) return true;
-		
-		//跳过':'号
-		pBgn=pCur+1;
-		pCur=strchr(pBgn,':');
-	}
-
-	//严格完全匹配呀
-	if(strcmp(sUserName,pBgn)==0) return true;
-	return false;
-}
-FILE *fpOut;
-char sOutFileName[MAX_PATH];
-
-int MyWrite2CliFile(char sWorkRoot[],char sUserName[],string &str)
-{
-	//只考虑linux了，long long 太难看了
-	long lCurTime;
-	static int iFirstFlag=true;
-	
-	char sHostTime[15],sMiniSec[4];
-	
-	GetHostTimeX(sHostTime,sMiniSec);
-
-	if(iFirstFlag){
-		iFirstFlag=false;
-		char sTmpDate[9];
-		strncpy(sTmpDate,sHostTime,8);sTmpDate[8]=0;
-		
-		sprintf(sOutFileName,"%s/%s_%s.dat",sWorkRoot,sUserName,sTmpDate);
-		
-		fpOut=	fopen(sOutFileName,"ab+");
-		
-		if(fpOut==NULL){
-			printf("open file %s for write error.\n",sOutFileName);
-			return -1;
-		}
-	}
-	lCurTime=atol(sHostTime)*1000+atol(sMiniSec);
-	
-	if(fwrite((const void*)&lCurTime,sizeof(lCurTime),1,fpOut)!=1){
-		printf("write file %s error pos1.\n",sOutFileName);
-		return -1;
-	}
-	if(fwrite((const void*)str.c_str(),str.size(),1,fpOut)!=1){
-		printf("write file %s error pos2.\n",sOutFileName);
-		return -1;
-	}
-
-	fflush(fpOut);
-
-	return 0;
-}
-int (*Write2CliFile)(char sWorkRoot[],char sUserName[],string &str);
-
 int Dat2Client::RecvMqAndDisp2Cli(char sDestIp[],int iPort)
 {
 	int iRet = 0,iDataMqID = 0,iCount=0;
@@ -571,7 +375,7 @@ int Dat2Client::RecvMqAndDisp2Cli(char sDestIp[],int iPort)
 
 	GetHostTimeX(sLogTime,sMSec);
 	printf("%s.%s RECVMQ process user=%s(%s:%d-p-%d).\n",
-		sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
+		sLogTime,sMSec,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid());
 
 	while (!Dat2Client::m_bExitFlag){
 
@@ -586,15 +390,15 @@ int Dat2Client::RecvMqAndDisp2Cli(char sDestIp[],int iPort)
 				if (!m_poDataMQ)
 					throw "error";
 
-				m_poDataMQ->open(false, true, m_iSysMqMaxLen, m_iSysMqMaxNum);
+				m_poDataMQ->open(false, true, m_Info.iSysMqMaxLen, m_Info.iSysMqMaxNum);
 
 				//从系统消息队列中拿到用户名
 				char *pUserName=strchr((char*)strRecv.c_str(),',');
 				if(pUserName==NULL) return ERROR_TRANSPORT;
 
-				m_sUserName=string(pUserName+1);
+				m_Conn.strUserName=string(pUserName+1);
 
-				if(UserInWriteUser((char*)m_sUserName.c_str(),m_sWriteUser))
+				if(UserInWriteUser((char*)m_Conn.strUserName.c_str(),m_sWriteUser))
 					Write2CliFile=MyWrite2CliFile;
 				else	Write2CliFile=NULL;
 				continue;
@@ -613,29 +417,31 @@ int Dat2Client::RecvMqAndDisp2Cli(char sDestIp[],int iPort)
 		}
 
 		//做一个统计信息输出到终端
-		m_lRecvNum++;
-		BizCode bizCode = BizCode((unsigned char) (strRecv[2]));
-		m_mapBizStat[bizCode]++;
+		
+		m_Conn.lRecvCnt++;
+		
+		int iSubs=(int)((unsigned char) (strRecv[2]));
+		
+		m_Conn.mapSubsStat[iSubs]++;
 
-		if(m_lRecvNum%3000==0){
+		if((m_Conn.lRecvCnt)%3000==0){
 
 			int l=0;
 			char sTmp[256];
-
-			map<BizCode,long>::iterator iter;//定义一个迭代指针iter
 				
 			strcpy(sTmp,"");
 
 			GetHostTimeX(sLogTime,sMSec);
 
-			for(iter=m_mapBizStat.begin(); iter!=m_mapBizStat.end(); iter++){
+			for(auto it=m_Conn.mapSubsStat.begin(); it!=m_Conn.mapSubsStat.end(); it++){
 				if(l==0)
-					l+=sprintf(sTmp,"[%d:%d]",(int)iter->first,(int)iter->second);
-				else	l+=sprintf(sTmp+l,"\t[%d:%d]",(int)iter->first,(int)iter->second);
+					l+=sprintf(sTmp,"[%d:%ld]",	it->first,it->second);
+				else	l+=sprintf(sTmp+l,"\t[%d:%ld]",	it->first,it->second);
 			}
 
 			printf("%s.%s pid=%d user=%s(%s:%d-p-%d)sendcnt=%ld{%s}\n",
-				sLogTime,sMSec,getpid(),m_sUserName.c_str(),sDestIp,iPort,getpid(),m_lRecvNum,sTmp);
+				sLogTime,sMSec,getpid(),m_Conn.strUserName.c_str(),
+				sDestIp,iPort,getpid(),m_Conn.lRecvCnt,sTmp);
 		}
 
 		unsigned char *data = (unsigned char*)m_sSendBuffer;
@@ -652,7 +458,7 @@ int Dat2Client::RecvMqAndDisp2Cli(char sDestIp[],int iPort)
 		}
 
 		if(Write2CliFile!=NULL){
-			if(Write2CliFile(m_sWorkRootPath,(char*)m_sUserName.c_str(),strRecv)<0)
+			if(Write2CliFile(m_sWorkRootPath,(char*)m_Conn.strUserName.c_str(),strRecv)<0)
 				return ERROR_TRANSPORT;
 		}
 		if(((++iCount)%30000)==0)
@@ -661,20 +467,6 @@ int Dat2Client::RecvMqAndDisp2Cli(char sDestIp[],int iPort)
 	return SUCC;
 }
 
-void Dat2Client::SetProcessSignal()
-{
-	// 设置信号处理
-	signal(SIGQUIT, signalProcess);
-	signal(SIGTERM, signalProcess);
-	signal(SIGINT, signalProcess);
-	signal(SIGSEGV, signalProcess);
-	signal(SIGILL, signalProcess);
-	signal(SIGABRT, signalProcess);
-	signal(SIGFPE, signalProcess);
-	signal(SIGPIPE, signalProcess);
-
-	signal(SIGUSR1, signalProcess);
-}
 
 bool Dat2Client::dealCommand(string &msg,char sDestIp[],int iPort)
 {
@@ -697,74 +489,72 @@ bool Dat2Client::dealCommand(string &msg,char sDestIp[],int iPort)
 		string msgRep,msgBody;
 
 		const string pswdInput = req.password();
-		const auto itPrivl = m_mapPrivl.find(req.name());
+		const auto itAuth = m_mapUserAuth.find(req.name());
 
-		m_sUserName = req.name();
+		m_Conn.strUserName = req.name();
 
 		GetHostTimeX(sLogTime,sMSec);
 		printf("%s.%s Recv LOGIN_REQ user=%s(%s:%d-p-%d) passwd=%s.\n",
-			sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid(),pswdInput.c_str());
-		disp_buf2((char*)(msg.c_str()),msg.size());
+			sLogTime,sMSec,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid(),pswdInput.c_str());
+		PrintHexBuf((char*)(msg.c_str()),msg.size());
 
-		m_iMqID = itPrivl->second.m_iMqID;
+		m_Conn.iMqId = itAuth->second.iMqId;
 
 		rep.set_err(errcode);
 		//先查询用户名是否有效,无效则返回客户端
-		if (itPrivl == m_mapPrivl.cend()){
+		if (itAuth == m_mapUserAuth.cend()){
 			rep.set_desc("user_invalid");
 			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
 			g_pTcpSocket->send((unsigned char *) msgBody.data(), msgBody.size());
 			bret = false;
 			printf("%s.%s LOGIN_REP invalid user=%s(%s:%d-p-%d).\n",
-				sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
+				sLogTime,sMSec,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid());
 
 			break;
 		}
 		//如果已经登录则，回复已经登录信息
-		if(isLogined(m_sUserName)){
+		if(isLogined(m_Conn.strUserName)){
 			rep.set_desc("user_have_logined");
 			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
 			g_pTcpSocket->send((unsigned char *) msgBody.data(), msgBody.size());
 			bret = false;
 			printf("%s.%s LOGIN_REP user logined user=%s(%s:%d-p-%d).\n",
-				sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
+				sLogTime,sMSec,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid());
 			break;
 		}
 		//密码错误，则将密码错误信息返回客户端
-		if(itPrivl->second.password != req.password()){
+		if(itAuth->second.strPassword != req.password()){
 			rep.set_desc("pswd_error");
 			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
 			g_pTcpSocket->send((unsigned char *) msgBody.data(), msgBody.size());
 			bret = false;
 
 			printf("%s.%s LOGIN_REP passwd error user=%s(%s:%d-p-%d).\n",
-				sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
+				sLogTime,sMSec,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid());
 			break;
 		}
 
 		//用户，密码验证通过了再发送mqid给接收进程
 		char sMsg[128];
-		sprintf(sMsg, "%d,%s", m_iMqID,m_sUserName.c_str());
+		sprintf(sMsg, "%d,%s", m_Conn.iMqId,m_Conn.strUserName.c_str());
 		string tmpStr=sMsg;
 		m_poSysMQ->send(tmpStr, getpid());
 
 		//如果密码验证也通过，则将心跳代码加入
 		if(!m_pTimerController){
 			//启动定时器
-			m_pTimerController  = new TimerController(m_io,boost::bind(&Dat2Client::handleTimeOut,this),m_secHeartbeat*2);
-			//std::thread([this]{ m_io.run(); });
-			//std::thread trd(startIosThread,&m_io);
+			m_pTimerController  = new TimerController(m_io,boost::bind(&Dat2Client::handleTimeOut,this),m_Info.iHeartBeat*2);
 			m_pThread = new std::thread(startIosThread,&m_io);
 			m_pThread->detach();
 		}
 		else{
-			m_pTimerController->resetTimer(m_secHeartbeat*2);
+			m_pTimerController->resetTimer(m_Info.iHeartBeat*2);
 		}
 
-		//如果密码验证也通过，并在返回成功后，再返回客户端m_allCodes信息【pb格式】
+		//如果密码验证也通过，并在返回成功后，再返回客户端allsubs信息【pb格式】
 		rep.set_err(ErrCode::SUCCESS);
 		char tmp[6];
-		sprintf(tmp, "%u", m_secHeartbeat);
+		sprintf(tmp, "%u", m_Info.iHeartBeat);
 		msgRep = tmp;
 
 		rep.set_desc(msgRep);
@@ -773,7 +563,7 @@ bool Dat2Client::dealCommand(string &msg,char sDestIp[],int iPort)
 		g_pTcpSocket->send((unsigned char *) msgBody.data(), msgBody.size());
 
 		PbCodesBroadcast pbCodesBroadcast;
-		for (const auto code : m_allCodes){
+		for (const auto code : m_Conn.setAllSubs){
 			pbCodesBroadcast.add_codes(code);
 		}
 
@@ -783,7 +573,7 @@ bool Dat2Client::dealCommand(string &msg,char sDestIp[],int iPort)
 		g_pTcpSocket->send((unsigned char *) pbMsg2.data(), pbMsg2.size());
 		
 		printf("%s.%s LOGIN_REP login SUCCESS user=%s(%s:%d-p-%d).\n",
-			sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
+			sLogTime,sMSec,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid());
 	}
 	break;
 	case SUBSCRIBLE:
@@ -797,18 +587,18 @@ bool Dat2Client::dealCommand(string &msg,char sDestIp[],int iPort)
 		GetHostTimeX(sLogTime,sMSec);
 
 		sprintf(sInfo,"Recv SUBSCRIBLE user=%s(%s:%d-p-%d) Msg:Sub_Size=%d",
-			m_sUserName.c_str(),sDestIp,iPort,getpid(),req.sub_size());
+			m_Conn.strUserName.c_str(),sDestIp,iPort,getpid(),req.sub_size());
 
 		printf("%s.%s %s.\n",sLogTime,sMSec,sInfo);
 
-		disp_buf2((char*)(msg.c_str()),msg.size());
+		PrintHexBuf((char*)(msg.c_str()),msg.size());
 		
 		//这里将改变之后的文件，全量写入到 disp.json.log文件中
 		MyBin2HexStr((char*)(msg.c_str()),msg.size(),sMsg);
-		if(LogDispJson(sInfo,sMsg,sErrMsg)==false){
+		if(LogDispJson(sInfo,sMsg,m_sOutDispJsonPath,m_sOutDispLogPath,sErrMsg)==false){
 			GetHostTimeX(sLogTime,sMSec);
 			printf("%s.%s SUBSCRIBLE %s user=%s(%s:%d-p-%d).\n",
-				sLogTime,sMSec,sErrMsg,m_sUserName.c_str(),sDestIp,iPort,getpid());
+				sLogTime,sMSec,sErrMsg,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid());
 			bret = false;
 		}
 	}
@@ -819,11 +609,11 @@ bool Dat2Client::dealCommand(string &msg,char sDestIp[],int iPort)
 
 		GetHostTimeX(sLogTime,sMSec);
 		printf("%s.%s Recv HEART_BEAT MSG user=%s(%s:%d-p-%d).\n",
-			sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
+			sLogTime,sMSec,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid());
 
-		disp_buf2((char*)(msg.c_str()),msg.size());
+		PrintHexBuf((char*)(msg.c_str()),msg.size());
 #endif
-		m_pTimerController->resetTimer(m_secHeartbeat*2);
+		m_pTimerController->resetTimer(m_Info.iHeartBeat*2);
 	}
 		break;
 	case CODES_SUB:
@@ -846,18 +636,18 @@ bool Dat2Client::dealCommand(string &msg,char sDestIp[],int iPort)
 
 		GetHostTimeX(sLogTime,sMSec);
 		sprintf(sInfo,"Recv CODES_SUB user=%s(%s:%d-p-%d) Msg:codes_size=%d",
-			m_sUserName.c_str(),sDestIp,iPort,getpid(),sz);
+			m_Conn.strUserName.c_str(),sDestIp,iPort,getpid(),sz);
 
 		printf("%s.%s %s.\n",sLogTime,sMSec,sInfo);
 
-		disp_buf2((char*)(msg.c_str()),msg.size());
+		PrintHexBuf((char*)(msg.c_str()),msg.size());
 		
 		//这里将改变之后的文件，全量写入到 disp.json.log文件中
 		MyBin2HexStr((char*)(msg.c_str()),msg.size(),sMsg);
-		if(LogDispJson(sInfo,sMsg,sErrMsg)==false){
+		if(LogDispJson(sInfo,sMsg,m_sOutDispJsonPath,m_sOutDispLogPath,sErrMsg)==false){
 			GetHostTimeX(sLogTime,sMSec);
 			printf("%s.%s CODES_SUB %s user=%s(%s:%d-p-%d).\n",
-				sLogTime,sMSec,sErrMsg,m_sUserName.c_str(),sDestIp,iPort,getpid());
+				sLogTime,sMSec,sErrMsg,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid());
 			bret = false;
 		}
 	}
@@ -868,100 +658,46 @@ bool Dat2Client::dealCommand(string &msg,char sDestIp[],int iPort)
 		
 		GetHostTimeX(sLogTime,sMSec);
 		printf("%s.%s Unknow Msg user=%s(%s:%d-p-%d).\n",
-			sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
-		disp_buf2((char*)(msg.c_str()),msg.size());
+			sLogTime,sMSec,m_Conn.strUserName.c_str(),sDestIp,iPort,getpid());
+		PrintHexBuf((char*)(msg.c_str()),msg.size());
 
 		break;
 	}
 	}
 	return bret;
 }
-#define MY_MAX_JSON_LEN	16*1024
-long lFileSize(char sFileName[])//获取文件名为filename的文件大小。
-{
-	struct stat statbuf;
-	int ret;
-	ret = stat(sFileName,&statbuf);//调用stat函数
-	if(ret != 0) return -1;//获取失败。
-	return statbuf.st_size;//返回文件大小。
-}
-bool Dat2Client::LogDispJson(char sInfo[],char sMsg[],char sErrInfo[])
-{
-	FILE *fpOut,*fpIn;
-	long lSize;
-	char sBuffer[MY_MAX_JSON_LEN];
 
-	strcpy(sErrInfo,"");
-
-	lSize=lFileSize(m_sOutDispJsonPath);
-	if(lSize>=MY_MAX_JSON_LEN){
-		sprintf(sErrInfo,"FILE %s LEN GT %d",m_sOutDispJsonPath,MY_MAX_JSON_LEN);
-		return false;
-	}
-	if((fpIn= fopen(m_sOutDispJsonPath,"r"))==NULL){
-		sprintf(sErrInfo,"OPEN %s FILE FOR READ ERROR",m_sOutDispJsonPath);
-		return false;
-	}
-
-	if(fread((void*)sBuffer,lSize,1,fpIn)!=1){
-		fclose(fpIn);
-		sprintf(sErrInfo,"READ %s FILE ERROR",m_sOutDispJsonPath);
-		return false;
-	}
-	fclose(fpIn);
-	
-	//将文件末尾加入结束符，避免将冗余内容写入日志文件
-	sBuffer[lSize]=0;
-
-	if((fpOut= fopen(m_sOutDispLogPath,"ab+"))==NULL){
-		sprintf(sErrInfo,"OPEN %s FILE FOR WRITE ERROR",m_sOutDispLogPath);
-		return false;
-	}
-
-	//拿到系统时间，并将信息写到DISPLOG文件中
-	GetHostTimeX(sLogTime,sMSec);
-	fprintf(fpOut,"%s.%s INFO:%s MSG:%s\nDISPJSON=%s ::------------END-----------\n",
-		sLogTime,sMSec,sInfo,sMsg,sBuffer);
-	
-	fclose(fpOut);
-	
-	return true;
-}
 bool Dat2Client::setSubscrible(const SubscribeRequest &req)
 {
-	if(m_sUserName.size() == 0)
+	if(m_Conn.strUserName.size() == 0)
 		return false;
 
 	if (!req.replay()){
 
-		const auto pri = m_mapPrivl.find(m_sUserName);
+		const auto pri = m_mapUserAuth.find(m_Conn.strUserName);
 		const int numSub = req.sub_size();
 		BizCode bizCodeTmp;
 
-		m_Subscribed.clear();
+		m_Conn.setSubscribed.clear();
 
 		for (int i = 0; i < numSub; ++i){
 
-			auto t=pri->second.privl;
+			auto t=pri->second.setAuth;
 
 			bizCodeTmp = BizCode(req.sub(i));
 			
 			//如果权限找到,对于D31的订购，分别找各个子项目
 			if(bizCodeTmp==D31_ITEM){
-				if(t.find(180)!=t.cend())	m_Subscribed.insert(180);
-				if(t.find(183)!=t.cend())	m_Subscribed.insert(183);
-				if(t.find(185)!=t.cend())	m_Subscribed.insert(185);
-				if(t.find(18)!=t.cend())	m_Subscribed.insert(18);
+				if(t.find(180)!=t.cend())	m_Conn.setSubscribed.insert(180);
+				if(t.find(183)!=t.cend())	m_Conn.setSubscribed.insert(183);
+				if(t.find(185)!=t.cend())	m_Conn.setSubscribed.insert(185);
+				if(t.find(18)!=t.cend())	m_Conn.setSubscribed.insert(18);
 			}
 			else{
-				if(t.find(bizCodeTmp)!=t.cend())m_Subscribed.insert((int)bizCodeTmp);
+				if(t.find(bizCodeTmp)!=t.cend())m_Conn.setSubscribed.insert((int)bizCodeTmp);
 			}
-//			if (pri->second.privl.find(bizCodeTmp) != pri->second.privl.cend()){
-//				m_Subscribed.insert(bizCodeTmp); //note去掉了4个subcode的insert
-//			}
 		}
 
-//		m_Subscribed.insert(FOR_TEST);
 		writeDispJson();
 	}
 	return true;
@@ -969,19 +705,17 @@ bool Dat2Client::setSubscrible(const SubscribeRequest &req)
 
 bool Dat2Client::addReduceCodes(const vector<uint32_t> &codes, const bool addFlag)
 {
-	if(m_sUserName.size() == 0)
+	if(m_Conn.strUserName.size() == 0)
 		return false;
-
-	m_subSomeCodes = true;
 
 	for (const auto code : codes){
 		if(addFlag)
-			m_codes.insert(code);
-		else	m_codes.erase(code);
+			m_Conn.setSubsCode.insert(code);
+		else	m_Conn.setSubsCode.erase(code);
 	}
 
 	writeDispJson();
-	m_poDataLock->V();
+	m_semLock.V();
 	return true;
 }
 
@@ -991,7 +725,7 @@ bool Dat2Client::writeDispJson()
 	char sTmp[56] = { 0 };
 	bool bfound = false;
 
-	m_poDataLock->P();
+	m_semLock.P();
 
 	ptree root, readPt, items, userparam, itemsub, itemsubcodes, root_1;
 	read_json(m_sOutDispJsonPath, readPt);
@@ -1003,27 +737,27 @@ bool Dat2Client::writeDispJson()
 		{
 			ptree p = pos.second;
 			string user = p.get < string > ("user");
-			if (user != m_sUserName)
+			if (user != m_Conn.strUserName)
 			{
 				root_1.push_back(pos);
 			}
 			else
 			{
-				userparam.put("user", m_sUserName);
-				userparam.put<int>("mqid", m_iMqID);
+				userparam.put("user", m_Conn.strUserName);
+				userparam.put<int>("mqid", m_Conn.iMqId);
 				userparam.put<int>("pid", getpid());
 
-				for (set<int>::iterator iter = m_Subscribed.begin(); iter != m_Subscribed.end(); ++iter)
+				for (auto it = m_Conn.setSubscribed.begin(); it != m_Conn.setSubscribed.end(); ++it)
 				{
-					sprintf(sTmp, "%u", *iter);
+					sprintf(sTmp, "%u", *it);
 					str = sTmp;
 					itemsub.push_back(std::make_pair("", ptree(str)));
 				}
 				userparam.put_child("subscribed", itemsub);
 
-				for (set<uint32_t>::iterator iter = m_codes.begin(); iter != m_codes.end(); ++iter)
+				for (auto it = m_Conn.setSubsCode.begin(); it != m_Conn.setSubsCode.end(); ++it)
 				{
-					sprintf(sTmp, "%u", *iter);
+					sprintf(sTmp, "%u", *it);
 					str = sTmp;
 					itemsubcodes.push_back(std::make_pair("", ptree(str)));
 				}
@@ -1034,11 +768,11 @@ bool Dat2Client::writeDispJson()
 		}
 		if (!bfound)
 		{
-			userparam.put("user", m_sUserName);
-			userparam.put<int>("mqid", m_iMqID);
+			userparam.put("user", m_Conn.strUserName);
+			userparam.put<int>("mqid", m_Conn.iMqId);
 			userparam.put<int>("pid", getpid());
 
-			for (set<int>::iterator iter = m_Subscribed.begin(); iter != m_Subscribed.end(); ++iter)
+			for (auto iter = m_Conn.setSubscribed.begin(); iter != m_Conn.setSubscribed.end(); ++iter)
 			{
 				sprintf(sTmp, "%u", *iter);
 				str = sTmp;
@@ -1046,7 +780,7 @@ bool Dat2Client::writeDispJson()
 			}
 			userparam.put_child("subscribed", itemsub);
 
-			for (set<uint32_t>::iterator iter = m_codes.begin(); iter != m_codes.end(); ++iter)
+			for (auto iter = m_Conn.setSubsCode.begin(); iter != m_Conn.setSubsCode.end(); ++iter)
 			{
 				sprintf(sTmp, "%u", *iter);
 				str = sTmp;
@@ -1061,11 +795,11 @@ bool Dat2Client::writeDispJson()
 	}
 	else
 	{
-		userparam.put("user", m_sUserName);
-		userparam.put<int>("mqid", m_iMqID);
+		userparam.put("user", m_Conn.strUserName);
+		userparam.put<int>("mqid", m_Conn.iMqId);
 		userparam.put<int>("pid", getpid());
 
-		for (set<int>::iterator iter = m_Subscribed.begin(); iter != m_Subscribed.end(); ++iter)
+		for (auto iter = m_Conn.setSubscribed.begin(); iter != m_Conn.setSubscribed.end(); ++iter)
 		{
 			sprintf(sTmp, "%u", *iter);
 			str = sTmp;
@@ -1073,7 +807,7 @@ bool Dat2Client::writeDispJson()
 		}
 		userparam.put_child("subscribed", itemsub);
 
-		for (set<uint32_t>::iterator iter = m_codes.begin(); iter != m_codes.end(); ++iter)
+		for (auto iter = m_Conn.setSubsCode.begin(); iter != m_Conn.setSubsCode.end(); ++iter)
 		{
 			sprintf(sTmp, "%u", *iter);
 			str = sTmp;
@@ -1085,7 +819,7 @@ bool Dat2Client::writeDispJson()
 		write_json(m_sOutDispJsonPath, root);
 	}
 
-	m_poDataLock->V();
+	m_semLock.V();
 	return true;
 
 }
@@ -1094,7 +828,7 @@ bool Dat2Client::isLogined(string sUserName)
 	string str = "";
 	bool bfound = false;
 
-	m_poDataLock->P();
+	m_semLock.P();
 
 	ptree root, readPt, items, userparam, itemsub, itemsubcodes, root_1;
 	read_json(m_sOutDispJsonPath, readPt);
@@ -1114,21 +848,21 @@ bool Dat2Client::isLogined(string sUserName)
 				int iPid = p.get<int>("pid",0);
 				if (iPid == 0 || 0 != kill(iPid, 0)) //不存在
 				{
-					userparam.put("user", m_sUserName);
+					userparam.put("user", m_Conn.strUserName);
 					userparam.put("pid", getpid());
 					root_1.push_back(std::make_pair("", userparam));
 					bfound = true;
 				}
 				else
 				{
-					m_poDataLock->V();
+					m_semLock.V();
 					return true;
 				}
 			}
 		}
 		if (!bfound)
 		{
-			userparam.put("user", m_sUserName);
+			userparam.put("user", m_Conn.strUserName);
 			userparam.put<int>("pid", getpid());
 			root_1.push_back(std::make_pair("", userparam));
 
@@ -1138,7 +872,7 @@ bool Dat2Client::isLogined(string sUserName)
 	}
 	else
 	{
-		userparam.put("user", m_sUserName);
+		userparam.put("user", m_Conn.strUserName);
 		userparam.put<int>("pid", getpid());
 
 		root_1.push_back(std::make_pair("", userparam));
@@ -1146,7 +880,7 @@ bool Dat2Client::isLogined(string sUserName)
 		write_json(m_sOutDispJsonPath, root);
 	}
 
-	m_poDataLock->V();
+	m_semLock.V();
 	return false;
 
 }
@@ -1165,18 +899,18 @@ void Dat2Client::logout()
 {
 	string str = "";
 
-	m_poDataLock->P();
+	m_semLock.P();
 
 	ptree root, readPt, items, userparam, itemsub, itemsubcodes, root_1;
 	read_json(m_sOutDispJsonPath, readPt);
-	if (readPt.count("users") && m_sUserName.size()>0 )
+	if (readPt.count("users") && m_Conn.strUserName.size()>0 )
 	{
 		ptree ptChildRead = readPt.get_child("users");
 		for (auto pos : ptChildRead) //遍历数组
 		{
 			ptree p = pos.second;
 			string user = p.get < string > ("user");
-			if (user != m_sUserName)
+			if (user != m_Conn.strUserName)
 			{
 				root_1.push_back(pos);
 			}
@@ -1185,7 +919,7 @@ void Dat2Client::logout()
 				int iPid = p.get<int>("pid",0);
 				if (iPid != 0 && iPid!=getpid() && 0 == kill(iPid, 0)) //不存在
 				{
-					m_poDataLock->V();
+					m_semLock.V();
 					return ;
 				}
 			}
@@ -1200,57 +934,196 @@ void Dat2Client::logout()
 
 	GetHostTimeX(sLogTime,sMSec);
 
-	sprintf(sInfo,"Recv LOGOUT user=%s(p-%d)",m_sUserName.c_str(),getpid());
+	sprintf(sInfo,"Recv LOGOUT user=%s(p-%d)",m_Conn.strUserName.c_str(),getpid());
 
 	printf("%s.%s %s.\n",sLogTime,sMSec,sInfo);
 
-	if(LogDispJson(sInfo,(char*)"NULL",sErrMsg)==false){
+	if(LogDispJson(sInfo,(char*)"NULL",m_sOutDispJsonPath,m_sOutDispLogPath,sErrMsg)==false){
 		GetHostTimeX(sLogTime,sMSec);
 		printf("%s.%s LOGOUT %s user=%s(p-%d).\n",
-		sLogTime,sMSec,sErrMsg,m_sUserName.c_str(),getpid());
+		sLogTime,sMSec,sErrMsg,m_Conn.strUserName.c_str(),getpid());
 		exit(1);
 	}
 
-	m_poDataLock->V();
+	m_semLock.V();
 }
 
-void Dat2Client::GetSysDate(char sSysDate[])
-{
-	struct tm *tim;
-	time_t ltim;
-	time(&ltim);
-	tim = localtime(&ltim);
-	sprintf(sSysDate,"%04d%02d%02d%02d%02d%02d",tim->tm_year+1900,tim->tm_mon+1,tim->tm_mday,
-	        tim->tm_hour,tim->tm_min,tim->tm_sec);
-}
-
-void Dat2Client::runMonitorMqThread(const int iMqid)
-{
-#ifdef DEBUG_ONE
-	cout<<"start monitor mq ID["<<iMqid<<"]"<<endl;
-#endif
-	MqMonitorMgr oMonitorMgr(iMqid);
-	oMonitorMgr.startMqmonitor();
-}
-
-void Dat2Client::startMonitorMq()
-{
-	static bool bInit = false;
-	if (bInit)
-		return;
-	bInit = true;
-	thread_group group;
-	for (auto it = m_mapPrivl.begin(); it != m_mapPrivl.end(); ++it)
-	{
-		group.create_thread(bind(&Dat2Client::runMonitorMqThread, it->second.m_iMqID));
-	}
-	//group.join_all();
-}
-
-int main(int argc, char *argv[])
+int main11(int argc, char *argv[])
 {
 	iMyPid=getpid();
 
 	Dat2Client oTransMgr;
 	oTransMgr.run(argc, argv);
+	
+	return 0;
 }
+
+//将当前CONN结构的信息，写到disp.json文件的对应用户上
+#ifdef ___WANT_OLD_FUNCTION_HAHA__
+bool writeDispJson11()
+{
+	string str = "";
+	char sTmp[56] = { 0 };
+	bool bfound = false;
+
+	DATALOCK.P();
+
+	ptree root, readPt, items, userparam, itemsub, itemsubcodes, root_1;
+	read_json(sDispPath, readPt);
+
+	if (readPt.count("users"))
+	{
+		ptree ptChildRead = readPt.get_child("users");
+		for (auto pos : ptChildRead) //遍历数组
+		{
+			ptree p = pos.second;
+			string user = p.get < string > ("user");
+			if (user != CONN.strUserName)
+			{
+				root_1.push_back(pos);
+			}
+			else
+			{
+				userparam.put("user", CONN.strUserName);
+				userparam.put<int>("mqid", CONN.iMqId);
+				userparam.put<int>("pid", CONN.iPid);
+
+				for (auto it = CONN.setSubscribed.begin(); it != CONN.setSubscribed.end(); ++it)
+				{
+					sprintf(sTmp, "%u", *it);
+					str = sTmp;
+					itemsub.push_back(std::make_pair("", ptree(str)));
+				}
+				userparam.put_child("subscribed", itemsub);
+
+				for (auto it = CONN.setSubsCode.begin(); it != CONN.setSubsCode.end(); ++it)
+				{
+					sprintf(sTmp, "%u", *it);
+					str = sTmp;
+					itemsubcodes.push_back(std::make_pair("", ptree(str)));
+				}
+				userparam.put_child("subcodes", itemsubcodes);
+				root_1.push_back(std::make_pair("", userparam));
+				bfound = true;
+			}
+		}
+		if (!bfound)
+		{
+			userparam.put("user", CONN.strUserName);
+			userparam.put<int>("mqid", CONN.iMqId);
+			userparam.put<int>("pid", CONN.iPid);
+
+			for (auto iter = CONN.setSubscribed.begin(); iter != CONN.setSubscribed.end(); ++iter)
+			{
+				sprintf(sTmp, "%u", *iter);
+				str = sTmp;
+				itemsub.push_back(std::make_pair("", ptree(str)));
+			}
+			userparam.put_child("subscribed", itemsub);
+
+			for (auto iter = CONN.setSubsCode.begin(); iter != CONN.setSubsCode.end(); ++iter)
+			{
+				sprintf(sTmp, "%u", *iter);
+				str = sTmp;
+				itemsubcodes.push_back(std::make_pair("", ptree(str)));
+			}
+			userparam.put_child("subcodes", itemsubcodes);
+			root_1.push_back(std::make_pair("", userparam));
+
+		}
+		root.put_child("users", root_1);
+		write_json(sDispPath, root);
+	}
+	else
+	{
+		userparam.put("user", CONN.strUserName);
+		userparam.put<int>("mqid", CONN.iMqId);
+		userparam.put<int>("pid", CONN.iPid);
+
+		for (auto iter = CONN.setSubscribed.begin(); iter != CONN.setSubscribed.end(); ++iter)
+		{
+			sprintf(sTmp, "%u", *iter);
+			str = sTmp;
+			itemsub.push_back(std::make_pair("", ptree(str)));
+		}
+		userparam.put_child("subscribed", itemsub);
+
+		for (auto iter = CONN.setSubsCode.begin(); iter != CONN.setSubsCode.end(); ++iter)
+		{
+			sprintf(sTmp, "%u", *iter);
+			str = sTmp;
+			itemsubcodes.push_back(std::make_pair("", ptree(str)));
+		}
+		userparam.put_child("subcodes", itemsubcodes);
+		root_1.push_back(std::make_pair("", userparam));
+		root.put_child("users", root_1);
+		write_json(sDispPath, root);
+	}
+
+	DATALOCK.V();
+	return true;
+
+}
+
+bool IsLogined1(string sUserName)
+{
+	string str = "";
+	bool bfound = false;
+
+	DATALOCK.P();
+
+	ptree root, readPt, items, userparam, itemsub, itemsubcodes, root_1;
+	read_json(sDispPath, readPt);
+	if (readPt.count("users"))
+	{
+		ptree ptChildRead = readPt.get_child("users");
+		for (auto pos : ptChildRead) //遍历数组
+		{
+			ptree p = pos.second;
+			string user = p.get < string > ("user");
+			if (user != sUserName)
+			{
+				root_1.push_back(pos);
+			}
+			else
+			{
+				int iPid = p.get<int>("pid",0);
+				if (iPid == 0 || 0 != kill(iPid, 0)) //不存在
+				{
+					userparam.put("user", CONN.strUserName);
+					userparam.put("pid", CONN.iPid);
+					root_1.push_back(std::make_pair("", userparam));
+					bfound = true;
+				}
+				else
+				{
+					DATALOCK.V();
+					return true;
+				}
+			}
+		}
+		if (!bfound)
+		{
+			userparam.put("user", CONN.strUserName);
+			userparam.put<int>("pid", CONN.iPid);
+			root_1.push_back(std::make_pair("", userparam));
+
+		}
+		root.put_child("users", root_1);
+		write_json(sDispPath, root);
+	}
+	else
+	{
+		userparam.put("user", CONN.strUserName);
+		userparam.put<int>("pid", CONN.iPid);
+
+		root_1.push_back(std::make_pair("", userparam));
+		root.put_child("users", root_1);
+		write_json(sDispPath, root);
+	}
+
+	DATALOCK.V();
+	return false;
+
+}
+#endif

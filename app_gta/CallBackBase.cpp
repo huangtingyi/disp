@@ -538,6 +538,8 @@ void CallBackBase::Deal_Message_D31Item(SubData *subdata)
 		//设置callsupp.cpp中定义的全局变量，供D31TradeTimeValid使用
 		nD31TradeTime=p->nTradeTime;
 
+//printf("s=%d,t=%d,len=%ld.\n",p->nStockCode,p->nTradeTime,strDi.length());
+
 		SendMsg2Cli(iStockCode,'D',strDi);
 	}
 }

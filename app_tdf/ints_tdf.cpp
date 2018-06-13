@@ -73,7 +73,17 @@ void signalProcess(int signal)
 	}
 	exit(0);
 }
-
+void PrintUsage(char *argv[])
+{
+	printf("Usage: %s \n", argv[0]);
+	printf("   [-c cfg-name ]\n");
+	printf("   [-r disp-name ]\n");
+	printf("   [-u user-privilege-name ]\n");
+	printf("   [-o work-root-name ]\n");
+	printf("   [-d work-d31-root ]\n");
+	printf("   [-w (2 writetdf,other nowrite) ]\n");
+	printf("   [-l max length of mq msg ]\n");
+}
 int main(int argc, char** argv)
 {
 	strcpy(sCfgJsonName,	"./tdf_ints.json");
@@ -109,19 +119,16 @@ int main(int argc, char** argv)
 			break;
 		case '?':
 		default:
-			printf("Usage: %s \n", argv[0]);
-			printf("   [-c cfg-name ]\n");
-			printf("   [-r disp-name ]\n");
-			printf("   [-u user-privilege-name ]\n");
-			printf("   [-o work-root-name ]\n");
-			printf("   [-d work-d31-root ]\n");
-			printf("   [-w (2 writetdf,other nowrite) ]\n");
-			printf("   [-l max length of mq msg ]\n");
+			PrintUsage(argv);
 			exit(1);
 			break;
 		}
 	}
 
+	if(argc==1){
+		PrintUsage(argv);
+		exit(1);
+	}
 	signal(SIGINT, signalProcess);
 
 	//初始化刷新数组，以及刷新文件名的全局变量

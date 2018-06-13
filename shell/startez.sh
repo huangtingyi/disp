@@ -55,7 +55,7 @@ pids=`$pidof_bin -x agentcli dat2cli moni.sh`
 mypid=`check_mypid_exist $pids`
 if [ $mypid -ne 0 ];then
 	belong_cmd=`belong_cmd_mypid $mypid`
-	echo "`date '+%Y/%m/%d %k:%M:%S'` pid $mypid cmd=$belong_cmd user=$my_name is running"
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` pid $mypid cmd=$belong_cmd user=$my_name is running"
 	exit 2
 fi
 
@@ -74,41 +74,40 @@ EOF
 
 cd $HOME/bin
 
-nohup $agent_bin -p$agent_file -r$disp_file 1>$agentcli_log 2>&1 &
+nohup stdbuf --output=L --error=L $agent_bin -p$agent_file -r$disp_file 1>$agentcli_log 2>&1 &
 sleep 1
 $pidof_bin -x agentcli
 if [ $? -ne 0 ]; then
-	echo "`date '+%Y/%m/%d %k:%M:%S'` agentcli is startup FAIL..";
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` agentcli is startup FAIL..";
 	echo "$$agent_bin -p$agent_file -r$disp_file"
 	exit 3;
 fi
 
-echo "`date '+%Y/%m/%d %k:%M:%S'` agentcli is startup SUCESS.."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` agentcli is startup SUCESS.."
 
-nohup $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
+nohup stdbuf --output=L --error=L $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
 sleep 1
 $pidof_bin -x dat2cli
 if [ $? -ne 0 ]; then
-	echo "`date '+%Y/%m/%d %k:%M:%S'` dat2cli is startup FAIL..";
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` dat2cli is startup FAIL..";
 	echo "$dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file"
 	exit 3;
 fi
 
-echo "`date '+%Y/%m/%d %k:%M:%S'` dat2cli is startup SUCESS.."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` dat2cli is startup SUCESS.."
 
 nohup $moni_bin $ethdev 1>$moni_log 2>&1 &
 
 sleep 1
 $pidof_bin -x moni.sh
 if [ $? -ne 0 ]; then
-	echo "`date '+%Y/%m/%d %k:%M:%S'` moni.sh startup FAIL..";
+	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` moni.sh startup FAIL..";
 	echo "$moni_bin $ethdev"
 	exit 3;
 fi
 
-echo "`date '+%Y/%m/%d %k:%M:%S'` moni.sh is startup SUCESS.."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` moni.sh is startup SUCESS.."
 
-sleep 1;
-echo "`date '+%Y/%m/%d %k:%M:%S'` system startup  OK..."
+echo "`date '+%Y/%m/%d %k:%M:%S.%N'` system startup  OK..."
 
 exit 0

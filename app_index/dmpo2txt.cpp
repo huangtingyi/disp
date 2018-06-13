@@ -136,6 +136,20 @@ void InitFunctionFromType(int iType,long *plItemLen)
 	}
 	*plItemLen=lItemLen;
 }
+void PrintUsage(char *argv[])
+{
+	printf("Usage: %s \n", argv[0]);
+	printf("   [-i infile-name ]\n");
+	printf("   [-s skipcnt (def=0)]\n");
+	printf("   [-c count (def=100,-1=all) ]\n");
+	printf("   [-b begin-time (def=0) ]\n");
+	printf("   [-e end-time (def=99999999999) ]\n");
+	printf("   [-t type (mtoq|MTOQ=>mkt,trs,ord,que,7,8 =>d31std,d31ext) ]\n");
+	printf("   [-d delay sec (-e,-l multi-code effect) ]\n");
+	printf("   [-l codelist (e.g \"000001,603912,002415\") ]\n");
+	printf("   [-f time_flag (def=1,1-createtime,2-picktime) ]\n");
+}
+
 int main(int argc, char *argv[])
 {
 	int iType=1,ret,i=0,iSkipCnt=0,iFilterCnt=0,iMaxCount=100;
@@ -169,19 +183,15 @@ int main(int argc, char *argv[])
 		case 'd':iDelaySec=atoi(optarg);	break;
 		case 'f':iTimeFlag=atoi(optarg);	break;
 		default:
-			printf("Usage: %s \n", argv[0]);
-			printf("   [-i infile-name ]\n");
-			printf("   [-s skipcnt (def=0)]\n");
-			printf("   [-c count (def=100,-1=all) ]\n");
-			printf("   [-b begin-time (def=0) ]\n");
-			printf("   [-e end-time (def=99999999999) ]\n");
-			printf("   [-t type (mtoq|MTOQ=>mkt,trs,ord,que,7,8 =>d31std,d31ext) ]\n");
-			printf("   [-d delay sec (-e,-l multi-code effect) ]\n");
-			printf("   [-l codelist (e.g \"000001,603912,002415\") ]\n");
-			printf("   [-f time_flag (def=1,1-createtime,2-picktime) ]\n");
+			PrintUsage(argv);
 			exit(1);
 			break;
 		}
+	}
+
+	if(argc==1){
+		PrintUsage(argv);
+		exit(1);
 	}
 
 	//根据类型，绑定函数指针到特定的处理函数

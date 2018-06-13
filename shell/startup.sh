@@ -74,6 +74,8 @@ fi
 workd31=${workd31:-"/data/work"}
 etflist=${etflist:-"510050,510180,510300,510500"}
 etfpath=${etfpath:-$HOME/conf/etf}
+index_stat_delay=${index_stat_delay:-"1000:300,1000:300"}
+
 
 [ ! -d $workroot ] && echo "dir $workroot is not exist" && exit 1;
 [ ! -d $workd31 ] && echo "dir $workd31 is not exist" && exit 1;
@@ -84,7 +86,7 @@ my_name=${my_name:-$USER}
 my_flag=""
 
 max_mq_msg_len=`grep "SysMqMaxLen" $cfg_file | sed 's/[^0-9]//g'`
-if [ -z $max_mq_msg ];then
+if [ -z $max_mq_msg_len ];then
 	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` file $cfg_file SysMqMaxLen config error"
 	exit 4;
 fi
@@ -118,29 +120,29 @@ EOF
 
 cd $HOME/bin
 	
-nohup $ints_bin -w$writeflag -o$workroot -c$ints_file -r$disp_file -d$workd31 -lmax_mq_msg_len 1>$ints_log 2>&1 &
+nohup stdbuf --output=L --error=L $ints_bin -w$writeflag -o$workroot -c$ints_file -r$disp_file -d$workd31 -l$max_mq_msg_len 1>$ints_log 2>&1 &
 sleep 1
 $pidof_bin -x $ints_bin_base
 
 if [ $? -ne 0 ]; then
 	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` $ints_bin_base is startup FAIL..";
-	echo "$ints_bin -w$writeflag -o$workroot -c$ints_file -r$disp_file -d$workd31"
+	echo "$ints_bin -w$writeflag -o$workroot -c$ints_file -r$disp_file -d$workd31 -l$max_mq_msg_len"
 	exit 3;
 fi
 echo "`date '+%Y/%m/%d %k:%M:%S.%N'` $ints_bin_base is startup SUCESS.."
 	
 ##启动D31统计程序
-nohup $index_bin -w3 -s$workroot -o$workd31 -L$etflist -E$etfpath 1>$index_log 2>&1 &
+nohup stdbuf --output=L --error=L $index_bin -w3 -s$workroot -o$workd31 -e$index_stat_delay -L$etflist -E$etfpath 1>$index_log 2>&1 &
 sleep 1
 $pidof_bin -x $index_bin_base
 if [ $? -ne 0 ]; then
 	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` $index_bin_base is startup FAIL..";
-	echo "$index_bin -w3 -s$workroot -o$workd31 -L$etflist -E$etfpath"
+	echo "$index_bin -w3 -s$workroot -o$workd31 -e$index_stat_delay -L$etflist -E$etfpath"
 	exit 3;
 fi
 echo "`date '+%Y/%m/%d %k:%M:%S.%N'` $index_bin_base is startup SUCESS.."
 
-nohup $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
+nohup stdbuf --output=L --error=L $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
 sleep 1
 $pidof_bin -x dat2cli
 if [ $? -ne 0 ]; then
@@ -151,7 +153,7 @@ fi
 
 echo "`date '+%Y/%m/%d %k:%M:%S.%N'` dat2cli is startup SUCESS.."
 
-nohup $moni_bin $ethdev 1>$moni_log 2>&1 &
+nohup stdbuf --output=L --error=L $moni_bin $ethdev 1>$moni_log 2>&1 &
 
 sleep 1
 $pidof_bin -x moni.sh
