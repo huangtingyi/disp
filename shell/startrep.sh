@@ -117,7 +117,7 @@ my_name=${my_name:-$USER}
 my_flag=""
 
 max_mq_msg_len=`grep "SysMqMaxLen" $cfg_file | sed 's/[^0-9]//g'`
-if [ -z $max_mq_msg ];then
+if [ -z $max_mq_msg_len ];then
 	echo "`date '+%Y/%m/%d %k:%M:%S.%N'` file $cfg_file SysMqMaxLen config error"
 	exit 4;
 fi

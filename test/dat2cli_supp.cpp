@@ -130,8 +130,8 @@ bool LogDispJson(char sInfo[],char sMsg[],char sDispPath[],char sDispLog[],char 
 
 	//拿到系统时间，并将信息写到DISPLOG文件中
 	GetHostTimeX(sLogTime,sMSec);
-	fprintf(fpOut,"%s.%s INFO:%s MSG:%s\nDISPJSON=%s ::------------END-----------\n",
-		sLogTime,sMSec,sInfo,sMsg,sBuffer);
+	fprintf(fpOut,"%s.%s(%d) INFO:%s MSG:%s\nDISPJSON=%s ::------------END-----------\n",
+		sLogTime,sMSec,getpid(),sInfo,sMsg,sBuffer);
 
 	fclose(fpOut);
 

@@ -33,7 +33,7 @@ void *MainProcClientCmd(void *);
 int MainData2Cli();
 
 //直接取出费本用户的json项目，加入tNewRoot中，写入文件
-void WriteLogoutJson();
+int WriteLogoutJson();
 //将当前CONN结构的信息，写到disp.json文件的对应用户上
 void writeLoginJson();
 
@@ -347,8 +347,11 @@ void writeLoginJson()
 	DATALOCK.V();
 }
 //直接取出费本用户的json项目，加入tNewRoot中，写入文件
-void WriteLogoutJson()
+int WriteLogoutJson()
 {
+//	int i=0;
+	int iFoundFlag=false;
+	
 	ptree tRoot,tNewRoot,tNewChild;
 	
 	read_json(sDispPath, tRoot);
@@ -356,15 +359,28 @@ void WriteLogoutJson()
 	//做一个循环，将不是本用户的配置放到tNewChild中
 	for(auto t : tRoot.get_child("users")){
 
-		if (CONN.strUserName!=t.second.get < string > ("user"))
+		if (CONN.strUserName!=t.second.get < string > ("user")){
+//			printf("xxxx.\n");
 			tNewChild.push_back(t);
+		}
+		else	iFoundFlag=true;
+
+//		printf("----%ld-i=%d,u1=%s,u2=%s.\n",
+//			tNewChild.size(),i++,
+//			CONN.strUserName.c_str(),
+//			t.second.get < string > ("user").c_str());
 	}
 	
 	tNewRoot.put_child("users",tNewChild);	
-	
-	DATALOCK.P();
-	write_json(sDispPath, tNewRoot);
-	DATALOCK.V();
+
+	//只有在disp.json文件中存在当前用户的记录，才要更新
+	if(iFoundFlag==true){	
+		DATALOCK.P();
+		write_json(sDispPath, tNewRoot);
+		DATALOCK.V();
+	}
+
+	return iFoundFlag;
 }
 //判断是否已经登录过，如果登录过则不能登录
 bool IsLogined(string strUserName)
@@ -468,12 +484,11 @@ bool DealCommand(string &msg)
 		auto itAuth = mapUserAuth.find(req.name());
 		
 		CONN.strUserName = req.name();
+		strcpy(CONN.sUserName,req.name().c_str());
 
 		printf_dt("Recv LOGIN_REQ user=%s(%s:%d) passwd=%s.\n",
 			CONN.sUserName,CONN.sDestIp,CONN.iPort,sPasswd.c_str());
 		PrintHexBuf((char*)(msg.c_str()),msg.size());
-
-		CONN.iMqId = itAuth->second.iMqId;
 
 		rep.set_err(errcode);
 	
@@ -488,6 +503,9 @@ bool DealCommand(string &msg)
 
 			break;
 		}
+		
+		CONN.iMqId = itAuth->second.iMqId;
+
 		//如果已经登录则，回复已经登录信息
 		if(IsLogined(CONN.strUserName)){
 			rep.set_desc("user_have_logined");
@@ -705,7 +723,8 @@ void *MainProcClientCmd(void *)
 
 	}
 next_end_cli:
-	WriteLogoutJson();
+	
+	int iWriteFlag=WriteLogoutJson();
 
 	char sInfo[256],sErrMsg[256];
 	
@@ -713,12 +732,15 @@ next_end_cli:
 	
 	printf_dt("%s.\n",sInfo);
 
-	if(LogDispJson(sInfo,(char*)"NULL",sDispPath,sDispLog,sErrMsg)==false){
-		printf_dt("LOG LOGOUT JSON ERROR user=%s(%s:%d) msg=%s.\n",
-			CONN.sUserName,CONN.sDestIp,CONN.iPort,sErrMsg);
-		exit(1);
+	//只有确实有写disp.json文件时，才调用logdispjson函数归档
+	if(iWriteFlag==true){
+		if(LogDispJson(sInfo,(char*)"NULL",sDispPath,sDispLog,sErrMsg)==false){
+			printf_dt("LOG LOGOUT JSON ERROR user=%s(%s:%d) msg=%s.\n",
+				CONN.sUserName,CONN.sDestIp,CONN.iPort,sErrMsg);
+			exit(1);
+		}
 	}
-
+	
 	if(iResult>0) exit(iResult);
 	
 	return NULL;
@@ -732,6 +754,13 @@ int MainData2Cli()
 	int iRet,iSubs,msg_len,num,l;
 
 	MessageQueue *mqData=NULL;
+
+	//做一个循环等待登录线程拿到MQID
+	usleep(10*1000);
+	while(CONN.iMqId==0){
+		usleep(200*1000);
+		printf_dt("RECVMQ process wait CLICMD.\n");
+	}
 
 	printf_dt("RECVMQ process user=%s(%s:%d).\n",
 		CONN.sUserName,CONN.sDestIp,CONN.iPort);

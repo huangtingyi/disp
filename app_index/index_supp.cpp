@@ -598,9 +598,9 @@ int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p,int iWriteFlag)
 	}
 	if(iWriteFlag==2){
 		struct D31IndexExtStruct  *pEx=&p->Ex;
-		fprintf(fp,"%-6d,%s,%-4d,%-10d,%-10d,%-12ld,%-12ld,%-10d,%-10d,%-12ld,%-12ld,\
+		fprintf(fp,"%-6d,%s,%d,%-10d,%-10d,%-12ld,%-12ld,%-10d,%-10d,%-12ld,%-12ld,\
 %-10d,%-10d,%-10d,%-10d,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld,%-12ld\n",
-			p->iStockCode,"e",p->nT0/100000,
+			p->iStockCode,"e",p->nT0,
 			pEx->nTenBidVolume,	//十档买量（手）
 			pEx->nTenAskVolume,	//十档卖量（手）
 			pEx->lTenBidAmnt,	//十档买额（分）
@@ -639,13 +639,20 @@ int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p,int iWriteFlag)
 		long lTime;
 
 		lTime=nGetHostTime();
-		
+					
 		sprintf(sTempTime,"%d%06d",p->nActionDay,p->nT0/1000);
 		tTempTime=tGetTime(sTempTime);
 
+		//做一个异常处理吧，虽然异常已经修复，默认当天9点30分
+		if(tTempTime<0){
+			GetHostTime(sTempTime);
+			strcpy(sTempTime+8,"093000");
+			tTempTime=tGetTime(sTempTime);
+		}
+
 		t.nStockCode=(unsigned int) p->iStockCode;
 		t.nTradeTime=(unsigned int) tTempTime;
-
+			
 		for(i=0;i<MAX_LEVEL_CNT;i++){
 			t.afZbBidAmount[i]=(float)pZb->alBidAmount[i]/1000000;
 			t.afZbBidVolume[i]=(float)pZb->aiBidVolume[i]/100;
@@ -978,27 +985,34 @@ void SumIndexStatEx(struct D31IndexExtStruct *po,struct D31IndexExtStruct *pi)
 		po->alAskAmount[i]+=	pi->alAskAmount[i];
 	}
 }
+//做一个循环，统计ETF的节点时间更新为当前时间
+void SetIndexEtfDayTime(int nActionDay,int nPreT0,int nT0)
+{
+
+	struct IndexStatStruct *pIndexStat=INDEX_ETF;
+
+	while(pIndexStat!=NULL){
+		
+		pIndexStat->nActionDay=	nActionDay;
+		pIndexStat->nPreT0=	nPreT0;
+		pIndexStat->nT0=	nT0;
+
+		pIndexStat=pIndexStat->pNext;		
+	}
+}
 //将ETF列表中的数据，汇总到ETF结构中去
-int SumEtfStat(struct IndexStatStruct *p)
+void SumEtfStat(struct IndexStatStruct *p)
 {
 	struct EtfStockStruct *pTemp=(struct EtfStockStruct *)(p->ETF.pHead);
 	struct IndexStatStruct *pi;
 	
-	//设置一下全局参数
-	if(pTemp!=NULL){
-		
-		if((pi=AISTAT[pTemp->iStockCode])==NULL) return -1;
-	
-		if(p->nT0!=pi->nT0){
-			p->nActionDay=	pi->nActionDay;
-			p->nPreT0=	pi->nPreT0;
-			p->nT0=		pi->nT0;
-		}
-	}
-
 	while(pTemp!=NULL){
 		
-		if((pi=AISTAT[pTemp->iStockCode])==NULL) return -1;
+		//如果特定的股票代码没有统计数据，则继续
+		if((pi=AISTAT[pTemp->iStockCode])==NULL){
+			pTemp=pTemp->pNext;
+			continue;
+		}
 		
 		SumIndexStatZx(&p->Zb,&pi->Zb);
 		SumIndexStatZx(&p->Zd,&pi->Zd);
@@ -1006,8 +1020,6 @@ int SumEtfStat(struct IndexStatStruct *p)
 		
 		pTemp=pTemp->pNext;		
 	}
-	
-	return 0;
 }
 int GenD31StatAll()
 {

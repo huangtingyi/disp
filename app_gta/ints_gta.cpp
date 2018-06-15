@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
 
 int ReadD31FileAndSend(char sFileName[],long *plCurPos)
 {
-	static int iCount=0,iFlag=0;
+//	static int iCount=0;//,iFlag=0;
 	static time_t tStartTime=0;
 	FILE *fp;
 	char sBuffer[10240];
@@ -372,7 +372,7 @@ int ReadD31FileAndSend(char sFileName[],long *plCurPos)
 			SubData *subdata = new SubData;
 			subdata->cur_time = lCurTime;
 			subdata->data.assign((const char*)p, sizeof(struct D31ItemStruct));
-
+/**
 if(iCount++%3000==0){
 	char sTradeTime[15];
 	
@@ -382,12 +382,12 @@ if(iCount++%3000==0){
 	printf("cnt=%d,stoct_code=%d,tradetime=%d stdtime=%s.\n",
 		iCount,p->nStockCode,p->nTradeTime,sTradeTime);
 }
-
+**/
 			TaskPtr task(new Task(std::bind(&CallBackBase::Deal_Message_D31Item,pCallBack, subdata)));
 
 			pCallBack->m_ios->Post(task);
-if(iFlag==1)
-	printf("post end.------------------------------------.\n");
+//if(iFlag==1)
+//	printf("post end.------------------------------------.\n");
 		}
 		
 		lCnt--;

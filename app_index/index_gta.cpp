@@ -314,7 +314,7 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
 	int nPreT0,int nT0,int nEndTime0,long lItemLen,char sCodeStr[],long *plCurPos)
 {
-	int iRet;
+	int iRet,nExceedTime=0,iDeltaPre=3000,nPreDel;
 	FILE *fp;
 	long lCurPos=*plCurPos;
 	char sBuffer[2048];
@@ -334,6 +334,9 @@ int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
 		printf("error fseek file=%s,pos=%ld.\n",sFileName,lCurPos);
 		return -1;
 	}
+	
+	nPreDel=nPreT0-iDeltaPre;
+	
 	while(1){
 		if(fread((void*)sBuffer,lItemLen,1,fp)!=1){
 			iRet=MY_TAIL_NO_STAT;
@@ -351,7 +354,8 @@ int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
 
 		//从lCurPos,读到 nT0, 对于大于 nPreT0的部分，加入到
 		//S0T，大于nT0的数据加到pS1Head,遇到，遇到大于nEndTime0的数据停止;
-		if(q.nTime<=nPreT0) continue;
+		//不设置一个X秒的阈值，可能会因为行情没有即使到来而出错
+		if(q.nTime<=nPreDel) continue;
 
 		//实测表明,{对于行情的情况}取数为 nPreT0<x<=nT0 按这个去取区间
 		//开盘时候，不取9:30分整点的行情，而取前一笔行情，一般是9点25分的
@@ -372,10 +376,17 @@ int MountQuotation2IndexStatArray(char sFileName[],int nBgnActionDay,
 //		遇到大于nEndTime0的数据停止
 //		if(q.nTime>=nEndTime0) break;
 
-		//遇到大于nEndTime0的数据停止
+		//遇到大于等于nEndTime0的记录第一次出现这个数的时间点
 		if(q.nTime>=nEndTime0){
-			iRet=MY_WANT_STAT;
-			break;
+			if(nExceedTime==0) nExceedTime=q.nTime;
+		}
+		
+		//如果已经找到这个时刻了，再发现记录内容的时间更大了，退出
+		if(nExceedTime>0){
+			if(q.nTime>nExceedTime){
+				iRet=MY_WANT_STAT;
+				break;
+			}
 		}
 
 	}
@@ -509,7 +520,7 @@ int main(int argc, char *argv[])
 	FILE *fpD31;
 	int iIdleWaitMilli=10,iWriteFlag=1;//,iContinueFlag=false;
 	int iShBusyDelay=12000,iShDelay=3000,iSzBusyDelay=12000,iSzDelay=2000;
-	int nBgnActionDay,nBgnTime,nPreT0,nT0,nEndTime0;
+	int nBgnActionDay,nBgnTime,nPreT0,nT0,nEndTime0,nCurTime,nPreTime=0;
 	int iThRes,iTzRes,iQhRes,iQzRes,iOzRes,iCnt=0,iTotalCnt=0;
 
 	char sCurTime[15],sCalcDate[15],sCalcBgn[15],sMSec[4];
@@ -603,6 +614,9 @@ int main(int argc, char *argv[])
                 return -1;
         }
 
+	//9点分之前启动，则设置开始时间为三十分
+	if(strcmp(sCalcBgn,"093000")<0)	strcpy(sCalcBgn,"093000");
+
 	//得到计算的
 	nBgnActionDay=	atoi(sCalcDate);
 	nBgnTime=	atoi(sCalcBgn);
@@ -620,7 +634,7 @@ int main(int argc, char *argv[])
 		if(IsBusyTime(nT0)){
 			nEndTime0=iAddMilliSec(nT0,iSzBusyDelay+20000);
 			if(nT0==MY_CLOSE_MARKET_TIME)	nEndTime0=MY_CLOSE_MARKET_TIME+1000000;
-			if(nT0==MY_OPEN_MARKET_TIME)	nEndTime0=iAddMilliSec(MY_PRE_OPEN_TIME,iSzBusyDelay);
+//			if(nT0==MY_OPEN_MARKET_TIME)	nEndTime0=iAddMilliSec(MY_PRE_OPEN_TIME,iSzBusyDelay);
 		}
 		else	nEndTime0=iAddMilliSec(nT0,iSzDelay+20000);
 
@@ -632,7 +646,7 @@ int main(int argc, char *argv[])
 
 		if(IsBusyTime(nT0)){
 			nEndTime0=iAddMilliSec(nT0,iSzBusyDelay);
-			if(nT0==MY_OPEN_MARKET_TIME)	nEndTime0=iAddMilliSec(MY_PRE_OPEN_TIME,iSzBusyDelay);
+//			if(nT0==MY_OPEN_MARKET_TIME)	nEndTime0=iAddMilliSec(MY_PRE_OPEN_TIME,iSzBusyDelay);
 		}
 		else	nEndTime0=iAddMilliSec(nT0,iSzDelay);
 
@@ -652,7 +666,7 @@ int main(int argc, char *argv[])
 		
 		if(IsBusyTime(nT0)){
 			nEndTime0=iAddMilliSec(nT0,iShBusyDelay);
-			if(nT0==MY_OPEN_MARKET_TIME)	nEndTime0=iAddMilliSec(MY_PRE_OPEN_TIME,iShBusyDelay);
+//			if(nT0==MY_OPEN_MARKET_TIME)	nEndTime0=iAddMilliSec(MY_PRE_OPEN_TIME,iShBusyDelay);
 		}
 		else	nEndTime0=iAddMilliSec(nT0,iShDelay);
 
@@ -671,27 +685,49 @@ int main(int argc, char *argv[])
 
 		//如果两个成交时间都未达到统计点，
 		//死等数据到来，没到来扫描数据一下；
+		
+		nCurTime=nGetHostCurTime();
+		
 		if(iTzRes!=MY_WANT_STAT&&iThRes!=MY_WANT_STAT){
 
-			int nCurTime=nGetHostCurTime();
 						
 			//如果时间是午盘时间，休眠
 			if(nT0==130001000&&(
 				nCurTime>=113000000&&nCurTime<125700000)){
 				//休眠三分钟
-				usleep(180*1000000);
+				sleep(180);
 				continue;
 			}
 			//只需要考虑实盘环境，回放时候，回放程序已跳过午间休市；
 			if(nCurTime>=113000000&&nCurTime<125700000){
 				//休眠三分钟
-				usleep(180*1000000);
+				sleep(180);
 				continue;
 			}
-			usleep(iIdleWaitMilli*1000);
-			continue;
-		}
+			//九点半前集合竞价外的时间
+			if(nCurTime<92455000||
+				(nCurTime>92600000&&nCurTime<92955000)){
+				//休眠5秒钟
+				sleep(5);
+				continue;
 
+			}
+			//除开集合竞价展示外的时间
+			if(nCurTime<92500000||nCurTime>92600000){
+				usleep(iIdleWaitMilli*1000);
+				continue;
+			}
+			//如果本次时间和上次时间不足一秒，则继续扫描
+			if((nCurTime-nPreTime)<1000){
+				usleep(iIdleWaitMilli*1000);
+				continue;
+			}
+			nPreTime=nCurTime;
+		}
+		
+		//做一个循环，统计ETF的节点时间更新为当前时间
+		SetIndexEtfDayTime(nBgnActionDay,nPreT0,nT0);
+		
 		//做一个循环将D31的数据统计出来
 		if(GenD31StatAll()<0) return -1;
 
@@ -701,19 +737,22 @@ int main(int argc, char *argv[])
 		//做一个输出记录数统计
 		iTotalCnt+=iCnt;
 
-		nPreT0=nT0;
+		if(nCurTime>92600000){
+			
+			nPreT0=nT0;
 
-		//如果收盘了，就退出吧
-		if(nT0>=150000000) break;
+			//如果收盘了，就退出吧
+			if(nT0>=150000000) break;
 
-		//中午休市时，直接跳过午间休市，到下午13点00分01秒
-		if(nT0>=113000000&&nT0<125959000)
-			nT0=130001000;
-		else	//正常时段1秒扫描一次
-			nT0=iAddMilliSec(nT0,1000);
+			//中午休市时，直接跳过午间休市，到下午13点00分01秒
+			if(nT0>=113000000&&nT0<125959000)
+				nT0=130001000;
+			else	//正常时段1秒扫描一次
+				nT0=iAddMilliSec(nT0,1000);
 
-		//将所有预加载的T0之前的数据，放到统计缓存中
-		if(AddPreT0Data2Ready(nPreT0,nT0)<0) return -1;
+			//将所有预加载的T0之前的数据，放到统计缓存中
+			if(AddPreT0Data2Ready(nPreT0,nT0)<0) return -1;
+		}
 
 		tEndTime=tGetHostTime();
 

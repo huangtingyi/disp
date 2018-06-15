@@ -228,4 +228,8 @@ int InitIndexEtfList(char sEtfList[],char sEtfPath[]);
 int CodeInCodeStr(char szCode[],char sCodeStr[]);
 int IntCodeInCodeStr(int iStockCode,char sCodeStr[]);
 
+//做一个循环，统计ETF的节点时间更新为当前时间
+void SetIndexEtfDayTime(int nActionDay,int nPreT0,int nT0);
+
+
 #endif
