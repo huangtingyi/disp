@@ -9,8 +9,10 @@
 #include <boost/thread/mutex.hpp>
 
 using namespace std;
+
 namespace BTREE = boost::property_tree;
 
+int (*Write2CliFile)(char sWorkRoot[],char sUserName[],string &str);
 
 //将bizCode和pbmsg信息打包成为串 格式：2字节长度+1字节bizCode+pb->SerializeToString结果，长度为 1字节+序列化串
 void addBizcode(string &output, const google::protobuf::Message &pbmsg, BizCode bizCode)

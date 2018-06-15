@@ -5,19 +5,35 @@
 
 #include <vector>
 #include <map>
+
+#include<signal.h>
+#include <time.h>
+#include<sys/time.h>
+
+#include "CSemaphore.h"
+#include "MessageQueue.h"
 #include "TcpSocket.h"
 
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/typeof/typeof.hpp>
+#include <boost/bind.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/thread/mutex.hpp>
+
 using namespace std;
+using namespace boost::property_tree;
+using namespace boost;
 
 extern int errno;
 TcpSocket TCP_SOCKET; //Tcp传输器
 
 
 #include "dat2cli_supp.h"
-#include "dat2cli_t_old.h"
+//#include "dat2cli_t_old.h"
 
-MessageQueue *MQSYS=NULL;		//主控进程和数据转发进程通讯==系统队列
+//MessageQueue *MQSYS=NULL;		//主控进程和数据转发进程通讯==系统队列
 //MessageQueue *MQDATA=NULL;		//数据转发进程接收数据的队列==数据队列
 CSemaphore DATALOCK;			//读写数据锁
 ServerInfo_t ServerInfo;		//服务器总体参数
@@ -25,7 +41,7 @@ time_t		tLmtUserAuth;		//AUTH_PATH文件的最后修改时间
 MapUserAuth	mapUserAuth;		//用户权限列表
 ConnectClient_t	CONN;			//子进程当前连接
 
-int iExitFlag=false,iReadSysMq=true,MYPID=0;
+int iExitFlag=false,MYPID=0;
 char sDispPath[MY_MAX_PATH],sDispLog[MY_MAX_PATH],sUserAuthPath[MY_MAX_PATH];
 char sWorkRoot[MY_MAX_PATH],sWriteUser[MY_MAX_PATH];
 
@@ -40,7 +56,7 @@ void writeLoginJson();
 static void signalProcess(int isignal)
 {
 	if (isignal == SIGUSR1){
-		iReadSysMq = true;
+//		iReadSysMq = true;
 		return;
 	}
 
@@ -152,13 +168,6 @@ int main(int argc, char *argv[])
 		printf_dt("初始化服务器参数失败. file=%s.\n",sCfgPath);
 		return -1;
 	}
-	
-	if((MQSYS = new MessageQueue(ServerInfo.iSysMqKey))==NULL){
-		printf_dt("创建MQ new 错误 key=%d.\n",ServerInfo.iSysMqKey);
-		return -1;
-	}
-	//打开MQ队列,这里要判断是否成功
-	MQSYS->open(false, true, ServerInfo.iSysMqMaxLen, ServerInfo.iSysMqMaxNum);
 	
 	char sSemName[32];
 	sprintf(sSemName, "%d", ServerInfo.iSemLockKey);
@@ -461,7 +470,7 @@ bool addReduceCodes(const vector<uint32_t> &codes, const bool addFlag)
 
 bool DealCommand(string &msg)
 {
-	bool bret = true;
+	bool bRes = true;
 	BizCode iBizCode;
 	string msgProtobuf;
 
@@ -497,7 +506,7 @@ bool DealCommand(string &msg)
 			rep.set_desc("user_invalid");
 			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
 			TCP_SOCKET.send((unsigned char *) msgBody.data(), msgBody.size());
-			bret = false;
+			bRes = false;
 			printf_dt("LOGIN_REP invalid user=%s(%s:%d).\n",
 				CONN.sUserName,CONN.sDestIp,CONN.iPort);
 
@@ -511,7 +520,7 @@ bool DealCommand(string &msg)
 			rep.set_desc("user_have_logined");
 			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
 			TCP_SOCKET.send((unsigned char *) msgBody.data(), msgBody.size());
-			bret = false;
+			bRes = false;
 			printf_dt("LOGIN_REP user logined user=%s(%s:%d).\n",
 				CONN.sUserName,CONN.sDestIp,CONN.iPort);
 			break;
@@ -521,18 +530,14 @@ bool DealCommand(string &msg)
 			rep.set_desc("pswd_error");
 			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
 			TCP_SOCKET.send((unsigned char *) msgBody.data(), msgBody.size());
-			bret = false;
+			bRes = false;
 
 			printf_dt("LOGIN_REP passwd error user=%s(%s:%d).\n",
 				CONN.sUserName,CONN.sDestIp,CONN.iPort);
 			break;
 		}
 
-		//用户，密码验证通过了再发送mqid给接收进程
-
-		msgBody=to_string(CONN.iMqId)+","+string(CONN.sUserName);
-		
-		MQSYS->send(msgBody, CONN.iPid);
+		//用户，密码验证通过
 
 		//如果密码验证也通过，则将心跳代码加入
 /**
@@ -574,7 +579,7 @@ bool DealCommand(string &msg)
 	
 		SubscribeRequest req;
 		req.ParseFromString(msgProtobuf);
-		bret = setSubscrible(req);
+		bRes = setSubscrible(req);
 
 		sprintf(sInfo,"Recv SUBSCRIBLE user=%s(%s:%d) Msg:Sub_Size=%d",
 			CONN.sUserName,CONN.sDestIp,CONN.iPort,req.sub_size());
@@ -588,7 +593,7 @@ bool DealCommand(string &msg)
 		if(LogDispJson(sInfo,sMsg,sDispPath,sDispLog,sErrMsg)==false){
 			printf_dt("SUBSCRIBLE %s user=%s(%s:%d).\n",
 				sErrMsg,CONN.sUserName,CONN.sDestIp,CONN.iPort);
-			bret = false;
+			bRes = false;
 		}
 	}
 		break;
@@ -622,7 +627,7 @@ bool DealCommand(string &msg)
 		{
 			codes[i] = reqCodes.operator[](i);
 		}
-		bret = addReduceCodes(codes, req.add_red());
+		bRes = addReduceCodes(codes, req.add_red());
 
 		sprintf(sInfo,"Recv CODES_SUB user=%s(%s:%d) Msg:codes_size=%d",
 			CONN.sUserName,CONN.sDestIp,CONN.iPort,sz);
@@ -636,13 +641,13 @@ bool DealCommand(string &msg)
 		if(LogDispJson(sInfo,sMsg,sDispPath,sDispLog,sErrMsg)==false){
 			printf_dt("CODES_SUB %s user=%s(%s:%d).\n",
 				sErrMsg,CONN.sUserName,CONN.sDestIp,CONN.iPort);
-			bret = false;
+			bRes = false;
 		}
 	}
 		break;
 	default:
 	{
-		bret = false;
+		bRes = false;
 		
 		printf_dt("Unknow Msg user=%s(%s:%d).\n",
 			CONN.sUserName,CONN.sDestIp,CONN.iPort);
@@ -651,7 +656,7 @@ bool DealCommand(string &msg)
 		break;
 	}
 	}
-	return bret;
+	return bRes;
 }
 
 //处理客户端消息子线程，主函数
@@ -687,7 +692,7 @@ void *MainProcClientCmd(void *)
 		msg_len = data[0] * 256 + data[1];
 
 		//校验消息长度的合法性，如果非法则断开
-		if (msg_len <= 0||msg_len > (SOCKET_DATALEN - 2)){ //消息长度有误
+		if (msg_len <= 0||msg_len > 8190){ //消息长度有误
 			printf_dt("消息长度有误，msg_len：%d!\n",msg_len);
 			iResult=2;
 			break;
@@ -765,46 +770,20 @@ int MainData2Cli()
 	printf_dt("RECVMQ process user=%s(%s:%d).\n",
 		CONN.sUserName,CONN.sDestIp,CONN.iPort);
 
+	//建立病打开传输数据的MQ队列
+	if((mqData=new MessageQueue(CONN.iMqId))==NULL){
+		printf_dt("初始化 mq 错误 key=%d.\n",CONN.iMqId);
+		return -1;
+	}
+	mqData->open(false, true, ServerInfo.iSysMqMaxLen, ServerInfo.iSysMqMaxNum);
+	
+	//如果当前用户在输出日志用户列表中，则绑定写客户端输出文件函数
+	if(UserInWriteUser(CONN.sUserName,sWriteUser))
+		Write2CliFile=MyWrite2CliFile;
+	else	Write2CliFile=NULL;
+
 	while (iExitFlag==false){
 
-		if(iReadSysMq==true){ //总控队列用于接收MQID，通过信号触发
-
-			//接收登录的MQ信号，得到MQID
-			if((iRet = MQSYS->receive(strRecv, CONN.iPid))!=0){
-				iReadSysMq = false;
-				CONN.iMqId = atoi(strRecv.c_str());
-				
-				if((mqData=new MessageQueue(CONN.iMqId))==NULL){
-					printf_dt("初始化 mq 错误 key=%d.\n",CONN.iMqId);
-					return -1;
-				}
-
-				mqData->open(false, true, ServerInfo.iSysMqMaxLen, ServerInfo.iSysMqMaxNum);
-
-				//从系统消息队列中拿到用户名
-				char *pUserName=strchr((char*)strRecv.c_str(),',');
-				if(pUserName==NULL){
-					printf_dt("登录线程发送给数据传输进程的消息格式错误 msg=%s.\n",strRecv.c_str());
-					return -1;
-				}
-
-				strncpy(CONN.sUserName,pUserName+1,sizeof(CONN.sUserName)-1);
-				CONN.sUserName[sizeof(CONN.sUserName)-1]=0;
-				
-				CONN.strUserName=string(CONN.sUserName);
-
-				if(UserInWriteUser(CONN.sUserName,sWriteUser))
-					Write2CliFile=MyWrite2CliFile;
-				else	Write2CliFile=NULL;
-				continue;
-			}
-
-			//如果没收到队列的MQ信号，就休眠一下等待
-			usleep(10000);
-			continue;
-		}
-
-		//这里poDataMQ已经准备好了
 		//如果接收到消息为空，没有消息，则休眠0.1ms继续接收
 		if((iRet = mqData->receive(strRecv, 0))<=0){
 			usleep(100);

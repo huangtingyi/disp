@@ -83,4 +83,7 @@ time_t tFileModifyTime(char sFileName[]);
 
 void printf_dt(const char *fmt,...);
 
+extern int (*Write2CliFile)(char sWorkRoot[],char sUserName[],string &str);
+
+
 #endif

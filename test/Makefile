@@ -43,7 +43,7 @@ ExampleF_OBJS=$(patsubst %.cpp, %.o, $(ExampleF_SRC))
 ExampleG_SRC=$(wildcard ./agentcli_t.cpp ./CallBackBase.cpp ../public/wwtiny.cpp ../public/mktdata.pb.cpp ../public/d31data.pb.cpp)
 ExampleG_OBJS=$(patsubst %.cpp, %.o, $(ExampleG_SRC))
 
-ExampleH_SRC=$(wildcard ./dat2cli_t.cpp ./dat2cli_t_old.cpp ./dat2cli_supp.cpp ../public/MessageQueue.cpp ../public/CSemaphore.cpp ../public/mktdata.pb.cpp ../public/TcpSocket.cpp)
+ExampleH_SRC=$(wildcard ./dat2cli_t.cpp ./dat2cli_supp.cpp ../public/MessageQueue.cpp ../public/CSemaphore.cpp ../public/mktdata.pb.cpp ../public/TcpSocket.cpp)
 ExampleH_OBJS=$(patsubst %.cpp, %.o, $(ExampleH_SRC))
 
 

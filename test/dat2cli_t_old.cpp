@@ -12,7 +12,6 @@ static TcpSocket *g_pTcpSocket = NULL; //Tcp´«ÊäÆ÷
 
 int iMyPid=0;
 char sLogTime[15],sMSec[4];
-int (*Write2CliFile)(char sWorkRoot[],char sUserName[],string &str);
 
 #include "dat2cli_supp.h"
 

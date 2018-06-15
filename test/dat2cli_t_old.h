@@ -102,6 +102,5 @@ public:
 	static bool m_bExitFlag ;
 };
 
-extern int (*Write2CliFile)(char sWorkRoot[],char sUserName[],string &str);
 
 #endif
