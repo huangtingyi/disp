@@ -295,7 +295,7 @@ int main(int argc, char *argv[])
 	//加载d31回放线程
 	pthread_attr_init(&attr_d31);
 	pthread_attr_setdetachstate(&attr_d31, PTHREAD_CREATE_DETACHED);
-	pthread_attr_setstacksize(&attr_d31, 1024*1024*512);
+	pthread_attr_setstacksize(&attr_d31, 1024*512);
 	pthread_create(&pthd_d31, NULL, MainD31Transfer, NULL);
 
 

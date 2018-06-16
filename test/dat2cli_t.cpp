@@ -5,6 +5,8 @@
 
 #include <vector>
 #include <map>
+#include <thread>
+
 
 #include<signal.h>
 #include <time.h>
@@ -22,16 +24,16 @@
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 
+#include <boost/asio.hpp>
+#include <boost/function.hpp>  
+#include <boost/date_time/posix_time/posix_time.hpp>    
+
 using namespace std;
 using namespace boost::property_tree;
 using namespace boost;
 
-extern int errno;
 TcpSocket TCP_SOCKET; //Tcp传输器
-
-
 #include "dat2cli_supp.h"
-//#include "dat2cli_t_old.h"
 
 //MessageQueue *MQSYS=NULL;		//主控进程和数据转发进程通讯==系统队列
 //MessageQueue *MQDATA=NULL;		//数据转发进程接收数据的队列==数据队列
@@ -53,6 +55,50 @@ int WriteLogoutJson();
 //将当前CONN结构的信息，写到disp.json文件的对应用户上
 void writeLoginJson();
 
+typedef boost::asio::io_service 	BIos_t;
+typedef boost::posix_time::seconds	BSec_t;
+typedef boost::function<void()>		BFun_t;
+typedef boost::asio::deadline_timer	BTimer_t;
+
+#define BPH_ERROR boost::asio::placeholders::error
+
+
+class MyTimer
+{
+public:
+	MyTimer(BIos_t &ios, BFun_t callbackFunc, unsigned int iWaitSec) :
+		m_timer(ios, BSec_t(iWaitSec))
+	{
+		m_timeoutHandle = callbackFunc;
+		m_iWaitSec = iWaitSec;
+		m_timer.async_wait(boost::bind(&MyTimer::onTime, this, BPH_ERROR));
+	}
+	~MyTimer()
+	{
+		m_timer.cancel();
+	}
+	void onTime(const boost::system::error_code& err)
+	{
+		if(err) return;
+
+		m_timeoutHandle();
+
+		m_timer.expires_from_now(BSec_t(m_iWaitSec));
+		m_timer.async_wait(boost::bind(&MyTimer::onTime, this,BPH_ERROR));
+	}
+	void resetTimer(unsigned int iWaitSec)
+	{
+		m_timer.cancel();
+		m_iWaitSec = iWaitSec;
+		m_timer.expires_from_now(BSec_t(m_iWaitSec));
+		m_timer.async_wait(boost::bind(&MyTimer::onTime, this, BPH_ERROR));
+	}
+private:
+	int	m_iWaitSec;		//定时间间隔等待时间
+	BTimer_t m_timer;		//asio定时器
+	BFun_t	m_timeoutHandle;	//超时处理回调函数
+};
+
 static void signalProcess(int isignal)
 {
 	if (isignal == SIGUSR1){
@@ -63,7 +109,7 @@ static void signalProcess(int isignal)
 	if (isignal == SIGINT||isignal==SIGTERM){
 		iExitFlag = true;
 		printf_dt("PID=%d CATCH SIG=%d.\n",MYPID,isignal);
-		
+
 	//只有是子进程的情况下才退出，如果是首要进程，则不直接下去exit
 		if(getpid()!=MYPID) return;
 	}
@@ -107,15 +153,15 @@ void PrintUsage(char *argv[])
 }
 int main(int argc, char *argv[])
 {
-	
+
 	int iCheckIp=0,iSetSocketFlag=0,iPid,ret;
 	char sCfgPath[MY_MAX_PATH];
-	
+
 	struct sockaddr_in sAddr;
 
 	//记录主进程ID
 	MYPID=getpid();
-	
+
 	strcpy(sCfgPath,	"../conf/cfg.json");
 	strcpy(sDispPath,	"../conf/disp.json");
 	strcpy(sDispLog,	"../conf/disp.json.log");
@@ -163,12 +209,12 @@ int main(int argc, char *argv[])
 	}
 
 	SetProcessSignal();
-		
+
 	if(ReadServerInfo(sCfgPath,ServerInfo)<0){
 		printf_dt("初始化服务器参数失败. file=%s.\n",sCfgPath);
 		return -1;
 	}
-	
+
 	char sSemName[32];
 	sprintf(sSemName, "%d", ServerInfo.iSemLockKey);
 	//这里要判断是否成功
@@ -179,7 +225,7 @@ int main(int argc, char *argv[])
 		printf_dt("加载用户权限文件 %s 错误.\n",sUserAuthPath);
 		return -1;
 	}
-	
+
 	if (signal(SIGCHLD, SIG_DFL) != SIG_ERR)
 		signal(SIGCHLD, SIG_IGN);
 
@@ -199,21 +245,21 @@ int main(int argc, char *argv[])
 
 		//如果发现USER_AUTH_PATH文件修改了，则重新加载
 		time_t tLmtTemp=tFileModifyTime(sUserAuthPath);
-		
+
 		if(tLmtUserAuth<tLmtTemp){
-			
+
 			MapUserAuth	mapTemp;
-			
+
 			if(ReadUserAuth2Map(sUserAuthPath,mapTemp)<0){
 				printf_dt("加载用户权限文件 %s 错误,请更正后客户端再登录.\n",sUserAuthPath);
 				TCP_SOCKET.Close();
 				continue;
 			}
-			
+
 			//清空旧MAP,设置时间戳，将内容放到旧map中
 			mapUserAuth.clear();
 			tLmtUserAuth=	tLmtTemp;
-			
+
 			//mapUserAuth=	mapTemp;
 			//将mapTemp的内容，统统插入到mapUserAuth中
 			mapUserAuth.insert(mapTemp.begin(),mapTemp.end());
@@ -252,12 +298,12 @@ int main(int argc, char *argv[])
 			TCP_SOCKET.Close();
 			continue;
 		}
-		
+
 		//拿到子进程号
 		CONN.iPid=getpid();
 
 		printf_dt("IP:连接成功%s:%d connected.\n",CONN.sDestIp,CONN.iPort);
-		
+
 		//启动处理客户端消息线程
 		pthread_t pthd_cmd;
 		pthread_attr_t attr_cmd;
@@ -269,11 +315,11 @@ int main(int argc, char *argv[])
 		//启动将MQ队列数据转发到客户端的函数
 		MainData2Cli();
 		WriteLogoutJson();
-		
+
 		char sInfo[256],sErrMsg[256];
-	
+
 		sprintf(sInfo,"RECVMQ EXIT user=%s(%s:%d)",CONN.sUserName,CONN.sDestIp,CONN.iPort);
-	
+
 		printf_dt("%s.\n",sInfo);
 
 		if(LogDispJson(sInfo,(char*)"NULL",sDispPath,sDispLog,sErrMsg)==false){
@@ -283,7 +329,7 @@ int main(int argc, char *argv[])
 		}
 
 		//如果进程终止，则直接退出
-		break;		
+		break;
 	}
 
 	TCP_SOCKET.Close();
@@ -310,11 +356,11 @@ void GenDispJsonItem(ConnectClient_t &c,ptree &t)
 
 	for (auto it = c.setSubscribed.begin(); it != c.setSubscribed.end(); ++it)
 		tSubscribed.push_back(std::make_pair("", ptree(to_string(*it))));
-	
+
 	for (auto it = c.setSubsCode.begin(); it != c.setSubsCode.end(); ++it)
 		tSubsCode.push_back(std::make_pair("", ptree(to_string(*it))));
-	
-	
+
+
 	t.put_child("subscribed",tSubscribed);
 	t.put_child("subcodes",	tSubsCode);
 
@@ -324,33 +370,33 @@ void GenDispJsonItem(ConnectClient_t &c,ptree &t)
 void writeLoginJson()
 {
 	ptree tNewItem,tRoot,tNewRoot,tNewChild;
-	
+
 	read_json(sDispPath, tRoot);
-	
+
 	//生成一项配置信息
 	GenDispJsonItem(CONN,tNewItem);
-	
+
 	if(tRoot.count("users")==0){
+		//将新生成的内容加入列表中，并挂在users下
 		tNewChild.push_back(std::make_pair("", tNewItem));
 		tNewRoot.put_child("users", tNewChild);
-//		tNewRoot.put_child("users", tNewItem);
 
 		DATALOCK.P();
 		write_json(sDispPath, tNewRoot);
 		DATALOCK.V();
 		return;
 	}
-	
+
 	//做一个循环，将不是本用户的配置放到tNewChild中
 	for(auto t : tRoot.get_child("users")){
 
 		if (CONN.strUserName!=t.second.get < string > ("user"))
 			tNewChild.push_back(t);
 	}
-	
+
 	tNewChild.push_back(std::make_pair("", tNewItem));
-	tNewRoot.put_child("users",tNewChild);	
-	
+	tNewRoot.put_child("users",tNewChild);
+
 	DATALOCK.P();
 	write_json(sDispPath, tNewRoot);
 	DATALOCK.V();
@@ -360,11 +406,11 @@ int WriteLogoutJson()
 {
 //	int i=0;
 	int iFoundFlag=false;
-	
+
 	ptree tRoot,tNewRoot,tNewChild;
-	
+
 	read_json(sDispPath, tRoot);
-	
+
 	//做一个循环，将不是本用户的配置放到tNewChild中
 	for(auto t : tRoot.get_child("users")){
 
@@ -379,11 +425,11 @@ int WriteLogoutJson()
 //			CONN.strUserName.c_str(),
 //			t.second.get < string > ("user").c_str());
 	}
-	
-	tNewRoot.put_child("users",tNewChild);	
+
+	tNewRoot.put_child("users",tNewChild);
 
 	//只有在disp.json文件中存在当前用户的记录，才要更新
-	if(iFoundFlag==true){	
+	if(iFoundFlag==true){
 		DATALOCK.P();
 		write_json(sDispPath, tNewRoot);
 		DATALOCK.V();
@@ -396,11 +442,11 @@ bool IsLogined(string strUserName)
 {
 	int iPid;
 	ptree tRoot;
-	
+
 	read_json(sDispPath, tRoot);
 
 	if(tRoot.count("users")==0) return false;
-	
+
 	//做一个循环，将不是本用户的配置放到tNewChild中
 	for(auto t : tRoot.get_child("users")){
 
@@ -412,17 +458,18 @@ bool IsLogined(string strUserName)
 			//json文件记录的pid不存在{：用发送信号失败来判定}，
 			//也表示未登录
 			if(kill(iPid,0)!=0) break;
-				
+
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 bool setSubscrible(const SubscribeRequest &req)
 {
-	if(CONN.strUserName.size() == 0) return false;
+	int j,aiAuthSet[4]={180,183,185,18};
 
+	if(CONN.strUserName.size() == 0) return false;
 
 	const auto it = mapUserAuth.find(CONN.strUserName);
 	const int numSub = req.sub_size();
@@ -435,16 +482,18 @@ bool setSubscrible(const SubscribeRequest &req)
 		auto t=it->second.setAuth;
 
 		bizCodeTmp = BizCode(req.sub(i));
-			
+
 		//如果权限找到,对于D31的订购，分别找各个子项目
 		if(bizCodeTmp==D31_ITEM){
-			if(t.find(180)!=t.cend())	CONN.setSubscribed.insert(180);
-			if(t.find(183)!=t.cend())	CONN.setSubscribed.insert(183);
-			if(t.find(185)!=t.cend())	CONN.setSubscribed.insert(185);
-			if(t.find(18)!=t.cend())	CONN.setSubscribed.insert(18);
+			
+			for(j=0;j<4;j++){
+				if(t.find(aiAuthSet[j])!=t.cend())
+					CONN.setSubscribed.insert(aiAuthSet[j]);
+			}
 		}
 		else{
-			if(t.find(bizCodeTmp)!=t.cend())CONN.setSubscribed.insert((int)bizCodeTmp);
+			if(t.find(bizCodeTmp)!=t.cend())
+				CONN.setSubscribed.insert((int)bizCodeTmp);
 		}
 	}
 
@@ -467,12 +516,40 @@ bool addReduceCodes(const vector<uint32_t> &codes, const bool addFlag)
 
 	return true;
 }
+void RunThread(BIos_t *p)
+{
+	p->run();
+}
+void handleTimeOut()
+{	
+	char sInfo[256],sErrMsg[256];
+
+	int iWriteFlag=WriteLogoutJson();
+
+	sprintf(sInfo,"CLICMD EXIT TIME OUT user=%s(%s:%d)",CONN.sUserName,CONN.sDestIp,CONN.iPort);
+
+	printf_dt("%s.\n",sInfo);
+
+	//只有确实有写disp.json文件时，才调用logdispjson函数归档
+	if(iWriteFlag==true){
+		if(LogDispJson(sInfo,(char*)"NULL",sDispPath,sDispLog,sErrMsg)==false){
+			printf_dt("LOG LOGOUT JSON ERROR user=%s(%s:%d) msg=%s.\n",
+				CONN.sUserName,CONN.sDestIp,CONN.iPort,sErrMsg);
+			exit(1);
+		}
+	}
+	exit(0);
+}
 
 bool DealCommand(string &msg)
 {
 	bool bRes = true;
 	BizCode iBizCode;
 	string msgProtobuf;
+
+	static BIos_t ios;
+	static MyTimer *pTimer=NULL;
+	static std::thread *pThread=NULL;
 
 	getBizcode(iBizCode, msgProtobuf, msg);
 
@@ -489,9 +566,9 @@ bool DealCommand(string &msg)
 
 		req.ParseFromString(msgProtobuf);
 		sPasswd = req.password();
-			
+
 		auto itAuth = mapUserAuth.find(req.name());
-		
+
 		CONN.strUserName = req.name();
 		strcpy(CONN.sUserName,req.name().c_str());
 
@@ -500,7 +577,7 @@ bool DealCommand(string &msg)
 		PrintHexBuf((char*)(msg.c_str()),msg.size());
 
 		rep.set_err(errcode);
-	
+
 		//先查询用户名是否有效,无效则返回客户端
 		if (itAuth == mapUserAuth.cend()){
 			rep.set_desc("user_invalid");
@@ -512,7 +589,7 @@ bool DealCommand(string &msg)
 
 			break;
 		}
-		
+
 		CONN.iMqId = itAuth->second.iMqId;
 
 		//如果已经登录则，回复已经登录信息
@@ -540,18 +617,15 @@ bool DealCommand(string &msg)
 		//用户，密码验证通过
 
 		//如果密码验证也通过，则将心跳代码加入
-/**
-		if(!m_pTimerController){
+		if(pTimer==NULL){
 			//启动定时器
-			m_pTimerController  = new TimerController(m_io,
-				boost::bind(&Dat2Client::handleTimeOut,this),ServerInfo.iHeartBeat*2);
-			m_pThread = new std::thread(startIosThread,&m_io);
-			m_pThread->detach();
+			pTimer  = new MyTimer(ios,boost::bind(handleTimeOut),ServerInfo.iHeartBeat*2);
+			pThread = new std::thread(RunThread,&ios);
+			pThread->detach();
 		}
-		else{
-			m_pTimerController->resetTimer(ServerInfo.iHeartBeat*2);
-		}
-**/
+		else
+			pTimer->resetTimer(ServerInfo.iHeartBeat*2);
+	
 		//如果密码验证也通过，并在返回成功后，再返回客户端allsubs信息【pb格式】
 		rep.set_err(ErrCode::SUCCESS);
 
@@ -568,7 +642,7 @@ bool DealCommand(string &msg)
 
 		addBizcode(msgBody, bc, BizCode::CODES_BROADCAST);
 		TCP_SOCKET.send((unsigned char *) msgBody.data(), msgBody.size());
-		
+
 		printf_dt("LOGIN_REP login SUCCESS user=%s(%s:%d).\n",
 			CONN.sUserName,CONN.sDestIp,CONN.iPort);
 	}
@@ -576,7 +650,7 @@ bool DealCommand(string &msg)
 	case SUBSCRIBLE:
 	{
 		char sInfo[256],sMsg[256],sErrMsg[256];
-	
+
 		SubscribeRequest req;
 		req.ParseFromString(msgProtobuf);
 		bRes = setSubscrible(req);
@@ -587,7 +661,7 @@ bool DealCommand(string &msg)
 		printf_dt("%s.\n",sInfo);
 
 		PrintHexBuf((char*)(msg.c_str()),msg.size());
-		
+
 		//这里将改变之后的文件，全量写入到 disp.json.log文件中
 		MyBin2HexStr((char*)(msg.c_str()),msg.size(),sMsg);
 		if(LogDispJson(sInfo,sMsg,sDispPath,sDispLog,sErrMsg)==false){
@@ -606,12 +680,12 @@ bool DealCommand(string &msg)
 
 		PrintHexBuf((char*)(msg.c_str()),msg.size());
 #endif
-//		m_pTimerController->resetTimer(ServerInfo.iHeartBeat*2);
+		pTimer->resetTimer(ServerInfo.iHeartBeat*2);
 	}
 		break;
 	case CODES_SUB:
 	{
-		
+
 		char sInfo[256],sMsg[256],sErrMsg[256];
 
 		PbCodesSub req;
@@ -635,7 +709,7 @@ bool DealCommand(string &msg)
 		printf_dt("%s.\n",sInfo);
 
 		PrintHexBuf((char*)(msg.c_str()),msg.size());
-		
+
 		//这里将改变之后的文件，全量写入到 disp.json.log文件中
 		MyBin2HexStr((char*)(msg.c_str()),msg.size(),sMsg);
 		if(LogDispJson(sInfo,sMsg,sDispPath,sDispLog,sErrMsg)==false){
@@ -648,7 +722,7 @@ bool DealCommand(string &msg)
 	default:
 	{
 		bRes = false;
-		
+
 		printf_dt("Unknow Msg user=%s(%s:%d).\n",
 			CONN.sUserName,CONN.sDestIp,CONN.iPort);
 		PrintHexBuf((char*)(msg.c_str()),msg.size());
@@ -662,7 +736,7 @@ bool DealCommand(string &msg)
 //处理客户端消息子线程，主函数
 void *MainProcClientCmd(void *)
 {
-	
+
 	string msg;
 	int recv_len, msg_len, ret,iResult=0;
 	unsigned char sBuffer[8192];
@@ -692,7 +766,7 @@ void *MainProcClientCmd(void *)
 		msg_len = data[0] * 256 + data[1];
 
 		//校验消息长度的合法性，如果非法则断开
-		if (msg_len <= 0||msg_len > 8190){ //消息长度有误
+		if (msg_len <= 0||msg_len>(int)(sizeof(sBuffer)-2)){ //消息长度有误
 			printf_dt("消息长度有误，msg_len：%d!\n",msg_len);
 			iResult=2;
 			break;
@@ -707,8 +781,8 @@ void *MainProcClientCmd(void *)
 		//得到有效的消息长度后，则读取整个消息
 		while(recv_len - 2 < msg_len){
 			if ((ret = TCP_SOCKET.read(data + recv_len, msg_len)) <= 0){
-				
-				
+
+
 				printf_dt("TCP_SOCKET读取失败.\n");
 				iResult=3;
 				goto next_end_cli;
@@ -728,13 +802,13 @@ void *MainProcClientCmd(void *)
 
 	}
 next_end_cli:
-	
-	int iWriteFlag=WriteLogoutJson();
 
 	char sInfo[256],sErrMsg[256];
-	
+
+	int iWriteFlag=WriteLogoutJson();
+
 	sprintf(sInfo,"CLICMD EXIT user=%s(%s:%d)",CONN.sUserName,CONN.sDestIp,CONN.iPort);
-	
+
 	printf_dt("%s.\n",sInfo);
 
 	//只有确实有写disp.json文件时，才调用logdispjson函数归档
@@ -745,9 +819,9 @@ next_end_cli:
 			exit(1);
 		}
 	}
-	
+
 	if(iResult>0) exit(iResult);
-	
+
 	return NULL;
 }
 
@@ -770,13 +844,13 @@ int MainData2Cli()
 	printf_dt("RECVMQ process user=%s(%s:%d).\n",
 		CONN.sUserName,CONN.sDestIp,CONN.iPort);
 
-	//建立病打开传输数据的MQ队列
+	//建立并且打开传输数据的MQ队列
 	if((mqData=new MessageQueue(CONN.iMqId))==NULL){
 		printf_dt("初始化 mq 错误 key=%d.\n",CONN.iMqId);
 		return -1;
 	}
 	mqData->open(false, true, ServerInfo.iSysMqMaxLen, ServerInfo.iSysMqMaxNum);
-	
+
 	//如果当前用户在输出日志用户列表中，则绑定写客户端输出文件函数
 	if(UserInWriteUser(CONN.sUserName,sWriteUser))
 		Write2CliFile=MyWrite2CliFile;
@@ -791,11 +865,9 @@ int MainData2Cli()
 		}
 
 		//做一个统计信息输出到终端
-		
-		CONN.lRecvCnt++;
 
-		iSubs=(int)((unsigned char) (strRecv[2]));
-		
+		CONN.lRecvCnt++;
+		iSubs=(unsigned char) strRecv[2];
 		CONN.mapSubsStat[iSubs]++;
 
 		if((CONN.lRecvCnt)%3000==0){
@@ -813,6 +885,7 @@ int MainData2Cli()
 				mqData->m_oriKey,CONN.lRecvCnt,sTemp);
 		}
 
+		//做一个循环发送数据到客户端
 		num = 0;
 		msg_len = strRecv.size();
 
@@ -826,8 +899,9 @@ int MainData2Cli()
 			num += iRet;
 		}
 
+		//如果需要落地客户端发送信息，则写相关文件
 		if(Write2CliFile!=NULL){
-			if(Write2CliFile(sWorkRoot,(char*)CONN.sUserName,strRecv)<0)
+			if(Write2CliFile(sWorkRoot,CONN.sUserName,strRecv)<0)
 				return -1;
 		}
 	}
