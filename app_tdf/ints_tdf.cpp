@@ -225,10 +225,16 @@ int main(int argc, char** argv)
 
 int ReadD31FileAndSend(char sFileName[],long *plCurPos)
 {
+	static time_t tStartTime=0;
+
 	FILE *fp;
 	char sBuffer[10240];
 	long lCurPos=*plCurPos,lSize,lCnt,lItemLen;
 	struct D31ItemStruct *p=(struct D31ItemStruct*)(sBuffer+sizeof(long long));
+
+	if(tStartTime==0){
+		tStartTime=tGetHostTime();
+	}
 
 	lSize=lFileSize(sFileName);
 	
@@ -256,7 +262,8 @@ int ReadD31FileAndSend(char sFileName[],long *plCurPos)
 			printf("error end of file break.\n");
 			return -1;
 		}
-		{
+		//只取时间时间大于启动时间之前1分钟的数据
+		if(p->nTradeTime>(tStartTime-60)){
 
 			UTIL_Time stTime;
 			PUTIL_GetLocalTime(&stTime);

@@ -111,12 +111,13 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 
 		if(CodeInCodeStr(p->szCode,sCodeStr)==false) continue;
 
-		if(p->nActionDay!=nBgnActionDay){
+		if(p->nActionDay!=nBgnActionDay)continue;
+/*		{
 			printf("error date file=%s,pos=%ld,actionday=%d,calcdate=%d\n",
 				sFileName,lCurPos,p->nActionDay,nBgnActionDay);
 			return -1;
 		}
-
+*/
 		if((pIndexStat=GetIndexStat(atoi(p->szCode),sFileName,
 			lCurPos,nBgnActionDay,nPreT0,nT0))==NULL) return -1;
 
@@ -487,7 +488,7 @@ int main(int argc, char *argv[])
 		sprintf(sD31Name,"%s/d31_t%d_%s.dat",sWorkRoot,iWriteFlag,sCalcDate);
 	else	sprintf(sD31Name,"%s/d31_t%d_%s.txt",sWorkRoot,iWriteFlag,sCalcDate);
 
-        if((fpD31=fopen(sD31Name,"w"))==NULL){
+        if((fpD31=fopen(sD31Name,"ab+"))==NULL){
                 printf("error open file %s to write.\n",sD31Name);
                 return -1;
         }
@@ -557,7 +558,7 @@ int main(int argc, char *argv[])
 				continue;
 			}
 			//九点半前集合竞价外的时间
-			if(nCurTime<92455000||
+			if(nCurTime<91455000||
 				(nCurTime>92600000&&nCurTime<92955000)){
 				//休眠5秒钟
 				sleep(5);
@@ -565,12 +566,18 @@ int main(int argc, char *argv[])
 
 			}
 			//除开集合竞价展示外的时间
-			if(nCurTime<92500000||nCurTime>92600000){
+			if(nCurTime<91500000||nCurTime>92600000){
 				usleep(iIdleWaitMilli*1000);
 				continue;
 			}
 			//如果本次时间和上次时间不足一秒，则继续扫描
-			if((nCurTime-nPreTime)<1000){
+			int iX;
+			
+			if(nCurTime>=92500000)  iX=1000;
+			else			iX=15000;
+
+			if((nCurTime-nPreTime)<iX){
+			
 				usleep(iIdleWaitMilli*1000);
 				continue;
 			}
