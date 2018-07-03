@@ -137,7 +137,7 @@ int main(int argc, char** argv)
 	//刷新一下参数，避免要求disp先启动，才能启动本程序
 	RefreshUserArray(sDispName,&R);
 	
-	int port;
+	int port,iFailCnt=0;
 	string host,id,passwd,strWork;
 	boost::property_tree::ptree tRoot;
 
@@ -186,15 +186,22 @@ int main(int argc, char** argv)
 	TDF_ERR nErr = TDF_ERR_SUCCESS;
 	THANDLE hTDF = NULL;
 
-	hTDF = TDF_OpenExt(&settings, &nErr);
+	//只有连续三次都失败了，才算真失败噢
+	while(iFailCnt<3){
 
+		if ((hTDF=TDF_OpenExt(&settings, &nErr))!=NULL) break;
+		
+		printf("TDF_Open return error: %d ,%d cnt 5s latter try\n",nErr,++iFailCnt);
+		sleep(5);
+	}
 
-	if (hTDF==NULL){
-		printf("TDF_Open return error: %d\n", nErr);
-	}else{
-		printf(" Open Success!\n");
+	if(hTDF==NULL){
+		printf("TDF_Open return error 3 times\n");
+		return -1;
 	}
 	
+	printf(" Open Success!\n");
+
 	pthread_t pthd_d31;
 	pthread_attr_t attr_d31;
 

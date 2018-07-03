@@ -74,7 +74,7 @@ EOF
 
 cd $HOME/bin
 
-nohup stdbuf --output=L --error=L $agent_bin -p$agent_file -r$disp_file 1>$agentcli_log 2>&1 &
+nohup stdbuf --output=L --error=L $agent_bin -p$agent_file -r$disp_file 1>>$agentcli_log 2>&1 &
 sleep 1
 $pidof_bin -x agentcli
 if [ $? -ne 0 ]; then
@@ -85,7 +85,7 @@ fi
 
 echo "`date '+%Y/%m/%d %k:%M:%S.%N'` agentcli is startup SUCESS.."
 
-nohup stdbuf --output=L --error=L $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
+nohup stdbuf --output=L --error=L $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>>$dat2cli_log 2>&1 &
 sleep 1
 $pidof_bin -x dat2cli
 if [ $? -ne 0 ]; then
@@ -96,7 +96,7 @@ fi
 
 echo "`date '+%Y/%m/%d %k:%M:%S.%N'` dat2cli is startup SUCESS.."
 
-nohup $moni_bin $ethdev 1>$moni_log 2>&1 &
+nohup $moni_bin $ethdev 1>>$moni_log 2>&1 &
 
 sleep 1
 $pidof_bin -x moni.sh

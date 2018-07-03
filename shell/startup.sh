@@ -22,12 +22,12 @@ writeflag=${writeflag:-1}
 workroot=${workroot:-/stock/work}
 writeusr=${writeusr:-0}
 
-gta_file="$HOME/conf/ints_gta.json"
-tdf_file="$HOME/conf/ints_tdf.json"
-ints_gta_bin="$HOME/bin/ints_gta"
-ints_tdf_bin="$HOME/bin/ints_tdf"
-index_gta_bin="$HOME/bin/index_gta"
-index_tdf_bin="$HOME/bin/index_tdf"
+ints_file="$HOME/conf/ints_$sysflag.json"
+ints_bin="$HOME/bin/ints_$sysflag"
+ints_log="$HOME/bin/log/ints_"$sysflag"_`date '+%Y%m%d'`.log"
+
+index_bin="$HOME/bin/index_$sysflag"
+index_log="$HOME/bin/log/index_"$sysflag"_`date '+%Y%m%d'`.log"
 
 disp_file="$HOME/conf/disp.json"
 user_file="$HOME/conf/user_privilege.json"
@@ -37,27 +37,8 @@ dat2cli_bin="$HOME/bin/dat2cli"
 moni_bin="$HOME/bin/moni.sh"
 pidof_bin="/usr/sbin/pidof"
 
-ints_gta_log="$HOME/bin/log/ints_gta`date '+%Y%m%d'`.log"
-ints_tdf_log="$HOME/bin/log/ints_tdf`date '+%Y%m%d'`.log"
-index_gta_log="$HOME/bin/log/index_gta`date '+%Y%m%d'`.log"
-index_tdf_log="$HOME/bin/log/index_tdf`date '+%Y%m%d'`.log"
-
 dat2cli_log="$HOME/bin/log/dat2cli_`date '+%Y%m%d'`.log"
 moni_log="$HOME/bin/log/moni_`date '+%Y%m%d'`.log"
-
-if [ $sysflag = "gta" ]; then
-	ints_file=$gta_file
-	ints_bin=$ints_gta_bin
-	ints_log=$ints_gta_log
-	index_bin=$index_gta_bin
-	index_log=$index_gta_log
-else
-	ints_file=$tdf_file
-	ints_bin=$ints_tdf_bin
-	ints_log=$ints_tdf_log
-	index_bin=$index_tdf_bin
-	index_log=$index_tdf_log
-fi
 
 [ ! -f $ints_file ] && echo "$ints_file is not exist" && exit 1;
 [ ! -f $ints_bin ] && echo "$ints_bin is not exist" && exit 1;
@@ -120,7 +101,7 @@ EOF
 
 cd $HOME/bin
 	
-nohup stdbuf --output=L --error=L $ints_bin -w$writeflag -o$workroot -c$ints_file -r$disp_file -d$workd31 -l$max_mq_msg_len 1>$ints_log 2>&1 &
+nohup stdbuf --output=L --error=L $ints_bin -w$writeflag -o$workroot -c$ints_file -r$disp_file -d$workd31 -l$max_mq_msg_len 1>>$ints_log 2>&1 &
 sleep 1
 $pidof_bin -x $ints_bin_base
 
@@ -132,7 +113,7 @@ fi
 echo "`date '+%Y/%m/%d %k:%M:%S.%N'` $ints_bin_base is startup SUCESS.."
 	
 ##启动D31统计程序
-nohup stdbuf --output=L --error=L $index_bin -w3 -s$workroot -o$workd31 -e$index_stat_delay -L$etflist -E$etfpath 1>$index_log 2>&1 &
+nohup stdbuf --output=L --error=L $index_bin -w3 -s$workroot -o$workd31 -e$index_stat_delay -L$etflist -E$etfpath 1>>$index_log 2>&1 &
 sleep 1
 $pidof_bin -x $index_bin_base
 if [ $? -ne 0 ]; then
@@ -142,7 +123,7 @@ if [ $? -ne 0 ]; then
 fi
 echo "`date '+%Y/%m/%d %k:%M:%S.%N'` $index_bin_base is startup SUCESS.."
 
-nohup stdbuf --output=L --error=L $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
+nohup stdbuf --output=L --error=L $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>>$dat2cli_log 2>&1 &
 sleep 1
 $pidof_bin -x dat2cli
 if [ $? -ne 0 ]; then
@@ -153,7 +134,7 @@ fi
 
 echo "`date '+%Y/%m/%d %k:%M:%S.%N'` dat2cli is startup SUCESS.."
 
-nohup stdbuf --output=L --error=L $moni_bin $ethdev 1>$moni_log 2>&1 &
+nohup stdbuf --output=L --error=L $moni_bin $ethdev 1>>$moni_log 2>&1 &
 
 sleep 1
 $pidof_bin -x moni.sh

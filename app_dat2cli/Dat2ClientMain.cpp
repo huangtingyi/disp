@@ -101,6 +101,7 @@ void signalProcess(int isignal)
 
 	if (isignal == SIGINT||isignal==SIGTERM){
 		Dat2Client::m_bExitFlag = true;
+		GetHostTimeX(sLogTime,sMSec);
 		printf("%s.%s pid=%d(%d) CATCH SIG=%d.\n",
 			sLogTime,sMSec,getpid(),iMyPid,isignal);
 		
@@ -149,6 +150,7 @@ Dat2Client::Dat2Client()
 	m_Subscribed.clear();
 	m_iMqID = 0;
 	m_subSomeCodes = false;
+	m_loginOK = false;
 	m_codes.clear();
 
 #ifdef DEBUG_ONE
@@ -382,9 +384,9 @@ int Dat2Client::run(int argc, char *argv[])
 				m_iPid = iDat2CliPid;
 				ret=RecvCliSockRequestAndProcess(sDestIp,iPort);
 				g_pTcpSocket->Close();
-				kill(iDat2CliPid, SIGINT);
 				logout();
 				
+				kill(iDat2CliPid, SIGINT);
 				GetHostTimeX(sLogTime,sMSec);
 				printf("%s.%s CLICMD EXIT user=%s(%s:%d-p-%d) code=%d.\n",
 					sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid(),ret);
@@ -444,6 +446,7 @@ int Dat2Client::RecvCliSockRequestAndProcess(char sDestIp[],int iPort)
 		//做一个循环，从客户端socket中读取消息长度data中
 		while(recv_len < msg_len){
 			if ((ret = g_pTcpSocket->read((data + recv_len), msg_len - recv_len)) <= 0){
+				GetHostTimeX(sLogTime,sMSec);
 				printf("%s.%s user=%s(%s:%d-p-%d) READ ERROR code=%d.\n",
 					sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid(),ret);
 
@@ -682,6 +685,9 @@ bool Dat2Client::dealCommand(string &msg,char sDestIp[],int iPort)
 	BizCode iBizCode;
 	string msgProtobuf;
 
+	Reply rep;
+	string msgRep,msgBody;
+
 	getBizcode(iBizCode, msgProtobuf, msg);
 
 	switch (iBizCode){
@@ -691,10 +697,7 @@ bool Dat2Client::dealCommand(string &msg,char sDestIp[],int iPort)
 		LoginRequest req;
 		req.ParseFromString(msgProtobuf);
 
-		Reply rep;
 		ErrCode errcode = ErrCode::OTHER;
-
-		string msgRep,msgBody;
 
 		const string pswdInput = req.password();
 		const auto itPrivl = m_mapPrivl.find(req.name());
@@ -784,6 +787,8 @@ bool Dat2Client::dealCommand(string &msg,char sDestIp[],int iPort)
 		
 		printf("%s.%s LOGIN_REP login SUCCESS user=%s(%s:%d-p-%d).\n",
 			sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
+
+		m_loginOK=true;
 	}
 	break;
 	case SUBSCRIBLE:
@@ -791,6 +796,19 @@ bool Dat2Client::dealCommand(string &msg,char sDestIp[],int iPort)
 		char sInfo[256],sMsg[256],sErrMsg[256];
 	
 		SubscribeRequest req;
+		
+		//如果没有过登录这个环节，必须提示并拒绝登录
+		if(m_loginOK!=true){
+			rep.set_desc("must_logined");
+			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
+			g_pTcpSocket->send((unsigned char *) msgBody.data(), msgBody.size());
+			bret = false;
+
+			printf("%s.%s SUBSCRIBLE_REP must logined first user=%s(%s:%d-p-%d).\n",
+				sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
+			break;
+		}
+		
 		req.ParseFromString(msgProtobuf);
 		bret = setSubscrible(req);
 
@@ -815,14 +833,13 @@ bool Dat2Client::dealCommand(string &msg,char sDestIp[],int iPort)
 		break;
 	case HEART_BEAT:
 	{
-#ifdef DEBUG_ONE
 
 		GetHostTimeX(sLogTime,sMSec);
 		printf("%s.%s Recv HEART_BEAT MSG user=%s(%s:%d-p-%d).\n",
 			sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
 
 		disp_buf2((char*)(msg.c_str()),msg.size());
-#endif
+
 		m_pTimerController->resetTimer(m_secHeartbeat*2);
 	}
 		break;
@@ -832,6 +849,18 @@ bool Dat2Client::dealCommand(string &msg,char sDestIp[],int iPort)
 		char sInfo[256],sMsg[256],sErrMsg[256];
 
 		PbCodesSub req;
+
+		//如果没有过登录这个环节，必须提示并拒绝登录
+		if(m_loginOK!=true){
+			rep.set_desc("must_logined");
+			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
+			g_pTcpSocket->send((unsigned char *) msgBody.data(), msgBody.size());
+			bret = false;
+
+			printf("%s.%s CODES_SUB_REP must logined first user=%s(%s:%d-p-%d).\n",
+				sLogTime,sMSec,m_sUserName.c_str(),sDestIp,iPort,getpid());
+			break;
+		}
 
 		req.ParseFromString(msgProtobuf);
 		const int sz = req.codes_size();
@@ -1098,46 +1127,42 @@ bool Dat2Client::isLogined(string sUserName)
 
 	ptree root, readPt, items, userparam, itemsub, itemsubcodes, root_1;
 	read_json(m_sOutDispJsonPath, readPt);
-	if (readPt.count("users"))
-	{
+	if (readPt.count("users")){
 		ptree ptChildRead = readPt.get_child("users");
-		for (auto pos : ptChildRead) //遍历数组
-		{
+		for (auto pos : ptChildRead){ //遍历数组
+
 			ptree p = pos.second;
 			string user = p.get < string > ("user");
-			if (user != sUserName)
-			{
+			if (user != sUserName){
 				root_1.push_back(pos);
 			}
-			else
-			{
+			else{
 				int iPid = p.get<int>("pid",0);
-				if (iPid == 0 || 0 != kill(iPid, 0)) //不存在
-				{
+				if (iPid == 0 || 0 != kill(iPid, 0)){ //不存在
+
 					userparam.put("user", m_sUserName);
 					userparam.put("pid", getpid());
 					root_1.push_back(std::make_pair("", userparam));
 					bfound = true;
 				}
-				else
-				{
+				else{
 					m_poDataLock->V();
 					return true;
 				}
 			}
 		}
-		if (!bfound)
-		{
+		if (!bfound){
 			userparam.put("user", m_sUserName);
 			userparam.put<int>("pid", getpid());
 			root_1.push_back(std::make_pair("", userparam));
 
 		}
 		root.put_child("users", root_1);
-		write_json(m_sOutDispJsonPath, root);
+//		这里不能写文件，避免catch异常出错如下:
+//		watch exception pid=126635
+//		write_json(m_sOutDispJsonPath, root);
 	}
-	else
-	{
+	else{
 		userparam.put("user", m_sUserName);
 		userparam.put<int>("pid", getpid());
 
@@ -1162,13 +1187,15 @@ void Dat2Client::handleTimeOut()
 }
 
 void Dat2Client::logout()
-{
+{	
 	string str = "";
 
+	ptree root, readPt, items, userparam, itemsub, itemsubcodes, root_1;
+	
 	m_poDataLock->P();
 
-	ptree root, readPt, items, userparam, itemsub, itemsubcodes, root_1;
 	read_json(m_sOutDispJsonPath, readPt);
+	
 	if (readPt.count("users") && m_sUserName.size()>0 )
 	{
 		ptree ptChildRead = readPt.get_child("users");

@@ -103,16 +103,16 @@ private:
 	////TimerHeartbeat m_Timer;
 	int m_iMqID;
 	bool m_subSomeCodes ;
+	bool m_loginOK;
 	set<uint32_t> m_codes; //只订阅这些证券代码
 
 	TimerController *m_pTimerController;
 	boost::asio::io_service m_io;
 	std::thread *m_pThread;
-#ifdef DEBUG_ONE
+
 	map<BizCode,long> m_mapBizStat;
 	long m_lRecvNum;
 	long m_lSendNum;
-#endif
 
 	CSemaphore *m_poDataLock;
 

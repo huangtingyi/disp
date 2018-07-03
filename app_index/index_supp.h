@@ -151,7 +151,7 @@ struct IndexStatStruct
 //	int8b	lLastTotalBidAmnt;	//最后一笔行情叫买总量
 //	int8b	lLastTotalAskAmnt;	//最后一笔行情叫卖总量
 
-	int	iSamplingCnt;		//行情采样笔数
+	int	iSamplingCnt;		//行情采样笔数,只有整分钟时才采样
 	int8b	lAddupSamplingBidAmnt;	//每笔采样行情叫买总量的累计
 	int8b	lAddupSamplingAskAmnt;	//每笔采样行情叫卖总量的累计
 

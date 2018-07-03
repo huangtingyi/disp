@@ -80,15 +80,13 @@ disp_file="$HOME/conf/disp.json"
 user_file="$HOME/conf/user_privilege.json"
 cfg_file="$HOME/conf/cfg.json"
 
-replay_gta_bin="$HOME/bin/replay_gta"
-replay_tdf_bin="$HOME/bin/replay_tdf"
+
+replay_bin="$HOME/bin/replay_$sysflag"
+replay_log="$HOME/bin/log/replay_"$sysflag"_`date '+%Y%m%d'`.log"
 
 dat2cli_bin="$HOME/bin/dat2cli"
 moni_bin="$HOME/bin/moni.sh"
 pidof_bin="/usr/sbin/pidof"
-
-replay_gta_log="$HOME/bin/log/replay_gta_`date '+%Y%m%d'`.log"
-replay_tdf_log="$HOME/bin/log/replay_tdf_`date '+%Y%m%d'`.log"
 
 dat2cli_log="$HOME/bin/log/dat2cli_`date '+%Y%m%d'`.log"
 moni_log="$HOME/bin/log/moni_`date '+%Y%m%d'`.log"
@@ -96,14 +94,6 @@ moni_log="$HOME/bin/log/moni_`date '+%Y%m%d'`.log"
 [ ! -f $cfg_file ] && echo "$cfg_file is not exist" && exit 1;
 [ ! -f $disp_file ] && echo "$disp_file is not exist" && exit 1;
 [ ! -f $user_file ] && echo "$user_file is not exist" && exit 1;
-
-if [ $sysflag = "gta" ]; then
-	replay_bin=$replay_gta_bin
-	replay_log=$replay_gta_log
-else
-	replay_bin=$replay_tdf_bin
-	replay_log=$replay_tdf_log
-fi
 
 replay_bin_base=`basename $replay_bin`
 
@@ -150,7 +140,7 @@ cd $HOME/bin
 
 ##./replay_gta -d20180412 -r/home/hty/bin/disp.json -w0 -t200 -s/data/20180412
 
-nohup stdbuf --output=L --error=L $replay_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -l$max_mq_msg_len -m$replaymulti 1>$replay_log 2>&1 &
+nohup stdbuf --output=L --error=L $replay_bin -s$replaypath -d$replaydate -b$replaytime -r$disp_file -o$workroot -w$writeflag -t$replaydelay -l$max_mq_msg_len -m$replaymulti 1>>$replay_log 2>&1 &
 sleep 1
 $pidof_bin -x $replay_bin_base
 if [ $? -ne 0 ]; then
@@ -161,7 +151,7 @@ fi
 
 echo "`date '+%Y/%m/%d %k:%M:%S.%N'` $replay_bin_base is startREPLAY SUCESS.."
 
-nohup stdbuf --output=L --error=L $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>$dat2cli_log 2>&1 &
+nohup stdbuf --output=L --error=L $dat2cli_bin -w$writeusr -o$workroot -p$cfg_file -r$disp_file -u$user_file 1>>$dat2cli_log 2>&1 &
 sleep 1
 $pidof_bin -x dat2cli
 if [ $? -ne 0 ]; then
@@ -172,7 +162,7 @@ fi
 
 echo "`date '+%Y/%m/%d %k:%M:%S.%N'` dat2cli is startup SUCESS.."
 
-nohup $moni_bin $ethdev 1>$moni_log 2>&1 &
+nohup $moni_bin $ethdev 1>>$moni_log 2>&1 &
 
 sleep 1
 $pidof_bin -x moni.sh

@@ -546,7 +546,11 @@ bool DealCommand(string &msg)
 	bool bRes = true;
 	BizCode iBizCode;
 	string msgProtobuf;
+	
+	Reply rep;
+	string msgRep,msgBody,sPasswd;
 
+	static bool m_loginOK=false;
 	static BIos_t ios;
 	static MyTimer *pTimer=NULL;
 	static std::thread *pThread=NULL;
@@ -557,12 +561,9 @@ bool DealCommand(string &msg)
 
 	case LOGIN_REQ:
 	{
-		Reply rep;
+		
 		LoginRequest req;
 		ErrCode errcode = ErrCode::OTHER;
-
-		string msgRep,msgBody,sPasswd;
-
 
 		req.ParseFromString(msgProtobuf);
 		sPasswd = req.password();
@@ -645,6 +646,8 @@ bool DealCommand(string &msg)
 
 		printf_dt("LOGIN_REP login SUCCESS user=%s(%s:%d).\n",
 			CONN.sUserName,CONN.sDestIp,CONN.iPort);
+		
+		m_loginOK=true;
 	}
 	break;
 	case SUBSCRIBLE:
@@ -652,6 +655,19 @@ bool DealCommand(string &msg)
 		char sInfo[256],sMsg[256],sErrMsg[256];
 
 		SubscribeRequest req;
+
+		//如果没有过登录这个环节，必须提示并拒绝登录
+		if(m_loginOK!=true){
+			rep.set_desc("must_logined");
+			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
+			TCP_SOCKET.send((unsigned char *) msgBody.data(), msgBody.size());
+			bRes = false;
+
+			printf_dt("SUBSCRIBLE_REP must logined first user=%s(%s:%d-p-%d).\n",
+				CONN.sUserName,CONN.sDestIp,CONN.iPort,getpid());
+			break;
+		}
+		
 		req.ParseFromString(msgProtobuf);
 		bRes = setSubscrible(req);
 
@@ -673,13 +689,12 @@ bool DealCommand(string &msg)
 		break;
 	case HEART_BEAT:
 	{
-#ifdef DEBUG_ONE
 
 		printf_dt("Recv HEART_BEAT MSG user=%s(%s:%d).\n",
 			CONN.sUserName,CONN.sDestIp,CONN.iPort);
 
 		PrintHexBuf((char*)(msg.c_str()),msg.size());
-#endif
+
 		pTimer->resetTimer(ServerInfo.iHeartBeat*2);
 	}
 		break;
@@ -689,6 +704,19 @@ bool DealCommand(string &msg)
 		char sInfo[256],sMsg[256],sErrMsg[256];
 
 		PbCodesSub req;
+
+		//如果没有过登录这个环节，必须提示并拒绝登录
+		if(m_loginOK!=true){
+			rep.set_desc("must_logined");
+			addBizcode(msgBody, rep, BizCode::LOGIN_REP);
+			TCP_SOCKET.send((unsigned char *) msgBody.data(), msgBody.size());
+			bRes = false;
+
+			printf_dt("CODES_SUB_REP must logined first user=%s(%s:%d-p-%d).\n",
+				CONN.sUserName,CONN.sDestIp,CONN.iPort,getpid());
+
+			break;
+		}
 
 		req.ParseFromString(msgProtobuf);
 		const int sz = req.codes_size();

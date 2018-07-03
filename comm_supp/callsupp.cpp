@@ -152,8 +152,8 @@ int WatchFileCloseWriteAndLock(char sFileName[])
 			printf("%s:%s CATCH WRITE-ON-CLOSE EVENT\ti=%d,m=%d,mi=%s l=%d\n",
 				sHostTime,sMilli,i,event->mask,GetEventStrInfo(event->mask),len);
 //			printf("catch WRITE-ON-CLOSE EVENT.\n");
-			//等10毫秒后再加载内存
-			usleep(10000);
+			//等2毫秒后再加载内存
+			usleep(2000);
 			//锁定变量
 			LockWorkThread();
 		}

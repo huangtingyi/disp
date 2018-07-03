@@ -97,6 +97,9 @@ installdir()
 			cp shell/startup.sh	../bin/startdf.sh
 			cp shell/startrep.sh	../bin/startrep_tdf.sh
 			cp shell/shedrep.sh	../bin
+			cp shell/reconn.sh	../bin
+			cp shell/reconn.sh	../bin/reconn_tdf.sh
+			cp shell/reconn_ez.sh	../bin
 			;;
 		conf)   
 			cp conf/cfg.json	../conf

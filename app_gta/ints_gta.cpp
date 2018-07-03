@@ -58,7 +58,6 @@ void PrintUsage(char *argv[])
 
 int main(int argc, char *argv[])
 {
-
 	strcpy(sCfgJsonName,	"./gta_ints.json");
 	strcpy(sDispName,	"./disp.json");
 	strcpy(sPrivilegeName,	"./user_privilege.json");
@@ -110,7 +109,7 @@ int main(int argc, char *argv[])
 	//刷新一下参数，避免要求disp先启动，才能启动本程序
 	RefreshUserArray(sDispName,&R);
 
-	uint16_t port;
+	uint16_t port,iFailCnt=0;
 	string host,id,passwd,strWork;
 	boost::property_tree::ptree tRoot,t;
 
@@ -130,7 +129,7 @@ int main(int argc, char *argv[])
 	//订阅消息回调类
 	CallBackBase CallbackBase(iWriteFlag,(char*)"",strWork);
 	CallbackBase.SetIoService(&ios);
-	
+
 	pCallBack=&CallbackBase;
 
 	//启动处理数据服务
@@ -154,140 +153,144 @@ int main(int argc, char *argv[])
 	//设置超时时间
 	pApiBase->SetTimeout(30);
 
-	do{
+	RetCode  ret;
+
+	//只有连续三次都失败了，才算真失败噢
+	while(iFailCnt<3){
 		//通过用户名与密码向服务器登陆
 		//详见《国泰安实时行情系统V2.X 用户手册》4.2.1.5 用户认证Login 章节
-		RetCode  ret = pApiBase->LoginX(id.c_str(), passwd.c_str(), "NetType=0");
-		if (Ret_Success != ret){
-			printf("Login error:%d\n", ret);
-			break;
-		}
+		ret = pApiBase->LoginX(id.c_str(), passwd.c_str(), "NetType=0");
 
-		//****************************** 获取证券代码列表及权限列表****************************************
-		CDataBuffer<StockSymbol> StockList1;
-
-		// 获取上交所和深交所代码列表，其中SSE表示上交所，SZSE表示深交所，CFFEX表示中金所
-		//详见《国泰安实时行情系统V2.X 用户手册》4.2.1.11 获取代码列表GetStockList 章节
-		ret = pApiBase->GetStockList((char*)"sse,szse", StockList1);
-		if (Ret_Success != ret){
-			printf("GetStockList(sse,szse) error:%d\n", ret);
-			break;
-		}
-
-		StockSymbol* pStock = StockList1;
-		int sz = StockList1.Size();
-		char sShStr[40960],sSzStr[40960];
-		
-		GetStockStrAll(pStock,sz,sShStr,sSzStr);
-
-
-/*		VectorStockCodeSH vSH;
-		VectorStockCodeSZ vSZ;
-
-		for (int i = 0; i < sz; ++i) {
-			if (!(vSH.push(pStock[i].Symbol))) {
-				vSZ.push(pStock[i].Symbol);
-			}
-		}
-		printf("\n");
-		
-*/
-		CDataBuffer<MsgType> DataTypeList;
-		// 获取权限列表
-		//详见《国泰安实时行情系统V2.X 用户手册》4.1.1.7 获取权限列表GetDataTypeList 章节
-		ret = pApiBase->GetDataTypeList(DataTypeList);
-		if (Ret_Success != ret){
-			printf("GetDataTypeList(sse) error:%d\n", ret);
-			break;
-		}
-
-		MsgType* pMsg = DataTypeList;
-		int Count = DataTypeList.Size();
-		printf("MsgType Count = %d, List:", Count);
-		for (int i = 0; i < Count; ++i)
-		{
-			printf("Ox%08x, ", pMsg[i]);
-		}
-		printf("\n");
-
-		//************************************订阅行情数据***********************************************
-
-		// 按代码订阅深交所实时行情数据
-		//详见《国泰安实时行情系统V2.X 用户手册》4.1.1.8 订阅实时数据Subscribe 章节
-//		string strCodesSH,strCodesSZ;
-//		vSH.strForSub(strCodesSH);
-//		vSZ.strForSub(strCodesSZ);
-		
-		//初始化涨停跌停数组
-		InitLimitArray();
-		//获取静态上海数据,获取涨停跌停数值
-		CDataBuffer<SSEL2_Static> Snap_Quotation;
-		//ret = pApiBase->QuerySnap_SSEL2_Static((char*)(strCodesSH.c_str()), Snap_Quotation);
-		ret = pApiBase->QuerySnap_SSEL2_Static(sShStr, Snap_Quotation);
-		if (Ret_Success != ret) {
-			return false;
-		}
-		// 获取全部快照
-		sz = Snap_Quotation.Size();
-		for (int i = 0; i < sz; ++i) {
-			SSEL2_Static& SS = Snap_Quotation[i];
-			int iStockCode=atoi(SS.Symbol);
-			
-			if(iStockCode>=0&&iStockCode<MAX_STOCK_CODE){
-				LIMIT[iStockCode].WarrantDownLimit=	SS.PriceDownLimit;
-				LIMIT[iStockCode].WarrantUpLimit=	SS.PriceUpLimit;
-			}
-			//g_LimitPriceMgr.update(SS.Symbol, SS.PriceUpLimit, SS.PriceDownLimit);
-		}
-
-		//上海L2集合竞价
-		//ret = pApiBase->Subscribe(Msg_SSEL2_Auction, (char*)(strCodesSH.c_str()));
-		ret = pApiBase->Subscribe(Msg_SSEL2_Auction, sShStr);
-		if (Ret_Success != ret) {
-			printf("Subscribe Msg_SSEL2_Auction code=%d\n",ret);
-			break;
-		}
-
-		//上海L2实时行情
-		//ret = pApiBase->Subscribe(Msg_SSEL2_Quotation, (char*)(strCodesSH.c_str()));
-		ret = pApiBase->Subscribe(Msg_SSEL2_Quotation, sShStr);
-		if (Ret_Success != ret) {
-			printf("Subscribe Msg_SSEL2_Quotation code=%d\n",ret);
-			break;
-		}
-		//上海L2实时交易
-		//ret = pApiBase->Subscribe(Msg_SSEL2_Transaction, (char*)(strCodesSH.c_str()));
-		ret = pApiBase->Subscribe(Msg_SSEL2_Transaction, sShStr);
-		if (Ret_Success != ret) {
-			printf("Subscribe Msg_SSEL2_Transaction code=%d\n",ret);
-			break;
-		}
-
-		//深圳L2实时行情
-		//ret = pApiBase->Subscribe(Msg_SZSEL2_Quotation, (char*)(strCodesSZ.c_str()));
-		ret = pApiBase->Subscribe(Msg_SZSEL2_Quotation, sSzStr);
-		if (Ret_Success != ret) {
-			printf("Subscribe Msg_SZSEL2_Quotation code=%d\n",ret);
-			break;
-		}
-		//深圳L2实时交易
-		//ret = pApiBase->Subscribe(Msg_SZSEL2_Transaction, (char*)(strCodesSZ.c_str()));
-		ret = pApiBase->Subscribe(Msg_SZSEL2_Transaction, sSzStr);
-		if (Ret_Success != ret) {
-			printf("Subscribe Msg_SZSEL2_Transaction code=%d\n",ret);
-			break;
-		}
-		//深圳L2逐笔委托
-		//ret = pApiBase->Subscribe(Msg_SZSEL2_Order, (char*)(strCodesSZ.c_str()));
-		ret = pApiBase->Subscribe(Msg_SZSEL2_Order, sSzStr);
-		if (Ret_Success != ret) {
-			printf("Subscribe Msg_SZSEL2_Order code=%d\n",ret);
-			break;
-		}
-
+		if(ret==Ret_Success) break;
+		printf("Login error :%d ,%d cnt 5s latter try\n",ret,++iFailCnt);
+		sleep(5);
 	}
-	while (false);
 
+	if(ret!=Ret_Success){
+		printf("Login error 3 times\n");
+		return -1;
+	}
+
+	printf("Login Success!\n");
+
+	//****************************** 获取证券代码列表及权限列表****************************************
+	CDataBuffer<StockSymbol> StockList1;
+
+	// 获取上交所和深交所代码列表，其中SSE表示上交所，SZSE表示深交所，CFFEX表示中金所
+	//详见《国泰安实时行情系统V2.X 用户手册》4.2.1.11 获取代码列表GetStockList 章节
+	ret = pApiBase->GetStockList((char*)"sse,szse", StockList1);
+	if (Ret_Success != ret){
+		printf("GetStockList(sse,szse) error:%d\n", ret);
+		return -1;
+	}
+
+	StockSymbol* pStock = StockList1;
+	int sz = StockList1.Size();
+	char sShStr[40960],sSzStr[40960];
+
+	GetStockStrAll(pStock,sz,sShStr,sSzStr);
+
+
+/*	VectorStockCodeSH vSH;
+	VectorStockCodeSZ vSZ;
+	for (int i = 0; i < sz; ++i) {
+		if (!(vSH.push(pStock[i].Symbol))) {
+			vSZ.push(pStock[i].Symbol);
+		}
+	}
+	printf("\n");
+
+*/
+	CDataBuffer<MsgType> DataTypeList;
+	// 获取权限列表
+	//详见《国泰安实时行情系统V2.X 用户手册》4.1.1.7 获取权限列表GetDataTypeList 章节
+	ret = pApiBase->GetDataTypeList(DataTypeList);
+	if (Ret_Success != ret){
+		printf("GetDataTypeList(sse) error:%d\n", ret);
+		return -1;
+	}
+
+	MsgType* pMsg = DataTypeList;
+	int Count = DataTypeList.Size();
+	printf("MsgType Count = %d, List:", Count);
+	for (int i = 0; i < Count; ++i)
+		printf("Ox%08x, ", pMsg[i]);
+
+	printf("\n");
+
+	//************************************订阅行情数据***********************************************
+
+	// 按代码订阅深交所实时行情数据
+	//详见《国泰安实时行情系统V2.X 用户手册》4.1.1.8 订阅实时数据Subscribe 章节
+//	string strCodesSH,strCodesSZ;
+//	vSH.strForSub(strCodesSH);
+//	vSZ.strForSub(strCodesSZ);
+
+	//初始化涨停跌停数组
+	InitLimitArray();
+	//获取静态上海数据,获取涨停跌停数值
+	CDataBuffer<SSEL2_Static> Snap_Quotation;
+	//ret = pApiBase->QuerySnap_SSEL2_Static((char*)(strCodesSH.c_str()), Snap_Quotation);
+	ret = pApiBase->QuerySnap_SSEL2_Static(sShStr, Snap_Quotation);
+	if (Ret_Success != ret) {
+		return false;
+	}
+	// 获取全部快照
+	sz = Snap_Quotation.Size();
+	for (int i = 0; i < sz; ++i) {
+		SSEL2_Static& SS = Snap_Quotation[i];
+		int iStockCode=atoi(SS.Symbol);
+		if(iStockCode>=0&&iStockCode<MAX_STOCK_CODE){
+			LIMIT[iStockCode].WarrantDownLimit=	SS.PriceDownLimit;
+			LIMIT[iStockCode].WarrantUpLimit=	SS.PriceUpLimit;
+		}
+		//g_LimitPriceMgr.update(SS.Symbol, SS.PriceUpLimit, SS.PriceDownLimit);
+	}
+
+	//上海L2集合竞价
+	//ret = pApiBase->Subscribe(Msg_SSEL2_Auction, (char*)(strCodesSH.c_str()));
+	ret = pApiBase->Subscribe(Msg_SSEL2_Auction, sShStr);
+	if (Ret_Success != ret) {
+		printf("Subscribe Msg_SSEL2_Auction code=%d\n",ret);
+		return -1;
+	}
+
+	//上海L2实时行情
+	//ret = pApiBase->Subscribe(Msg_SSEL2_Quotation, (char*)(strCodesSH.c_str()));
+	ret = pApiBase->Subscribe(Msg_SSEL2_Quotation, sShStr);
+	if (Ret_Success != ret) {
+		printf("Subscribe Msg_SSEL2_Quotation code=%d\n",ret);
+		return -1;
+	}
+	//上海L2实时交易
+	//ret = pApiBase->Subscribe(Msg_SSEL2_Transaction, (char*)(strCodesSH.c_str()));
+	ret = pApiBase->Subscribe(Msg_SSEL2_Transaction, sShStr);
+	if (Ret_Success != ret) {
+		printf("Subscribe Msg_SSEL2_Transaction code=%d\n",ret);
+		return -1;
+	}
+
+	//深圳L2实时行情
+	//ret = pApiBase->Subscribe(Msg_SZSEL2_Quotation, (char*)(strCodesSZ.c_str()));
+	ret = pApiBase->Subscribe(Msg_SZSEL2_Quotation, sSzStr);
+	if (Ret_Success != ret) {
+		printf("Subscribe Msg_SZSEL2_Quotation code=%d\n",ret);
+		return -1;
+	}
+	//深圳L2实时交易
+	//ret = pApiBase->Subscribe(Msg_SZSEL2_Transaction, (char*)(strCodesSZ.c_str()));
+	ret = pApiBase->Subscribe(Msg_SZSEL2_Transaction, sSzStr);
+	if (Ret_Success != ret) {
+		printf("Subscribe Msg_SZSEL2_Transaction code=%d\n",ret);
+		return -1;
+	}
+		//深圳L2逐笔委托
+	//ret = pApiBase->Subscribe(Msg_SZSEL2_Order, (char*)(strCodesSZ.c_str()));
+	ret = pApiBase->Subscribe(Msg_SZSEL2_Order, sSzStr);
+	if (Ret_Success != ret) {
+		printf("Subscribe Msg_SZSEL2_Order code=%d\n",ret);
+		return -1;
+	}
 
 	pthread_t pthd_d31;
 	pthread_attr_t attr_d31;
@@ -335,13 +338,13 @@ int ReadD31FileAndSend(char sFileName[],long *plCurPos)
 	}
 
 	lSize=lFileSize(sFileName);
-	
+
 	if(lSize<=lCurPos) return 0;
 
 	lItemLen=sizeof(struct D31ItemStruct)+sizeof(long long);
-	
+
 	lCnt=(lSize-lCurPos)/lItemLen;
-	
+
 	if(lCnt==0) return 0;
 
 
@@ -375,10 +378,10 @@ int ReadD31FileAndSend(char sFileName[],long *plCurPos)
 /**
 if(iCount++%3000==0){
 	char sTradeTime[15];
-	
+
 	iFlag=1;
 	sFormatTime((time_t)p->nTradeTime,sTradeTime);
-	
+
 	printf("cnt=%d,stoct_code=%d,tradetime=%d stdtime=%s.\n",
 		iCount,p->nStockCode,p->nTradeTime,sTradeTime);
 }
@@ -389,13 +392,13 @@ if(iCount++%3000==0){
 //if(iFlag==1)
 //	printf("post end.------------------------------------.\n");
 		}
-		
+
 		lCnt--;
 		lCurPos+=lItemLen;
 	}
-	
+
 	*plCurPos=lCurPos;
-	
+
 	fclose(fp);
 
 	return 0;
@@ -404,17 +407,17 @@ void *MainD31Transfer(void *)
 {
 	long lCurPos=0;
 	char sHostTime[15],sInFileName[1024];
-	
+
 	GetHostTime(sHostTime);
 	sHostTime[8]=0;
 
 	sprintf(sInFileName,"%s/d31_g3_%s.dat",sWorkD31,sHostTime);
 
 printf("the file name=%s.\n",sInFileName);
-	
+
 	while(1){
 		ReadD31FileAndSend(sInFileName,&lCurPos);
-		
+
 		//每10毫秒刷一次
 		usleep(10*1000);
 	}

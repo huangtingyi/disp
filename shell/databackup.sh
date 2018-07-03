@@ -121,8 +121,8 @@ backup_file $workroot/$tdf_qu_file $bakpath/$tdf_qu_file.gz || exit 1;
 backup_file $workroot/$tdf_or_file $bakpath/$tdf_or_file.gz || exit 1;
 backup_file $workroot/$tdf_tr_file $bakpath/$tdf_tr_file.gz || exit 1;
 
-backup_file $workd31/$d31_g3_file $replaydir/$d31_g3_file.gz || exit 1;
-backup_file $workd31/$d31_t3_file $replaydir/$d31_t3_file.gz || exit 1;
+backup_file $workd31/$d31_g3_file $bakpath/$d31_g3_file.gz || exit 1;
+backup_file $workd31/$d31_t3_file $bakpath/$d31_t3_file.gz || exit 1;
 
 
 echo "`date '+%Y/%m/%d %k:%M:%S.%N'` backup $bakdate file All OK..."

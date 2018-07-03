@@ -427,16 +427,21 @@ void StatD31Ext(struct IndexStatStruct *p,struct TinyQuotationStruct *ptCur)
 	pD31Ex->nWtAvgBidPrice=	ptCur->nWtAvgBidPrice;
 	pD31Ex->nWtAvgAskPrice=	ptCur->nWtAvgAskPrice;
 
-	//确保只累加一致
-	if(ptCur->iSamplingFlag==0){
-		p->iSamplingCnt++;
-		p->lAddupSamplingBidAmnt+=pD31Ex->lTotalBidAmnt;
-		p->lAddupSamplingAskAmnt+=pD31Ex->lTotalAskAmnt;
-		ptCur->iSamplingFlag=	1;
+	//确保只累加一致,只有整分钟时才采样
+	if((p->nT0%100000)==0){
+		if(ptCur->iSamplingFlag==0){
+			p->iSamplingCnt++;
+			p->lAddupSamplingBidAmnt+=pD31Ex->lTotalBidAmnt;
+			p->lAddupSamplingAskAmnt+=pD31Ex->lTotalAskAmnt;
+			ptCur->iSamplingFlag=	1;
+		}
+		pD31Ex->lAvgTotalBidAmnt=p->lAddupSamplingBidAmnt/p->iSamplingCnt;
+		pD31Ex->lAvgTotalAskAmnt=p->lAddupSamplingAskAmnt/p->iSamplingCnt;
 	}
-
-	pD31Ex->lAvgTotalBidAmnt=p->lAddupSamplingBidAmnt/p->iSamplingCnt;
-	pD31Ex->lAvgTotalAskAmnt=p->lAddupSamplingAskAmnt/p->iSamplingCnt;
+	else{
+		pD31Ex->lAvgTotalBidAmnt=(p->lAddupSamplingBidAmnt+pD31Ex->lTotalBidAmnt)/(p->iSamplingCnt+1);
+		pD31Ex->lAvgTotalAskAmnt=(p->lAddupSamplingAskAmnt+pD31Ex->lTotalAskAmnt)/(p->iSamplingCnt+1);
+	}
 }
 
 //b)根据S0T列表中，循环查找M_ORDER表中，生成 D31IndexItem数据；
@@ -672,8 +677,8 @@ int WriteD31Stat1(FILE *fp,struct IndexStatStruct *p,int iWriteFlag)
 		t.fTenAskVolume=	(float)pEx->nTenAskVolume/100;
 		t.fTenBidAmnt=		(float)pEx->lTenBidAmnt/1000000;
 		t.fTenAskAmnt=		(float)pEx->lTenAskAmnt/1000000;
-		t.fTotalBidVolume=	(float)pEx->nTotalBidVolume;
-		t.fTotalAskVolume=	(float)pEx->nTotalAskVolume;
+		t.fTotalBidVolume=	(float)pEx->nTotalBidVolume/100;
+		t.fTotalAskVolume=	(float)pEx->nTotalAskVolume/100;
 		t.fTotalBidAmnt=	(float)pEx->lTotalBidAmnt/1000000;
 		t.fTotalAskAmnt=	(float)pEx->lTotalAskAmnt/1000000;
 		t.fWtAvgBidPrice=	(float)pEx->nWtAvgBidPrice/10000;

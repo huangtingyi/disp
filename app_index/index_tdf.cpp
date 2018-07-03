@@ -558,7 +558,7 @@ int main(int argc, char *argv[])
 				continue;
 			}
 			//九点半前集合竞价外的时间
-			if(nCurTime<91455000||
+			if(nCurTime<92455000||
 				(nCurTime>92600000&&nCurTime<92955000)){
 				//休眠5秒钟
 				sleep(5);
@@ -566,18 +566,12 @@ int main(int argc, char *argv[])
 
 			}
 			//除开集合竞价展示外的时间
-			if(nCurTime<91500000||nCurTime>92600000){
+			if(nCurTime<92500000||nCurTime>92600000){
 				usleep(iIdleWaitMilli*1000);
 				continue;
 			}
 			//如果本次时间和上次时间不足一秒，则继续扫描
-			int iX;
-			
-			if(nCurTime>=92500000)  iX=1000;
-			else			iX=15000;
-
-			if((nCurTime-nPreTime)<iX){
-			
+			if((nCurTime-nPreTime)<1000){
 				usleep(iIdleWaitMilli*1000);
 				continue;
 			}
