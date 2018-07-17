@@ -8,6 +8,7 @@
 char ParseToken[PARSE_ARRAY_LEN][PARSE_ITEM_LEN];
 
 /*  *pterrcode==0 means no error happen */
+//这个函数和时区相关
 time_t tGetTime(char sAnswerTime[15])
 {
 	int iMaxDays=0;
@@ -153,9 +154,7 @@ int GetHostTimeX(char sHostTime[15],char sMiniSec[4])
 }
 time_t tGetHostTime()
 {
-	char sHostTime[15];
-	GetHostTime(sHostTime);
-	return tGetTime(sHostTime);
+	return time(NULL);
 }
 int LeapYear(char sTempDate[15])
 {

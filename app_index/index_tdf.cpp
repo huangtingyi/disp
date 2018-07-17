@@ -75,7 +75,8 @@ void TDF_MARKET_DATA2TinyQuotation(TDF_MARKET_DATA *pi,struct TinyQuotationStruc
 
 
 int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
-	int nPreT0,int nT0,int nEndTime0,long lItemLen,char sCodeStr[],long *plCurPos)
+	int nPreT0,int nT0,int nEndTime0,time_t tBeginTime,
+	long lItemLen,char sCodeStr[],long *plCurPos)
 {
 	FILE *fp;
 	int iRet;
@@ -190,7 +191,10 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 	}
 
 	if(nEndTime0>=MY_CLOSE_MARKET_TIME&&
-		iRet==MY_TAIL_NO_STAT) iRet=MY_WANT_STAT;
+		iRet==MY_TAIL_NO_STAT){
+		//如果当前时间已超数据截止时间20秒了，则触发去统计
+		if(tBeginTime>(time_t)(nEndTime0+20000)) iRet=MY_WANT_STAT;
+	}
 
 	fclose(fp);
 	*plCurPos=lCurPos;
@@ -384,7 +388,9 @@ int MountOrdData2IndexStatArray(char sFileName[],int nBgnActionDay,
 
 int IsBusyTime(int iTime)
 {
-	if(iTime<93500000||(iTime>125900000&&iTime<130200000)) return true;
+	if(iTime<93500000||
+		(iTime>125900000&&iTime<130200000)||
+		iTime==MY_CLOSE_MARKET_TIME) return true;
 	return false;
 }
 int IsStopTime(int iTime)
@@ -510,12 +516,8 @@ int main(int argc, char *argv[])
 		tBeginTime=tGetHostTime();
 
 		//为了避免订单数据迟到,订单超前取20秒，在收盘最后一笔，手工设置时延
-		if(IsBusyTime(nT0)){
+		if(IsBusyTime(nT0))
 			nEndTime0=iAddMilliSec(nT0,iBusyDelay+20000);
-			if(nT0==MY_CLOSE_MARKET_TIME)	nEndTime0=MY_CLOSE_MARKET_TIME+1000000;
-//			if(nT0==MY_OPEN_MARKET_TIME)	nEndTime0=iAddMilliSec(MY_PRE_OPEN_TIME,iBusyDelay);
-
-		}
 		else	nEndTime0=iAddMilliSec(nT0,iDelay+20000);
 
 		//加载深圳订单数据
@@ -523,15 +525,13 @@ int main(int argc, char *argv[])
 			nEndTime0,sizeof(long long)+sizeof(TDF_ORDER),sCodeStr,&lOrdCurPos);
 		if(iOrdRes<0) return -1;
 
-		if(IsBusyTime(nT0)){
+		if(IsBusyTime(nT0))
 			nEndTime0=iAddMilliSec(nT0,iBusyDelay);
-//			if(nT0==MY_OPEN_MARKET_TIME)	nEndTime0=iAddMilliSec(MY_PRE_OPEN_TIME,iBusyDelay);
-		}
 		else	nEndTime0=iAddMilliSec(nT0,iDelay);
 
 		//加载深圳、和上海的交易数据
 		iTraRes=MountTrsData2IndexStatArray(sTraName,nBgnActionDay,nPreT0,nT0,
-			nEndTime0,sizeof(long long)+sizeof(TDF_TRANSACTION),sCodeStr,&lTraCurPos);
+			nEndTime0,tBeginTime,sizeof(long long)+sizeof(TDF_TRANSACTION),sCodeStr,&lTraCurPos);
 		if(iTraRes<0) return -1;
 		//加载深圳和上海的行情数据
 		iMktRes=MountQuotation2IndexStatArray(sMktName,nBgnActionDay,nPreT0,nT0,
@@ -572,6 +572,11 @@ int main(int argc, char *argv[])
 			}
 			//如果本次时间和上次时间不足一秒，则继续扫描
 			if((nCurTime-nPreTime)<1000){
+				usleep(iIdleWaitMilli*1000);
+				continue;
+			}
+			//如果已经是最后一笔业务了，等待标识复位
+			if(nT0==MY_CLOSE_MARKET_TIME){
 				usleep(iIdleWaitMilli*1000);
 				continue;
 			}

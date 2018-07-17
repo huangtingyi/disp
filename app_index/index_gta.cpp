@@ -185,7 +185,8 @@ void SZSEL2_Quotation2TinyQuotation(void *p, struct TinyQuotationStruct *po)
 
 
 int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
-	int nPreT0,int nT0,int nEndTime0,long lItemLen,char sCodeStr[],long *plCurPos)
+	int nPreT0,int nT0,int nEndTime0,time_t tBeginTime,
+	long lItemLen,char sCodeStr[],long *plCurPos)
 {
 	FILE *fp;
 	int iRet;
@@ -300,6 +301,12 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 			break;
 		}
 
+	}
+
+	if(nEndTime0>=MY_CLOSE_MARKET_TIME&&
+		iRet==MY_TAIL_NO_STAT){
+		//如果当前时间已超数据截止时间20秒了，则触发去统计
+		if(tBeginTime>(time_t)(nEndTime0+20000)) iRet=MY_WANT_STAT;
 	}
 
 	fclose(fp);
@@ -655,7 +662,7 @@ int main(int argc, char *argv[])
 		//加载深圳交易数据
 		GTA2TDF_Q2T=GTA2TDF_QZ2T;
 		iTzRes=MountTrsData2IndexStatArray(sGtaTzName,nBgnActionDay,nPreT0,nT0,
-			nEndTime0,sizeof(long long)+sizeof(SZSEL2_Transaction),sCodeStr,&lTzCurPos);
+			nEndTime0,tBeginTime,sizeof(long long)+sizeof(SZSEL2_Transaction),sCodeStr,&lTzCurPos);
 		if(iTzRes<0) return -1;
                           
 		//加载深圳行情数据
@@ -675,7 +682,7 @@ int main(int argc, char *argv[])
 		//加载上海交易数据
 		GTA2TDF_Q2T=GTA2TDF_QH2T;
 		iThRes=MountTrsData2IndexStatArray(sGtaThName,nBgnActionDay,nPreT0,nT0,
-			nEndTime0,sizeof(long long)+sizeof(SSEL2_Transaction),sCodeStr,&lThCurPos);
+			nEndTime0,tBeginTime,sizeof(long long)+sizeof(SSEL2_Transaction),sCodeStr,&lThCurPos);
 		if(iThRes<0) return -1;
 
 		//加载上海行情数据
@@ -720,6 +727,11 @@ int main(int argc, char *argv[])
 			}
 			//如果本次时间和上次时间不足一秒，则继续扫描
 			if((nCurTime-nPreTime)<1000){
+				usleep(iIdleWaitMilli*1000);
+				continue;
+			}
+			//如果已经是最后一笔业务了，等待标识复位
+			if(nT0==MY_CLOSE_MARKET_TIME){
 				usleep(iIdleWaitMilli*1000);
 				continue;
 			}
