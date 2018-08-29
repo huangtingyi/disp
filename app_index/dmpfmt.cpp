@@ -1039,30 +1039,30 @@ int print_MY_TYPE_D31_EXT(char *buf,char sCodeList[],int iTimeFlag,
 	sprintf(outbuf,"%lld\t%d\t%s\t%d\t\
 %-10d\t%-10d\t%-12ld\t%-12ld\t%-10d\t%-10d\t%-12ld\t%-12ld\t\
 %-10d\t%-10d\t%-10d\t%-10d\t%-12ld\t%-12ld\t%-12ld\t%-12ld\t%-12ld\t%-12ld\t%-12ld\t%-12ld\n",
-		*(long long *)buf,//picktime
-		(int)lTime,//委托时间YYYYMMDDHHMMSSMMM
-		sCode,
-		iDiffnTime((int)lTmpTime,(int)lTime),
-		(int)(p->fTenBidVolume*100),		//十档买量（手）
-		(int)(p->fTenAskVolume*100),		//十档卖量（手）
-		(long)(p->fTenBidAmnt*1000000),		//十档买额（分）
-		(long)(p->fTenAskAmnt*1000000),		//十档卖额（分）
-		(int)(p->fTotalBidVolume*100),		//叫买总量（手）
-		(int)(p->fTotalAskVolume*100),		//叫卖总量（手）
-		(long)(p->fTotalBidAmnt*1000000),	//叫买总额（分）
-		(long)(p->fTotalAskAmnt*1000000),	//叫卖总额（分）
-		(int)(p->fWtAvgBidPrice*10000),		//加权平均叫买价（分）
-		(int)(p->fWtAvgAskPrice*10000),		//加权平均叫卖价（分）
-		(int)(p->fLastClose*10000),		//昨收盘价
-		(int)(p->fCurPrice*10000),		//最新价
-		(long)(p->fAvgTotalBidAmnt*1000000),	//平均叫买总额（当日平均，分）
-		(long)(p->fAvgTotalAskAmnt*1000000),	//平均叫卖总额（当日平均，分）
-		(long)(p->fBidAmount20*1000000),	//跳买额度20w，单位（分）
-		(long)(p->fAskAmount20*1000000),	//跳卖额度20w，单位（分）
-		(long)(p->fBidAmount50*1000000),	//跳买额度50w，单位（分）
-		(long)(p->fAskAmount50*1000000),	//跳卖额度50w，单位（分）
-		(long)(p->fBidAmount100*1000000),	//跳买额度100w，单位（分）
-		(long)(p->fAskAmount100*1000000)	//跳卖额度100w，单位（分）
+		*(long long *)buf,//picktime		//1
+		(int)lTime,//委托时间YYYYMMDDHHMMSSMMM	//2
+		sCode,					//3
+		iDiffnTime((int)lTmpTime,(int)lTime),	//4
+		(int)(p->fTenBidVolume*100),		//5 十档买量（手）
+		(int)(p->fTenAskVolume*100),		//6 十档卖量（手）
+		(long)(p->fTenBidAmnt*1000000),		//7 十档买额（分）
+		(long)(p->fTenAskAmnt*1000000),		//8 十档卖额（分）
+		(int)(p->fTotalBidVolume*100),		//9 叫买总量（手）
+		(int)(p->fTotalAskVolume*100),		//10叫卖总量（手）
+		(long)(p->fTotalBidAmnt*1000000),	//11叫买总额（分）
+		(long)(p->fTotalAskAmnt*1000000),	//12叫卖总额（分）
+		(int)(p->fWtAvgBidPrice*10000),		//13加权平均叫买价（分）
+		(int)(p->fWtAvgAskPrice*10000),		//14加权平均叫卖价（分）
+		(int)(p->fLastClose*10000),		//15昨收盘价
+		(int)(p->fCurPrice*10000),		//16最新价
+		(long)(p->fAvgTotalBidAmnt*1000000),	//17平均叫买总额（当日平均，分）
+		(long)(p->fAvgTotalAskAmnt*1000000),	//18平均叫卖总额（当日平均，分）
+		(long)(p->fBidAmount20*1000000),	//19跳买额度20w，单位（分）
+		(long)(p->fAskAmount20*1000000),	//20跳卖额度20w，单位（分）
+		(long)(p->fBidAmount50*1000000),	//21跳买额度50w，单位（分）
+		(long)(p->fAskAmount50*1000000),	//22跳卖额度50w，单位（分）
+		(long)(p->fBidAmount100*1000000),	//23跳买额度100w，单位（分）
+		(long)(p->fAskAmount100*1000000)	//24跳卖额度100w，单位（分）
 	);
 
 	return 0;

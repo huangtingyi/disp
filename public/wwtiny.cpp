@@ -226,7 +226,7 @@ int AddTen(char sTempDate[15])
 		return -1;
 	}
 
-	strncpy(sTempMonth,sTempDate+4,2); 
+	strncpy(sTempMonth,sTempDate+4,2); sTempMonth[2]=0;
 	iTempMonth=atoi(sTempMonth);
 
 	iOffset=aiMonthDays[iTempMonth-1]-20;

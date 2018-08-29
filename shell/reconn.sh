@@ -66,7 +66,7 @@ fi
 
 ints_bin_base=`basename $ints_bin`
 	
-nohup stdbuf --output=L --error=L $ints_bin -w$writeflag -o$workroot -c$ints_file -r$disp_file -d$workd31 -l$max_mq_msg_len 1>$ints_log 2>&1 &
+nohup stdbuf --output=L --error=L $ints_bin -w$writeflag -o$workroot -c$ints_file -r$disp_file -d$workd31 -l$max_mq_msg_len 1>>$ints_log 2>&1 &
 sleep 1
 $pidof_bin -x $ints_bin_base
 

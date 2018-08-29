@@ -14,6 +14,7 @@ TARGET_E=../bin/broadcast_s
 TARGET_F=../bin/broadcast_c
 TARGET_G=../bin/agentcli_t
 TARGET_H=../bin/dat2cli_t
+TARGET_I=../bin/sendfd
 
 
 CXX=g++ 
@@ -46,9 +47,13 @@ ExampleG_OBJS=$(patsubst %.cpp, %.o, $(ExampleG_SRC))
 ExampleH_SRC=$(wildcard ./dat2cli_t.cpp ./dat2cli_supp.cpp ../public/MessageQueue.cpp ../public/CSemaphore.cpp ../public/mktdata.pb.cpp ../public/TcpSocket.cpp)
 ExampleH_OBJS=$(patsubst %.cpp, %.o, $(ExampleH_SRC))
 
+ExampleI_SRC=$(wildcard ./sendfd.cpp )
+ExampleI_OBJS=$(patsubst %.cpp, %.o, $(ExampleI_SRC))
 
-OBJS= $(Example_OBJS) $(ExampleB_OBJS) $(ExampleC_OBJS) $(ExampleD_OBJS) $(ExampleE_OBJS) $(ExampleF_OBJS) $(ExampleG_OBJS) $(ExampleH_OBJS)
-TARGETS=$(TARGET_A) $(TARGET_B) $(TARGET_C) $(TARGET_D) $(TARGET_E) $(TARGET_F) $(TARGET_G) $(TARGET_H)
+
+
+OBJS= $(Example_OBJS) $(ExampleB_OBJS) $(ExampleC_OBJS) $(ExampleD_OBJS) $(ExampleE_OBJS) $(ExampleF_OBJS) $(ExampleG_OBJS) $(ExampleH_OBJS) $(ExampleI_OBJS)
+TARGETS=$(TARGET_A) $(TARGET_B) $(TARGET_C) $(TARGET_D) $(TARGET_E) $(TARGET_F) $(TARGET_G) $(TARGET_H) $(TARGET_I)
 
 .PHONY: debug release clean
 
@@ -71,6 +76,8 @@ $(TARGET_F): $(ExampleF_OBJS)
 $(TARGET_G): $(ExampleG_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
 $(TARGET_H): $(ExampleH_OBJS)
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
+$(TARGET_I): $(ExampleI_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIB)
 
 %.o: %.cpp

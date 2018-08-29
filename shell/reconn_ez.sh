@@ -16,6 +16,8 @@ commons_file="$HOME/bin/commons"
 agent_file="$HOME/conf/agentcfg.json"
 disp_file="$HOME/conf/disp.json"
 
+pidof_bin="/usr/sbin/pidof"
+
 agent_bin="$HOME/bin/agentcli"
 
 agentcli_log="$HOME/bin/log/agentcli_`date '+%Y%m%d'`.log"
@@ -23,6 +25,8 @@ agentcli_log="$HOME/bin/log/agentcli_`date '+%Y%m%d'`.log"
 [ ! -f $agent_file ] && echo "$agent_file is not exist" && exit 1;
 [ ! -f $disp_file ] && echo "$disp_file is not exist" && exit 1;
 [ ! -f $agent_bin ] && echo "$agent_bin is not exist" && exit 1;
+[ ! -f $pidof_bin ] && echo "$pidof_bin is not exist" && exit 1;
+
 
 my_name=`whoami`
 my_name=${my_name:-$USER}
@@ -39,7 +43,7 @@ if [ $cmdpid -ne 0 ];then
 fi
 
 
-nohup stdbuf --output=L --error=L $agent_bin -p$agent_file -r$disp_file 1>$agentcli_log 2>&1 &
+nohup stdbuf --output=L --error=L $agent_bin -p$agent_file -r$disp_file 1>>$agentcli_log 2>&1 &
 sleep 1
 $pidof_bin -x agentcli
 if [ $? -ne 0 ]; then

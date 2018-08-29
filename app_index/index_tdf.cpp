@@ -75,7 +75,7 @@ void TDF_MARKET_DATA2TinyQuotation(TDF_MARKET_DATA *pi,struct TinyQuotationStruc
 
 
 int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
-	int nPreT0,int nT0,int nEndTime0,time_t tBeginTime,
+	int nPreT0,int nT0,int nEndTime0,
 	long lItemLen,char sCodeStr[],long *plCurPos)
 {
 	FILE *fp;
@@ -193,7 +193,8 @@ int MountTrsData2IndexStatArray(char sFileName[],int nBgnActionDay,
 	if(nEndTime0>=MY_CLOSE_MARKET_TIME&&
 		iRet==MY_TAIL_NO_STAT){
 		//如果当前时间已超数据截止时间20秒了，则触发去统计
-		if(tBeginTime>(time_t)(nEndTime0+20000)) iRet=MY_WANT_STAT;
+		if(nGetHostCurTime()>nEndTime0+20000)
+			iRet=MY_WANT_STAT;
 	}
 
 	fclose(fp);
@@ -531,7 +532,7 @@ int main(int argc, char *argv[])
 
 		//加载深圳、和上海的交易数据
 		iTraRes=MountTrsData2IndexStatArray(sTraName,nBgnActionDay,nPreT0,nT0,
-			nEndTime0,tBeginTime,sizeof(long long)+sizeof(TDF_TRANSACTION),sCodeStr,&lTraCurPos);
+			nEndTime0,sizeof(long long)+sizeof(TDF_TRANSACTION),sCodeStr,&lTraCurPos);
 		if(iTraRes<0) return -1;
 		//加载深圳和上海的行情数据
 		iMktRes=MountQuotation2IndexStatArray(sMktName,nBgnActionDay,nPreT0,nT0,

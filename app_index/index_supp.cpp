@@ -427,8 +427,18 @@ void StatD31Ext(struct IndexStatStruct *p,struct TinyQuotationStruct *ptCur)
 	pD31Ex->nWtAvgBidPrice=	ptCur->nWtAvgBidPrice;
 	pD31Ex->nWtAvgAskPrice=	ptCur->nWtAvgAskPrice;
 
+	//09:30分的数据，直接累加覆盖
 	//确保只累加一致,只有整分钟时才采样
-	if((p->nT0%100000)==0){
+	if(p->nT0==MY_OPEN_MARKET_TIME){
+		p->iSamplingCnt=	1;
+		p->lAddupSamplingBidAmnt=pD31Ex->lTotalBidAmnt;
+		p->lAddupSamplingAskAmnt=pD31Ex->lTotalAskAmnt;
+		ptCur->iSamplingFlag=	1;
+		pD31Ex->lAvgTotalBidAmnt=p->lAddupSamplingBidAmnt;
+		pD31Ex->lAvgTotalAskAmnt=p->lAddupSamplingAskAmnt;
+	}
+	else if((p->nT0%100000)==0){
+		//从9:31开始沿用这个逻辑
 		if(ptCur->iSamplingFlag==0){
 			p->iSamplingCnt++;
 			p->lAddupSamplingBidAmnt+=pD31Ex->lTotalBidAmnt;

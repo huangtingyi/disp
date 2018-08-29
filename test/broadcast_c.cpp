@@ -10,10 +10,10 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define MCAST_PROT 1234
-#define MCAST_ADDR "239.1.2.3"
-#define MCAST_INTERVAL 5
-#define BUFF_SIZE 256
+#define MCAST_PORT 8888
+#define MCAST_ADDR "234.2.2.2"
+#define MCAST_INTERVAL 3
+#define BUFF_SIZE 32
 
 int main(int argc,char *argv[])
 {
@@ -22,20 +22,18 @@ int main(int argc,char *argv[])
 	int err = -1;
 
 	s = socket(AF_INET, SOCK_DGRAM, 0);
-	if(s == -1)
-	{
+	if(s == -1){
 		perror("Socket()");
 		return -1;
 	}
 
 	memset(&local_addr, 0, sizeof(local_addr));
 	local_addr.sin_family = AF_INET;
-	local_addr.sin_addr.s_addr = htons(INADDR_ANY);
-	local_addr.sin_port = htons(MCAST_PROT);
+	local_addr.sin_addr.s_addr = inet_addr(MCAST_ADDR);
+	local_addr.sin_port = htons(MCAST_PORT);
 
 	err = bind(s, (struct sockaddr*)&local_addr,sizeof(local_addr));
-	if(err<0)
-	{
+	if(err<0){
 		perror("bind()");
 		return -2;
 	}
@@ -43,40 +41,36 @@ int main(int argc,char *argv[])
 
 	int loop = 1;
 	err = setsockopt(s, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop));
-	if(err < 0)
-	{
+	if(err < 0){
 		perror("setsockopt():IP_MULTICAST_LOOP");
 		return -3;
 	}
 
 	struct ip_mreq mreq;
 	mreq.imr_multiaddr.s_addr = inet_addr(MCAST_ADDR);
-	mreq.imr_interface.s_addr = htons(INADDR_ANY);
+	mreq.imr_interface.s_addr = INADDR_ANY;
 
 	err = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
-	if(err < 0)
-	{
+	if(err < 0){
 		perror("setsockopt():IP_ADD_MEMBERSHIP");
 		return -4;
 	}
 
-	int times = 0;
-	int addr_len = 0;
 	char buff[BUFF_SIZE];
-	int n = 0;
+	int times = 0,addr_len = 0,n = 0;
 
-	for(times = 0; times <5; times++)
-	{
+	for(times = 0; times <50; times++){
 		addr_len = sizeof(local_addr);
 		memset(buff, 0, BUFF_SIZE);
 
+		printf("recv %s port %d.\n", MCAST_ADDR, MCAST_PORT);
+		
 		n = recvfrom(s, buff, BUFF_SIZE, 0, (struct sockaddr*)&local_addr, (socklen_t*)&addr_len);
-		if(n == -1)
-		{
+		if(n == -1){
 			perror("recvform()");
 		}
 
-		printf("Recv %dst meesage from server:%s\n", times, buff);
+		printf("Recv %dst message from server:%s\n", times, buff);
 		sleep(MCAST_INTERVAL);
 	}
 
